@@ -17,53 +17,7 @@ struct WorkoutPhotoFlowView: View {
     @State private var selectionError: String?
 
     var body: some View {
-        Group {
-            switch step {
-            case .intro:
-                introScreen
-            case .filters:
-                if let selectedImage {
-                    WorkoutPhotoFilterScreen(
-                        image: selectedImage,
-                        filter: $selectedFilter,
-                        isLoading: isLoadingImage,
-                        onClose: onClose,
-                        onContinue: advanceToAdjustments
-                    )
-                } else {
-                    introScreen
-                }
-            case .adjustments:
-                if let selectedImage {
-                    WorkoutPhotoAdjustmentScreen(
-                        image: selectedImage,
-                        filter: selectedFilter,
-                        adjustments: $adjustments,
-                        onBack: { step = .filters },
-                        onContinue: { step = .stamp }
-                    )
-                } else {
-                    introScreen
-                }
-            case .stamp:
-                if let selectedImage {
-                    WorkoutPhotoStampScreen(
-                        image: selectedImage,
-                        data: data,
-                        filter: selectedFilter,
-                        adjustments: adjustments,
-                        stampStyle: $stampStyle,
-                        onBack: { step = .adjustments },
-                        onSave: prepareSharePayload,
-                        onShare: prepareSharePayload
-                    )
-                } else {
-                    introScreen
-                }
-            case .saved:
-                WorkoutPhotoSavedScreen(onClose: onClose)
-            }
-        }
+        stepContent
         .background(WorkoutCompletionColors.canvas)
         .foregroundStyle(WorkoutCompletionColors.primaryText)
         .preferredColorScheme(.dark)
@@ -88,6 +42,55 @@ struct WorkoutPhotoFlowView: View {
             }
         } message: {
             Text(selectionError ?? "")
+        }
+    }
+
+    @ViewBuilder
+    private var stepContent: some View {
+        switch step {
+        case .intro:
+            introScreen
+        case .filters:
+            if let selectedImage {
+                WorkoutPhotoFilterScreen(
+                    image: selectedImage,
+                    filter: $selectedFilter,
+                    isLoading: isLoadingImage,
+                    onClose: onClose,
+                    onContinue: advanceToAdjustments
+                )
+            } else {
+                introScreen
+            }
+        case .adjustments:
+            if let selectedImage {
+                WorkoutPhotoAdjustmentScreen(
+                    image: selectedImage,
+                    filter: selectedFilter,
+                    adjustments: $adjustments,
+                    onBack: { step = .filters },
+                    onContinue: { step = .stamp }
+                )
+            } else {
+                introScreen
+            }
+        case .stamp:
+            if let selectedImage {
+                WorkoutPhotoStampScreen(
+                    image: selectedImage,
+                    data: data,
+                    filter: selectedFilter,
+                    adjustments: adjustments,
+                    stampStyle: $stampStyle,
+                    onBack: { step = .adjustments },
+                    onSave: prepareSharePayload,
+                    onShare: prepareSharePayload
+                )
+            } else {
+                introScreen
+            }
+        case .saved:
+            WorkoutPhotoSavedScreen(onClose: onClose)
         }
     }
 
