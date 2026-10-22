@@ -1,0 +1,26 @@
+included:
+  - GYMUP/Sources
+  - GYMUP/Tests
+
+excluded:
+  - GYMUP/Resources
+  - GYMUP.xcodeproj
+  - .build
+  - Derived
+
+opt_in_rules:
+  - closure_spacing
+  - empty_count
+  - force_unwrapping
+
+line_length:
+  warning: 140
+  error: 180
+
+file_length:
+  warning: 400
+  error: 600
+
+type_body_length:
+  warning: 250
+  error: 350
