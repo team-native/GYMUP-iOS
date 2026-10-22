@@ -4,8 +4,8 @@ import SwiftUI
 struct GYMUPApp: App {
     var body: some Scene {
         WindowGroup {
-            HomeView()
-                .tint(GymupColors.accent)
+            WorkoutCompletionFlowView()
+                .preferredColorScheme(.dark)
         }
     }
 }
