@@ -9,6 +9,10 @@ struct WorkoutPhotoFlowView: View {
     @State private var step: WorkoutPhotoStep = .intro
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
+    @State private var selectedFilter: WorkoutPhotoFilter = .natural
+    @State private var adjustments = WorkoutPhotoAdjustments()
+    @State private var stampStyle: WorkoutPhotoStampStyle = .card
+    @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
     @State private var selectionError: String?
 
@@ -18,9 +22,46 @@ struct WorkoutPhotoFlowView: View {
             case .intro:
                 introScreen
             case .filters:
-                selectedPhotoScreen
-            case .adjustments, .stamp, .saved:
-                EmptyView()
+                if let selectedImage {
+                    WorkoutPhotoFilterScreen(
+                        image: selectedImage,
+                        filter: $selectedFilter,
+                        isLoading: isLoadingImage,
+                        onClose: onClose,
+                        onContinue: advanceToAdjustments
+                    )
+                } else {
+                    introScreen
+                }
+            case .adjustments:
+                if let selectedImage {
+                    WorkoutPhotoAdjustmentScreen(
+                        image: selectedImage,
+                        filter: selectedFilter,
+                        adjustments: $adjustments,
+                        onBack: { step = .filters },
+                        onContinue: { step = .stamp }
+                    )
+                } else {
+                    introScreen
+                }
+            case .stamp:
+                if let selectedImage {
+                    WorkoutPhotoStampScreen(
+                        image: selectedImage,
+                        data: data,
+                        filter: selectedFilter,
+                        adjustments: adjustments,
+                        stampStyle: $stampStyle,
+                        onBack: { step = .adjustments },
+                        onSave: prepareSharePayload,
+                        onShare: prepareSharePayload
+                    )
+                } else {
+                    introScreen
+                }
+            case .saved:
+                WorkoutPhotoSavedScreen(onClose: onClose)
             }
         }
         .background(WorkoutCompletionColors.canvas)
@@ -28,7 +69,25 @@ struct WorkoutPhotoFlowView: View {
         .preferredColorScheme(.dark)
         .onChange(of: selectedItem) { _, item in
             guard let item else { return }
+            selectedItem = nil
             loadImage(from: item)
+        }
+        .sheet(item: $sharePayload) { payload in
+            WorkoutPhotoShareSheet(image: payload.image) { didSaveToPhotos, error in
+                sharePayload = nil
+                if didSaveToPhotos {
+                    step = .saved
+                } else if error != nil {
+                    selectionError = "사진을 공유하지 못했어요. 다시 시도해 주세요."
+                }
+            }
+        }
+        .alert("사진 공유", isPresented: isShowingSelectionError) {
+            Button("확인", role: .cancel) {
+                selectionError = nil
+            }
+        } message: {
+            Text(selectionError ?? "")
         }
     }
 
@@ -52,11 +111,13 @@ struct WorkoutPhotoFlowView: View {
                             .multilineTextAlignment(.center)
                             .fixedSize(horizontal: false, vertical: true)
 
-                        Text("사진을 선택해 오늘의 운동 스탬프를 만들어요.\n선택한 사진은 기기에서만 사용돼요.")
-                            .font(GymupTypography.callout)
-                            .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                            .multilineTextAlignment(.center)
-                            .lineSpacing(4)
+                        VStack(spacing: 4) {
+                            Text("사진을 선택해 오늘의 운동 스탬프를 만들어요.")
+                            Text("사진은 앱 서버로 전송되지 않아요.")
+                        }
+                        .font(GymupTypography.callout)
+                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                        .multilineTextAlignment(.center)
                     }
 
                     if let selectionError {
@@ -88,7 +149,7 @@ struct WorkoutPhotoFlowView: View {
                     .contentShape(RoundedRectangle(cornerRadius: 14))
                 }
                 .disabled(isLoadingImage)
-                .accessibilityHint("기기에 있는 사진을 선택합니다. 사진은 외부로 업로드되지 않습니다.")
+                .accessibilityHint("기기에 있는 사진을 선택합니다. 앱 서버로 전송되지 않습니다.")
 
                 Button("나중에", action: onClose)
                     .font(GymupTypography.callout)
@@ -101,67 +162,13 @@ struct WorkoutPhotoFlowView: View {
         }
     }
 
-    private var selectedPhotoScreen: some View {
-        VStack(spacing: 0) {
-            navigationBar(title: "사진 선택")
-
-            ScrollView {
-                VStack(alignment: .leading, spacing: 18) {
-                    Text("오늘의 운동 사진")
-                        .font(GymupTypography.headline)
-
-                    if let selectedImage {
-                        Image(uiImage: selectedImage)
-                            .resizable()
-                            .scaledToFit()
-                            .frame(maxWidth: .infinity)
-                            .frame(maxHeight: 440)
-                            .clipShape(RoundedRectangle(cornerRadius: 18))
-                            .accessibilityLabel("선택한 운동 사진 미리보기")
-                    } else {
-                        selectedPhotoPlaceholder
-                    }
-
-                    Text("다음 단계에서 사진 보정과 운동 스탬프를 추가할 수 있어요.")
-                        .font(GymupTypography.callout)
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
-                .padding(.bottom, 20)
+    private var isShowingSelectionError: Binding<Bool> {
+        Binding(
+            get: { selectionError != nil },
+            set: { isPresented in
+                if !isPresented { selectionError = nil }
             }
-
-            WorkoutCompletionActionBar(
-                primary: WorkoutCompletionPrimaryButton(title: "다음") {
-                    step = .adjustments
-                },
-                secondary: PhotosPicker(selection: $selectedItem, matching: .images) {
-                    Text("다른 사진 선택")
-                        .font(GymupTypography.headline)
-                        .foregroundStyle(.white)
-                        .frame(maxWidth: .infinity)
-                        .padding(.vertical, 14)
-                        .background(WorkoutCompletionColors.elevatedSurface, in: RoundedRectangle(cornerRadius: 14))
-                }
-            )
-        }
-    }
-
-    private var selectedPhotoPlaceholder: some View {
-        RoundedRectangle(cornerRadius: 18)
-            .fill(WorkoutCompletionColors.surface)
-            .frame(height: 320)
-            .overlay {
-                VStack(spacing: 12) {
-                    Image(systemName: "photo")
-                        .font(.system(size: 32))
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                    Text("사진을 선택하면 여기에 표시돼요")
-                        .font(GymupTypography.callout)
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                }
-            }
+        )
     }
 
     private func navigationBar(title: String) -> some View {
@@ -189,6 +196,44 @@ struct WorkoutPhotoFlowView: View {
         .padding(.top, 4)
     }
 
+    private func advanceToAdjustments() {
+        guard selectedImage != nil else {
+            selectionError = "사진을 먼저 선택해 주세요."
+            step = .intro
+            return
+        }
+
+        guard !isLoadingImage else { return }
+        step = .adjustments
+    }
+
+    private func prepareSharePayload() {
+        guard let selectedImage else {
+            selectionError = "사진을 먼저 선택해 주세요."
+            step = .intro
+            return
+        }
+
+        let poster = WorkoutPhotoPosterView(
+            image: selectedImage,
+            data: data,
+            filter: selectedFilter,
+            adjustments: adjustments,
+            stampStyle: stampStyle
+        )
+        .frame(width: 393, height: 504)
+
+        let renderer = ImageRenderer(content: poster)
+        renderer.scale = 3
+
+        guard let renderedImage = renderer.uiImage else {
+            selectionError = "운동 사진을 준비하지 못했어요. 다시 시도해 주세요."
+            return
+        }
+
+        sharePayload = WorkoutPhotoSharePayload(image: renderedImage)
+    }
+
     private func loadImage(from item: PhotosPickerItem) {
         isLoadingImage = true
         selectionError = nil
@@ -204,10 +249,29 @@ struct WorkoutPhotoFlowView: View {
                 }
 
                 selectedImage = image
+                selectedFilter = .natural
+                adjustments = WorkoutPhotoAdjustments()
+                stampStyle = .card
                 step = .filters
             } catch {
                 selectionError = "사진을 불러오지 못했어요. 다시 선택해 주세요."
             }
+        }
+    }
+}
+
+struct WorkoutPhotoFlowHostView: View {
+    @State private var isShowingWorkoutPhoto = false
+
+    var body: some View {
+        WorkoutCompletionFlowView(onWorkoutPhoto: {
+            isShowingWorkoutPhoto = true
+        })
+        .sheet(isPresented: $isShowingWorkoutPhoto) {
+            WorkoutPhotoFlowView(data: .sample) {
+                isShowingWorkoutPhoto = false
+            }
+            .presentationDragIndicator(.visible)
         }
     }
 }
