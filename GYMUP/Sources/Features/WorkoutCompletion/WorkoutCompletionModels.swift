@@ -94,8 +94,11 @@ extension WorkoutCompletionData {
         switch step {
         case .summary:
             if levelReward != nil { return .levelUp }
+            if stageReward != nil { return .stageUp }
+            if canUnlockPeak { return .peakUnlock }
         case .levelUp:
             if stageReward != nil { return .stageUp }
+            if canUnlockPeak { return .peakUnlock }
         case .stageUp:
             if canUnlockPeak { return .peakUnlock }
         case .peakUnlock:
