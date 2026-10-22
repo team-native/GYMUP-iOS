@@ -17,6 +17,8 @@ struct GymupSectionHeader: View {
                 Button(actionTitle, action: action)
                     .font(GymupTypography.callout)
                     .foregroundStyle(GymupColors.accent)
+                    .frame(minWidth: 44, minHeight: 44)
+                    .contentShape(Rectangle())
             }
         }
     }
