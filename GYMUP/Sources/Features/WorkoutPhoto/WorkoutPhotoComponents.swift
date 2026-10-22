@@ -60,7 +60,7 @@ struct WorkoutPhotoImagePreview: View {
             parameters: [
                 kCIInputSaturationKey: filter.saturation,
                 kCIInputContrastKey: filter.contrast * (1 + adjustments.contrast / 100),
-                kCIInputBrightnessKey: filter.brightness + adjustments.shadow / 100,
+                kCIInputBrightnessKey: filter.brightness + adjustments.shadow / 100
             ]
         )
         let sharpened = colorAdjusted.applyingFilter(
