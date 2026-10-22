@@ -5,163 +5,195 @@ struct HomeView: View {
     @State private var viewModel = HomeViewModel()
 
     var body: some View {
-        NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
-                    header
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: 12) {
+                header
+                    .frame(height: 56)
+                VStack(spacing: 16) {
                     growthCard
+                    statistics
                     todayRoutine
-                    weeklyActivity
-                    recentWorkout
                 }
-                .padding(.horizontal, GymupSpacing.large)
-                .padding(.top, GymupSpacing.medium)
-                .padding(.bottom, GymupSpacing.xxLarge)
             }
-            .background(GymupColors.canvas)
-            .toolbar(.hidden, for: .navigationBar)
+            .padding(.horizontal, 20)
+            .padding(.top, 0)
+            .padding(.bottom, 24)
         }
+        .background(GymupColors.canvas.ignoresSafeArea())
     }
 
     private var header: some View {
-        HStack {
+        HStack(alignment: .bottom) {
             VStack(alignment: .leading, spacing: 2) {
-                Text("GYMUP")
-                    .font(GymupTypography.headline)
-                    .tracking(1.2)
-                Text("오늘도 한 단계 성장해요")
-                    .font(GymupTypography.caption)
+                Text(viewModel.dateTitle)
+                    .font(GymupTypography.homeDate)
                     .foregroundStyle(GymupColors.secondaryText)
+                Text("오늘도 한 단계 위로")
+                    .font(GymupTypography.homeTitle)
+                    .tracking(-0.43)
+                    .foregroundStyle(GymupColors.primaryText)
             }
             Spacer()
-            Image(systemName: "bell")
-                .font(.system(size: 18, weight: .medium))
-                .frame(width: 44, height: 44)
-                .background(GymupColors.surface, in: Circle())
+            HStack(spacing: 6) {
+                Image("H1IconZap")
+                    .resizable()
+                    .frame(width: 14, height: 14)
+                Text("LV.\(viewModel.level)")
+                    .font(.custom("BarlowCondensed-Bold", size: 15))
+                    .tracking(0.13)
+                    .foregroundStyle(GymupColors.primaryText)
+            }
+            .padding(.horizontal, 12)
+            .padding(.vertical, 8)
+            .background(Color(red: 0.12, green: 0.12, blue: 0.14), in: Capsule())
         }
-        .foregroundStyle(GymupColors.primaryText)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var growthCard: some View {
-        VStack(alignment: .leading, spacing: GymupSpacing.large) {
+        VStack(spacing: 12) {
             HStack {
-                VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
-                    Text("MY GROWTH")
-                        .font(GymupTypography.caption.weight(.bold))
-                        .tracking(1.1)
-                        .foregroundStyle(GymupColors.secondaryText)
-                    HStack(alignment: .firstTextBaseline, spacing: 6) {
-                        Text("\(viewModel.growth)")
-                            .font(.system(size: 52, weight: .heavy, design: .rounded))
-                        Text("LV")
-                            .font(GymupTypography.callout.weight(.bold))
-                            .foregroundStyle(GymupColors.accent)
-                    }
+                Text(viewModel.stageTitle)
+                    .font(GymupTypography.label)
+                    .tracking(0.17)
+                    .foregroundStyle(Color(red: 1, green: 0.42, blue: 0.43))
+                Spacer(minLength: 6)
+                HStack(spacing: 10) {
+                    Image("H1IconSparkle")
+                        .resizable()
+                        .frame(width: 16, height: 16)
+                    Text(viewModel.rewardNotice)
+                        .font(GymupTypography.uiMedium)
+                        .tracking(-0.09)
+                        .lineLimit(1)
+                    Image("H1IconChevronRight")
+                        .resizable()
+                        .frame(width: 16, height: 16)
                 }
+                .foregroundStyle(GymupColors.primaryText)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 6)
+                .background(Color(red: 0.23, green: 0.07, blue: 0.08), in: RoundedRectangle(cornerRadius: 14))
+            }
+            equipment
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("GROWTH")
+                    .font(GymupTypography.label)
+                    .tracking(0.17)
+                    .foregroundStyle(GymupColors.secondaryText)
+                Text("\(viewModel.growth)")
+                    .font(GymupTypography.metric)
+                    .tracking(0.13)
+                    .foregroundStyle(GymupColors.primaryText)
+                Text("/100")
+                    .font(GymupTypography.uiMedium)
+                    .foregroundStyle(Color(red: 0.42, green: 0.42, blue: 0.46))
                 Spacer()
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 36, weight: .bold))
-                    .foregroundStyle(GymupColors.accent)
-                    .rotationEffect(.degrees(-18))
-                    .frame(width: 82, height: 82)
-                    .background(GymupColors.accent.opacity(0.12), in: Circle())
+                Text("다음 원판까지 \(viewModel.nextPlateProgress)")
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.secondaryText)
             }
-            VStack(alignment: .leading, spacing: GymupSpacing.small) {
-                HStack {
-                    Text("다음 성장까지")
-                    Spacer()
-                    Text("\(viewModel.experiencePoints) / \(viewModel.nextLevelXP) XP")
-                        .monospacedDigit()
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(Color(red: 0.16, green: 0.16, blue: 0.19))
+                    Capsule()
+                        .fill(GymupColors.accent)
+                        .frame(width: geometry.size.width * 0.687)
                 }
-                .font(GymupTypography.caption)
-                .foregroundStyle(GymupColors.secondaryText)
-                ProgressView(value: Double(viewModel.experiencePoints), total: Double(viewModel.nextLevelXP))
-                    .tint(GymupColors.accent)
             }
+            .frame(height: 6)
         }
-        .padding(GymupSpacing.large)
-        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+        .padding(.horizontal, 16)
+        .padding(.vertical, 18)
+        .frame(height: 318)
+        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
+        .contentShape(RoundedRectangle(cornerRadius: 20))
+        .onTapGesture(perform: onOpenRoutines)
+    }
+
+    private var equipment: some View {
+        VStack(spacing: 0) {
+            Image("H1Equipment")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 300, height: 150)
+            Text("\(viewModel.barbellWeight) KG")
+                .font(GymupTypography.display)
+                .lineSpacing(-1)
+                .foregroundStyle(GymupColors.primaryText)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private var statistics: some View {
+        HStack(spacing: 8) {
+            statistic(
+                icon: "H1IconCalendar",
+                value: "\(viewModel.weeklyWorkoutCount)/\(viewModel.weeklyWorkoutGoal)",
+                title: "이번 주 운동"
+            )
+            statistic(icon: "H1IconFlame", value: "\(viewModel.streakWeeks)주", title: "Streak")
+            statistic(icon: "H1IconZap", value: viewModel.experiencePoints.formatted(), title: "XP")
+        }
+        .frame(height: 91)
+    }
+
+    private func statistic(icon: String, value: String, title: String) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Image(icon)
+                .resizable()
+                .frame(width: 18, height: 18)
+            Text(value)
+                .font(GymupTypography.metric)
+                .tracking(0.13)
+                .foregroundStyle(GymupColors.primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+            Text(title)
+                .font(GymupTypography.uiCaption)
+                .foregroundStyle(GymupColors.secondaryText)
+                .lineLimit(1)
+        }
+        .padding(14)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
+        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var todayRoutine: some View {
-        VStack(alignment: .leading, spacing: GymupSpacing.medium) {
-            GymupSectionHeader(title: "오늘의 루틴", actionTitle: "전체 보기", action: onOpenRoutines)
-            Button(action: onOpenRoutines) {
-                HStack(spacing: GymupSpacing.medium) {
-                    Image(systemName: "figure.strengthtraining.traditional")
-                        .font(.system(size: 22, weight: .semibold))
-                        .foregroundStyle(GymupColors.accent)
-                        .frame(width: 52, height: 52)
-                        .background(GymupColors.accent.opacity(0.12), in: RoundedRectangle(cornerRadius: GymupRadius.medium))
-                    VStack(alignment: .leading, spacing: 4) {
+        Button(action: onOpenRoutines) {
+            GeometryReader { geometry in
+                ZStack(alignment: .topLeading) {
+                    Image("H1RoutinePhoto")
+                        .resizable()
+                        .scaledToFill()
+                        .frame(width: geometry.size.width, height: geometry.size.height)
+                        .clipped()
+                    LinearGradient(
+                        colors: [.clear, GymupColors.canvas.opacity(0.9)],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text("오늘의 루틴")
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.secondaryText)
                         Text(viewModel.todayRoutine)
-                            .font(GymupTypography.headline)
-                        Text("가슴 · 어깨 · 삼두  ·  6개 운동")
-                            .font(GymupTypography.caption)
-                            .foregroundStyle(GymupColors.secondaryText)
+                            .font(GymupTypography.display)
+                            .foregroundStyle(GymupColors.primaryText)
                     }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.caption.weight(.bold))
-                        .foregroundStyle(GymupColors.secondaryText)
+                    .position(x: 83, y: 80)
+                    Text("시작")
+                        .font(GymupTypography.uiBold)
+                        .foregroundStyle(.white)
+                        .frame(width: 54, height: 34)
+                        .background(GymupColors.accent, in: Capsule())
+                        .position(x: geometry.size.width - 44, y: 93)
                 }
-                .foregroundStyle(GymupColors.primaryText)
-                .padding(GymupSpacing.medium)
-                .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+                .clipShape(RoundedRectangle(cornerRadius: 16))
             }
-            .buttonStyle(.plain)
+            .frame(height: 132)
         }
-    }
-
-    private var weeklyActivity: some View {
-        VStack(alignment: .leading, spacing: GymupSpacing.medium) {
-            GymupSectionHeader(title: "이번 주 운동")
-            HStack(alignment: .bottom, spacing: GymupSpacing.medium) {
-                ForEach(Array(viewModel.weekDays.enumerated()), id: \.offset) { index, day in
-                    VStack(spacing: GymupSpacing.small) {
-                        Capsule()
-                            .fill(viewModel.activeDays.contains(index) ? GymupColors.accent : GymupColors.elevatedSurface)
-                            .frame(height: viewModel.activeDays.contains(index) ? 48 : 24)
-                        Text(day)
-                            .font(GymupTypography.caption)
-                            .foregroundStyle(GymupColors.secondaryText)
-                    }
-                    .frame(maxWidth: .infinity)
-                }
-            }
-            .padding(GymupSpacing.large)
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
-            HStack(spacing: GymupSpacing.small) {
-                Text("3")
-                    .foregroundStyle(GymupColors.accent)
-                Text("/ 4회 목표")
-                Spacer()
-                Text("이번 주도 꾸준히 쌓이는 중")
-                    .foregroundStyle(GymupColors.secondaryText)
-            }
-            .font(GymupTypography.caption.weight(.semibold))
-        }
-    }
-
-    private var recentWorkout: some View {
-        VStack(alignment: .leading, spacing: GymupSpacing.medium) {
-            GymupSectionHeader(title: "최근 운동", actionTitle: "모두 보기") {}
-            HStack {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("UPPER A")
-                        .font(GymupTypography.callout.weight(.bold))
-                    Text("어제 · 58분 · 18세트")
-                        .font(GymupTypography.caption)
-                        .foregroundStyle(GymupColors.secondaryText)
-                }
-                Spacer()
-                Text("+380 XP")
-                    .font(GymupTypography.caption.weight(.bold))
-                    .foregroundStyle(GymupColors.accent)
-            }
-            .padding(GymupSpacing.medium)
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
-        }
+        .buttonStyle(.plain)
     }
 }
 

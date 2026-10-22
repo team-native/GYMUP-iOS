@@ -6,10 +6,13 @@ final class HomeViewModelTests: XCTestCase {
     func testInitialState() {
         let viewModel = HomeViewModel()
 
+        XCTAssertEqual(viewModel.dateTitle, "10월 11일 토요일")
         XCTAssertEqual(viewModel.growth, 67)
-        XCTAssertEqual(viewModel.experiencePoints, 2_480)
-        XCTAssertEqual(viewModel.weekDays.count, 7)
-        XCTAssertEqual(viewModel.activeDays.count, 3)
+        XCTAssertEqual(viewModel.weeklyWorkoutCount, 2)
+        XCTAssertEqual(viewModel.weeklyWorkoutGoal, 3)
+        XCTAssertEqual(viewModel.streakWeeks, 7)
+        XCTAssertEqual(viewModel.experiencePoints, 2_340)
+        XCTAssertEqual(viewModel.todayRoutine, "UPPER A")
     }
 
     @MainActor

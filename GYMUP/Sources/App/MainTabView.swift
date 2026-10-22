@@ -11,25 +11,64 @@ struct MainTabView: View {
     @State private var selection: GymupTab = .home
 
     var body: some View {
-        TabView(selection: $selection) {
-            HomeView(onOpenRoutines: { selection = .routine })
-                .tabItem { Label("홈", systemImage: "house.fill") }
-                .tag(GymupTab.home)
-
-            RoutineView()
-                .tabItem { Label("루틴", systemImage: "list.bullet.rectangle") }
-                .tag(GymupTab.routine)
-
-            HistoryPlaceholderView()
-                .tabItem { Label("기록", systemImage: "chart.bar.fill") }
-                .tag(GymupTab.history)
-
-            ProfilePlaceholderView()
-                .tabItem { Label("마이", systemImage: "person.fill") }
-                .tag(GymupTab.profile)
+        Group {
+            switch selection {
+            case .home:
+                HomeView(onOpenRoutines: { selection = .routine })
+            case .routine:
+                RoutineView()
+            case .history:
+                HistoryPlaceholderView()
+            case .profile:
+                ProfilePlaceholderView()
+            }
         }
-        .tint(GymupColors.accent)
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            tabBar
+        }
+        .background(GymupColors.canvas)
         .preferredColorScheme(.dark)
+    }
+
+    private var tabBar: some View {
+        HStack(spacing: 0) {
+            tab(.home, title: "홈", icon: "H1IconHome")
+            tab(.routine, title: "루틴", icon: "H1IconRoutine")
+            tab(.history, title: "기록", icon: "H1IconHistory")
+            tab(.profile, title: "마이", icon: "H1IconUser")
+        }
+        .padding(.horizontal, 12)
+        .padding(.top, 8)
+        .frame(height: 58, alignment: .top)
+        .background {
+            GymupColors.canvas
+                .overlay(alignment: .top) {
+                    Rectangle()
+                        .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                        .frame(height: 1)
+                }
+                .ignoresSafeArea(edges: .bottom)
+        }
+    }
+
+    private func tab(_ value: GymupTab, title: String, icon: String) -> some View {
+        Button {
+            selection = value
+        } label: {
+            VStack(spacing: 4) {
+                Image(icon)
+                    .resizable()
+                    .frame(width: 24, height: 24)
+                Text(title)
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(selection == value ? GymupColors.primaryText : Color(red: 0.42, green: 0.42, blue: 0.46))
+            }
+            .frame(maxWidth: .infinity)
+            .frame(height: 50, alignment: .top)
+            .padding(.top, 6)
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
     }
 }
 
