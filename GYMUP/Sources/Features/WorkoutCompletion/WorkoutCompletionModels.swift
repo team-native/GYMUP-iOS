@@ -53,7 +53,7 @@ struct WorkoutCompletionData {
             Metric(title: "TIME", value: "58", unit: "MIN"),
             Metric(title: "SETS", value: "18", unit: "SETS"),
             Metric(title: "VOLUME", value: "8,420", unit: "KG"),
-            Metric(title: "PERSONAL RECORD", value: "2", unit: "PR"),
+            Metric(title: "PERSONAL RECORD", value: "2", unit: "PR")
         ],
         previousGrowth: 67,
         growth: 68,
