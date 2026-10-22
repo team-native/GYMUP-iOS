@@ -73,11 +73,11 @@ struct WorkoutPhotoFlowView: View {
             loadImage(from: item)
         }
         .sheet(item: $sharePayload) { payload in
-            WorkoutPhotoShareSheet(image: payload.image) { didSaveToPhotos, error in
+            WorkoutPhotoShareSheet(image: payload.image) { didSaveToPhotos, didFail in
                 sharePayload = nil
                 if didSaveToPhotos {
                     step = .saved
-                } else if error != nil {
+                } else if didFail {
                     selectionError = "사진을 공유하지 못했어요. 다시 시도해 주세요."
                 }
             }
