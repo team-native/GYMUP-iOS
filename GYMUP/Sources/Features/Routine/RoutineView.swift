@@ -44,7 +44,11 @@ struct RoutineView: View {
             .background(GymupColors.canvas.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: RoutineRoute.self) { route in
-                RoutinePendingView(route: route)
+                if case let .workout(routineID) = route {
+                    WorkoutSessionView(routineID: routineID)
+                } else {
+                    RoutinePendingView(route: route)
+                }
             }
         }
         .onChange(of: path) { _, newPath in onDetailRouteChanged(!newPath.isEmpty) }

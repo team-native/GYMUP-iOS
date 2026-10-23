@@ -3,6 +3,7 @@ import SwiftUI
 struct WorkoutSummaryView: View {
     let data: WorkoutCompletionData
     let onPhoto: () -> Void
+    var showsPhotoAction = true
     let onContinue: () -> Void
 
     private let columns = [GridItem(.flexible(), spacing: 10), GridItem(.flexible(), spacing: 10)]
@@ -17,6 +18,9 @@ struct WorkoutSummaryView: View {
                         WorkoutCompletionMetricTile(metric: metric)
                     }
                 }
+                if !data.exerciseDetails.isEmpty {
+                    exerciseDetails
+                }
                 growthCard
                 xpAndWeeklyGoal
             }
@@ -25,10 +29,18 @@ struct WorkoutSummaryView: View {
             .padding(.bottom, 20)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            WorkoutCompletionActionBar(
-                primary: WorkoutCompletionPrimaryButton(title: "완료", action: onContinue),
-                secondary: WorkoutCompletionSecondaryButton(title: "오운완 사진", action: onPhoto)
-            )
+            if showsPhotoAction {
+                WorkoutCompletionActionBar(
+                    primary: WorkoutCompletionPrimaryButton(title: "완료", action: onContinue),
+                    secondary: WorkoutCompletionSecondaryButton(title: "오운완 사진", action: onPhoto)
+                )
+            } else {
+                WorkoutCompletionPrimaryButton(title: "완료", action: onContinue)
+                    .padding(.horizontal, 20)
+                    .padding(.top, 12)
+                    .padding(.bottom, 8)
+                    .background(WorkoutCompletionColors.canvas.ignoresSafeArea(edges: .bottom))
+            }
         }
         .background(WorkoutCompletionColors.canvas)
     }
@@ -76,6 +88,67 @@ struct WorkoutSummaryView: View {
                     .accessibilityLabel("성장도 \(data.growth - data.previousGrowth) 상승")
             }
         }
+    }
+
+    private var exerciseDetails: some View {
+        WorkoutCompletionCard {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("WORKOUT LOG")
+                    .font(.system(size: 10, weight: .bold, design: .rounded))
+                    .tracking(1.2)
+                    .foregroundStyle(WorkoutCompletionColors.secondaryText)
+
+                ForEach(Array(data.exerciseDetails.enumerated()), id: \.element.id) { exerciseIndex, exercise in
+                    VStack(alignment: .leading, spacing: 8) {
+                        HStack {
+                            Text(exercise.name)
+                                .font(GymupTypography.uiStrong)
+                                .foregroundStyle(WorkoutCompletionColors.primaryText)
+                            Spacer()
+                            Text("\(exercise.sets.count)세트")
+                                .font(GymupTypography.caption)
+                                .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                        }
+
+                        ForEach(exercise.sets) { set in
+                            let accessibilityLabel = [
+                                exercise.name,
+                                "세트 \(set.number)",
+                                "\(formattedWeight(set.weightKilograms)) 킬로그램",
+                                "\(set.repetitions)회 완료"
+                            ].joined(separator: ", ")
+
+                            HStack(spacing: 8) {
+                                Text(String(format: "%02d", set.number))
+                                    .font(.system(.callout, design: .rounded).weight(.semibold))
+                                    .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                                    .frame(width: 28, alignment: .leading)
+                                Text("\(formattedWeight(set.weightKilograms)) kg × \(set.repetitions)회")
+                                    .font(GymupTypography.callout)
+                                    .foregroundStyle(WorkoutCompletionColors.primaryText)
+                                Spacer(minLength: 0)
+                                Image(systemName: "checkmark")
+                                    .font(.system(size: 11, weight: .bold))
+                                    .foregroundStyle(WorkoutCompletionColors.red)
+                                    .accessibilityHidden(true)
+                            }
+                            .accessibilityElement(children: .combine)
+                            .accessibilityLabel(accessibilityLabel)
+                        }
+                    }
+
+                    if exerciseIndex < data.exerciseDetails.count - 1 {
+                        Rectangle()
+                            .fill(WorkoutCompletionColors.elevatedSurface)
+                            .frame(height: 1)
+                    }
+                }
+            }
+        }
+    }
+
+    private func formattedWeight(_ weight: Double) -> String {
+        weight.rounded(.towardZero) == weight ? String(Int(weight)) : String(format: "%.1f", weight)
     }
 
     private var xpAndWeeklyGoal: some View {

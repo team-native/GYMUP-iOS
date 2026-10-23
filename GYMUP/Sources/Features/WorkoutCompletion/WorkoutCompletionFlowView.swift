@@ -7,6 +7,7 @@ struct WorkoutCompletionFlowView: View {
     let onViewItems: () -> Void
     let onCreateGoal: () -> Void
     let onGoalHistory: () -> Void
+    let showsPhotoAction: Bool
 
     @State private var step: WorkoutCompletionStep = .summary
 
@@ -16,7 +17,8 @@ struct WorkoutCompletionFlowView: View {
         onFinish: @escaping () -> Void = {},
         onViewItems: @escaping () -> Void = {},
         onCreateGoal: @escaping () -> Void = {},
-        onGoalHistory: @escaping () -> Void = {}
+        onGoalHistory: @escaping () -> Void = {},
+        showsPhotoAction: Bool = true
     ) {
         self.data = data
         self.onWorkoutPhoto = onWorkoutPhoto
@@ -24,13 +26,18 @@ struct WorkoutCompletionFlowView: View {
         self.onViewItems = onViewItems
         self.onCreateGoal = onCreateGoal
         self.onGoalHistory = onGoalHistory
+        self.showsPhotoAction = showsPhotoAction
     }
 
     var body: some View {
         Group {
             switch step {
             case .summary:
-                WorkoutSummaryView(data: data, onPhoto: onWorkoutPhoto) {
+                WorkoutSummaryView(
+                    data: data,
+                    onPhoto: onWorkoutPhoto,
+                    showsPhotoAction: showsPhotoAction
+                ) {
                     advance(from: .summary)
                 }
             case .levelUp:
