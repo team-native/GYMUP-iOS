@@ -5,6 +5,7 @@ struct GymupButton: View {
         case primary
         case secondary
         case ghost
+        case elevated
     }
 
     let title: String
@@ -39,7 +40,7 @@ struct GymupButton: View {
     private var foregroundColor: Color {
         switch variant {
         case .primary: .white
-        case .secondary: GymupColors.primaryText
+        case .secondary, .elevated: GymupColors.primaryText
         case .ghost: GymupColors.secondaryText
         }
     }
@@ -48,6 +49,7 @@ struct GymupButton: View {
         switch variant {
         case .primary: GymupColors.accent
         case .secondary: GymupColors.surface
+        case .elevated: GymupColors.elevatedSurface
         case .ghost: .clear
         }
     }
