@@ -26,7 +26,12 @@ struct HomeView: View {
                             growthCard
                         }
                         .buttonStyle(.plain)
-                        statistics
+                        NavigationLink {
+                            WeeklyGoalView(onNavigationStateChanged: onGrowthRouteChanged)
+                        } label: {
+                            statistics
+                        }
+                        .buttonStyle(.plain)
                         todayRoutine
                     }
                 }
@@ -152,6 +157,8 @@ struct HomeView: View {
             statistic(icon: "H1IconZap", value: viewModel.experiencePoints.formatted(), title: "XP")
         }
         .frame(height: 91)
+        .contentShape(Rectangle())
+        .accessibilityHint("이번 주 운동 기록과 목표를 확인합니다")
     }
 
     private func statistic(icon: String, value: String, title: String) -> some View {
