@@ -40,6 +40,12 @@ final class BarbellCustomizationViewModel {
         items.filter { selectedCategory == .all || $0.category == selectedCategory }
     }
 
+    var hasNewItem: Bool { items.contains(where: \.isNew) }
+
+    var previewAssetName: String {
+        equippedPlateID == .blackPlate ? "H6Equipment" : "H5Equipment"
+    }
+
     var equippedDescription: String {
         let name = items.first { $0.id == equippedPlateID }?.title ?? "레드 원판"
         return "\(name) · 기본 칼라 착용 중"

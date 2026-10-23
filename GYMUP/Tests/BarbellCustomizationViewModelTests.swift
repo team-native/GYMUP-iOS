@@ -26,9 +26,12 @@ final class BarbellCustomizationViewModelTests: XCTestCase {
         let viewModel = BarbellCustomizationViewModel()
         XCTAssertTrue(viewModel.equipPlate(.blackPlate))
         XCTAssertEqual(viewModel.equippedPlateID, .blackPlate)
+        XCTAssertEqual(viewModel.previewAssetName, "H6Equipment")
+        XCTAssertFalse(viewModel.hasNewItem)
         XCTAssertEqual(viewModel.equippedDescription, "블랙 원판 · 기본 칼라 착용 중")
         XCTAssertFalse(viewModel.items.first { $0.id == .blackPlate }?.isNew ?? true)
         XCTAssertTrue(viewModel.equipPlate(.redPlate))
         XCTAssertEqual(viewModel.equippedPlateID, .redPlate)
+        XCTAssertEqual(viewModel.previewAssetName, "H5Equipment")
     }
 }
