@@ -10,7 +10,8 @@ enum GymupTab: Hashable {
 struct MainTabView: View {
     @State private var selection: GymupTab = .home
     @State private var inventory = BarbellCustomizationViewModel()
-    @State private var isHomeDetailPresented = false
+    @State private var routineStore = RoutineStore()
+    @State private var isDetailPresented = false
 
     var body: some View {
         Group {
@@ -19,10 +20,10 @@ struct MainTabView: View {
                 HomeView(
                     onOpenRoutines: { selection = .routine },
                     inventory: inventory,
-                    onDetailRouteChanged: { isHomeDetailPresented = $0 }
+                    onDetailRouteChanged: { isDetailPresented = $0 }
                 )
             case .routine:
-                RoutinePlaceholderView()
+                RoutineView(store: routineStore, onDetailRouteChanged: { isDetailPresented = $0 })
             case .history:
                 HistoryPlaceholderView()
             case .profile:
@@ -30,7 +31,7 @@ struct MainTabView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !isHomeDetailPresented {
+            if !isDetailPresented {
                 tabBar
             }
         }
@@ -40,8 +41,8 @@ struct MainTabView: View {
 
     private var tabBar: some View {
         HStack(spacing: 0) {
-            tab(.home, title: "홈", icon: "H1IconHome")
-            tab(.routine, title: "루틴", icon: "H1IconRoutine")
+            tab(.home, title: "홈", icon: selection == .home ? "H1IconHome" : "R1IconHomeInactive")
+            tab(.routine, title: "루틴", icon: selection == .routine ? "R1IconRoutineActive" : "H1IconRoutine")
             tab(.history, title: "기록", icon: "H1IconHistory")
             tab(.profile, title: "마이", icon: "H1IconUser")
         }
@@ -77,16 +78,6 @@ struct MainTabView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct RoutinePlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            GymupEmptyState(symbol: "list.bullet", title: "루틴", message: "루틴 화면을 준비하고 있어요.")
-                .background(GymupColors.canvas)
-                .navigationTitle("루틴")
-        }
     }
 }
 
