@@ -1,6 +1,9 @@
 import SwiftUI
 
 enum GymupTypography {
+    static let uiStrong = Font.custom("GothicA1-SemiBold", size: 14)
+    static let score = Font.custom("BarlowCondensed-Black", size: 64)
+    static let sectionTitle = Font.custom("GothicA1-Bold", size: 16)
     static let homeTitle = Font.custom("GothicA1-ExtraBold", size: 20)
     static let homeDate = Font.custom("GothicA1-Medium", size: 11)
     static let display = Font.custom("BarlowCondensed-ExtraBold", size: 26)

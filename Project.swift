@@ -15,8 +15,10 @@ let project = Project(
                     "UIAppFonts": [
                         "NotoSansKR[wght].ttf",
                         "GothicA1-Medium.ttf",
+                        "GothicA1-SemiBold.ttf",
                         "GothicA1-Bold.ttf",
                         "GothicA1-ExtraBold.ttf",
+                        "BarlowCondensed-Black.ttf",
                         "BarlowCondensed-Bold.ttf",
                         "BarlowCondensed-ExtraBold.ttf",
                         "Archivo[wdth,wght].ttf",
