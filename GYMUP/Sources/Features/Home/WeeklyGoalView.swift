@@ -20,12 +20,14 @@ struct WeeklyGoalView: View {
                     Text("이번 주 목표까지 \(viewModel.remainingWorkouts)회 남았어요")
                         .font(GymupTypography.uiMedium)
                         .foregroundStyle(GymupColors.secondaryText)
+                        .frame(minHeight: 19)
                     weekdayProgress
                     streakSummary
                     historyChart
                     Text("4주차는 목표 미달로 Streak가 초기화됐어요. 쉬는 날은 실패로 계산되지 않아요.")
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(GymupColors.secondaryText)
+                        .lineSpacing(4)
                     workouts
                 }
                 .padding(.horizontal, 20)
@@ -73,6 +75,7 @@ struct WeeklyGoalView: View {
                     Text(day)
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(index == viewModel.currentWeekday ? GymupColors.brandText : GymupColors.secondaryText)
+                        .frame(height: 15)
                 }
                 .frame(maxWidth: .infinity)
             }
@@ -89,6 +92,7 @@ struct WeeklyGoalView: View {
             Text("\(viewModel.streakWeeks)주 연속 달성")
                 .font(GymupTypography.sectionTitle)
                 .foregroundStyle(GymupColors.primaryText)
+                .frame(minHeight: 22)
             Spacer()
             Text("최장 \(viewModel.longestStreakWeeks)주")
                 .font(GymupTypography.uiCaption)
@@ -107,6 +111,7 @@ struct WeeklyGoalView: View {
                     Text("\(bar.week)")
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(GymupColors.tertiaryText)
+                        .frame(height: 15)
                 }
                 .frame(maxWidth: .infinity)
                 .accessibilityElement(children: .combine)
@@ -120,15 +125,18 @@ struct WeeklyGoalView: View {
             Text("이번 주 운동")
                 .font(GymupTypography.label)
                 .foregroundStyle(GymupColors.secondaryText)
+                .frame(height: 13)
             ForEach(viewModel.workouts) { workout in
                 HStack(spacing: 12) {
                     VStack(alignment: .leading, spacing: 2) {
                         Text(workout.title)
                             .font(GymupTypography.uiStrong)
                             .foregroundStyle(GymupColors.primaryText)
+                            .frame(minHeight: 21)
                         Text("\(workout.date) · \(workout.duration)")
                             .font(GymupTypography.uiCaption)
                             .foregroundStyle(GymupColors.secondaryText)
+                            .frame(minHeight: 15)
                     }
                     Spacer()
                     Text(workout.volume)
