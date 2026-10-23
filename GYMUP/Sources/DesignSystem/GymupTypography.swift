@@ -1,6 +1,14 @@
 import SwiftUI
 
 enum GymupTypography {
+    static let homeTitle = Font.custom("GothicA1-ExtraBold", size: 20)
+    static let homeDate = Font.custom("GothicA1-Medium", size: 11)
+    static let display = Font.custom("BarlowCondensed-ExtraBold", size: 26)
+    static let metric = Font.custom("BarlowCondensed-ExtraBold", size: 18)
+    static let uiMedium = Font.custom("GothicA1-Medium", size: 13)
+    static let uiCaption = Font.custom("GothicA1-Medium", size: 11)
+    static let uiBold = Font.custom("GothicA1-Bold", size: 13)
+    static let label = Font.custom("Archivo-SemiBold", size: 10)
     static let largeTitle = Font.custom("NotoSansKR-Bold", size: 32, relativeTo: .largeTitle)
     static let title = Font.custom("NotoSansKR-Bold", size: 24, relativeTo: .title)
     static let headline = Font.custom("NotoSansKR-SemiBold", size: 18, relativeTo: .headline)
