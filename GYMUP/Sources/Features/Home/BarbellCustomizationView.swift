@@ -30,7 +30,7 @@ struct BarbellCustomizationView: View {
 
     private var equipmentPreview: some View {
         VStack(spacing: 4) {
-            Image("H5Equipment")
+            Image(viewModel.previewAssetName)
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: 320)

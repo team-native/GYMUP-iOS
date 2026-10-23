@@ -4,24 +4,29 @@ struct GymupButton: View {
     enum Variant {
         case primary
         case secondary
+        case ghost
     }
 
     let title: String
     var variant: Variant = .primary
     var isEnabled = true
+    var font = GymupTypography.headline
+    var height: CGFloat?
+    var cornerRadius = GymupRadius.medium
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(GymupTypography.headline)
+                .font(font)
                 .frame(maxWidth: .infinity)
-                .padding(.vertical, GymupSpacing.medium)
+                .frame(height: height)
+                .padding(.vertical, height == nil ? GymupSpacing.medium : 0)
                 .foregroundStyle(foregroundColor)
-                .background(backgroundColor, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+                .background(backgroundColor, in: RoundedRectangle(cornerRadius: cornerRadius))
                 .overlay {
                     if variant == .secondary {
-                        RoundedRectangle(cornerRadius: GymupRadius.medium)
+                        RoundedRectangle(cornerRadius: cornerRadius)
                             .strokeBorder(GymupColors.separator, lineWidth: 1)
                     }
                 }
@@ -32,11 +37,19 @@ struct GymupButton: View {
     }
 
     private var foregroundColor: Color {
-        variant == .primary ? .white : GymupColors.primaryText
+        switch variant {
+        case .primary: .white
+        case .secondary: GymupColors.primaryText
+        case .ghost: GymupColors.secondaryText
+        }
     }
 
     private var backgroundColor: Color {
-        variant == .primary ? GymupColors.accent : GymupColors.surface
+        switch variant {
+        case .primary: GymupColors.accent
+        case .secondary: GymupColors.surface
+        case .ghost: .clear
+        }
     }
 }
 
