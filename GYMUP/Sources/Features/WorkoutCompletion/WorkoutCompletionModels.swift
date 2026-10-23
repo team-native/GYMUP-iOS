@@ -45,6 +45,20 @@ struct WorkoutCompletionData {
     let levelReward: LevelReward?
     let stageReward: StageReward?
     let peakReward: PeakReward?
+    var exerciseDetails: [ExerciseDetail] = []
+
+    struct ExerciseDetail: Identifiable {
+        struct SetDetail: Identifiable {
+            let id: String
+            let number: Int
+            let weightKilograms: Double
+            let repetitions: Int
+        }
+
+        let id: String
+        let name: String
+        let sets: [SetDetail]
+    }
 
     static let sample = WorkoutCompletionData(
         routineName: "UPPER A",

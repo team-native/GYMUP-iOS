@@ -1,0 +1,285 @@
+import Foundation
+
+struct WorkoutSessionSet: Identifiable, Equatable {
+    let id: UUID
+    var weightKilograms: Double
+    var repetitions: Int
+    var isCompleted: Bool
+
+    init(
+        id: UUID = UUID(),
+        weightKilograms: Double,
+        repetitions: Int,
+        isCompleted: Bool = false
+    ) {
+        self.id = id
+        self.weightKilograms = weightKilograms
+        self.repetitions = repetitions
+        self.isCompleted = isCompleted
+    }
+}
+
+struct WorkoutSessionExercise: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let target: String
+    let restDurationSeconds: Int
+    let formSteps: [String]
+    let beginnerTip: String
+    var sets: [WorkoutSessionSet]
+
+    var completedSetCount: Int { sets.filter(\.isCompleted).count }
+    var isComplete: Bool { !sets.isEmpty && sets.allSatisfy(\.isCompleted) }
+}
+
+struct WorkoutSessionPlan: Identifiable, Equatable {
+    let id: String
+    let name: String
+    let title: String
+    let estimatedDurationMinutes: Int
+    var exercises: [WorkoutSessionExercise]
+
+    static func sample(for routineID: String) -> WorkoutSessionPlan {
+        let template: WorkoutSessionPlan
+        switch routineID {
+        case "lower-b":
+            template = lowerB
+        case "back-c":
+            template = backC
+        default:
+            template = upperA
+        }
+
+        return WorkoutSessionPlan(
+            id: routineID,
+            name: template.name,
+            title: template.title,
+            estimatedDurationMinutes: template.estimatedDurationMinutes,
+            exercises: template.exercises
+        )
+    }
+
+    private static let lowerB = WorkoutSessionPlan(
+        id: "lower-b",
+        name: "LOWER B",
+        title: "하체 B",
+        estimatedDurationMinutes: 60,
+        exercises: [
+            exercise("squat", "스쿼트", target: "하체 · 둔근", sets: 4, weight: 60, reps: 10),
+            exercise("leg-press", "레그 프레스", target: "대퇴사두근", sets: 4, weight: 100, reps: 12),
+            exercise("leg-curl", "레그 컬", target: "햄스트링", sets: 3, weight: 25, reps: 12),
+            exercise("leg-extension", "레그 익스텐션", target: "대퇴사두근", sets: 3, weight: 30, reps: 15),
+            exercise("calf-raise", "카프 레이즈", target: "종아리", sets: 3, weight: 40, reps: 15)
+        ]
+    )
+
+    private static let backC = WorkoutSessionPlan(
+        id: "back-c",
+        name: "BACK C",
+        title: "등 · 이두 C",
+        estimatedDurationMinutes: 50,
+        exercises: [
+            exercise("deadlift", "데드리프트", target: "등 · 하체", sets: 4, weight: 60, reps: 8),
+            exercise("lat-pulldown", "랫 풀다운", target: "광배근", sets: 4, weight: 35, reps: 12),
+            exercise("seated-row", "시티드 로우", target: "등 중앙", sets: 3, weight: 30, reps: 12),
+            exercise("face-pull", "페이스 풀", target: "후면 어깨", sets: 3, weight: 15, reps: 15),
+            exercise("dumbbell-curl", "덤벨 컬", target: "이두근", sets: 3, weight: 8, reps: 12),
+            exercise("hammer-curl", "해머 컬", target: "이두근", sets: 3, weight: 8, reps: 12)
+        ]
+    )
+
+    private static let upperA = WorkoutSessionPlan(
+        id: "upper-a",
+        name: "UPPER A",
+        title: "상체 A",
+        estimatedDurationMinutes: 55,
+        exercises: [
+            exercise("bench-press", "벤치 프레스", target: "가슴 · 삼두", sets: 4, weight: 40, reps: 10),
+            exercise("incline-press", "인클라인 덤벨 프레스", target: "윗가슴", sets: 3, weight: 16, reps: 12),
+            exercise("lat-pulldown", "랫 풀다운", target: "광배근", sets: 3, weight: 35, reps: 12),
+            exercise("shoulder-press", "숄더 프레스", target: "어깨", sets: 3, weight: 16, reps: 10),
+            exercise("cable-fly", "케이블 플라이", target: "가슴", sets: 3, weight: 12, reps: 15),
+            exercise("triceps-pushdown", "케이블 푸시다운", target: "삼두", sets: 3, weight: 20, reps: 15)
+        ]
+    )
+
+    private static func exercise(
+        _ id: String,
+        _ name: String,
+        target: String,
+        sets: Int,
+        weight: Double,
+        reps: Int,
+        restSeconds: Int = 90
+    ) -> WorkoutSessionExercise {
+        let guidance = WorkoutSessionGuidanceLibrary.guidance(for: id)
+        return WorkoutSessionExercise(
+            id: id,
+            name: name,
+            target: target,
+            restDurationSeconds: restSeconds,
+            formSteps: guidance.steps,
+            beginnerTip: guidance.beginnerTip,
+            sets: (0..<sets).map { _ in WorkoutSessionSet(weightKilograms: weight, repetitions: reps) }
+        )
+    }
+}
+
+private struct WorkoutSessionGuidance {
+    let steps: [String]
+    let beginnerTip: String
+}
+
+private enum WorkoutSessionGuidanceLibrary {
+    private static let fallback = WorkoutSessionGuidance(
+        steps: [
+            "몸통을 안정적으로 세우고 준비 자세를 잡아요.",
+            "목표 근육에 힘을 주며 부드럽게 동작합니다.",
+            "반동을 줄이고 시작 자세로 천천히 돌아가요."
+        ],
+        beginnerTip: "처음에는 가벼운 중량으로 움직임을 익히고, 통증이 있으면 멈추세요."
+    )
+
+    private static let byExercise: [String: WorkoutSessionGuidance] = [
+        "bench-press": .init(
+            steps: [
+                "발을 바닥에 고정하고 어깨뼈를 모아요.",
+                "바를 가슴 쪽으로 천천히 내립니다.",
+                "발로 바닥을 밀며 바를 위로 밀어 올려요."
+            ],
+            beginnerTip: "처음이라면 빈 바나 가벼운 중량으로 자세를 익히고 가능하면 보조자와 함께하세요."
+        ),
+        "incline-press": .init(
+            steps: [
+                "벤치를 낮은 경사로 맞추고 등을 기대요.",
+                "덤벨을 가슴 옆에서 시작합니다.",
+                "손목을 곧게 유지하며 위로 밀고 천천히 내립니다."
+            ],
+            beginnerTip: "허리가 과하게 뜨지 않도록 가벼운 덤벨부터 시작하세요."
+        ),
+        "lat-pulldown": .init(
+            steps: [
+                "손잡이를 어깨보다 조금 넓게 잡아요.",
+                "가슴을 세우고 팔꿈치를 옆구리 쪽으로 당깁니다.",
+                "팔을 천천히 펴며 시작 위치로 돌아가요."
+            ],
+            beginnerTip: "목 뒤로 당기지 말고, 가슴 앞쪽으로 당겨 주세요."
+        ),
+        "squat": .init(
+            steps: [
+                "발을 어깨 너비로 벌리고 발끝을 살짝 바깥으로 둡니다.",
+                "엉덩이를 뒤로 보내며 무릎을 굽혀요.",
+                "발바닥 전체로 바닥을 밀어 일어납니다."
+            ],
+            beginnerTip: "처음에는 맨몸으로 깊이와 균형을 확인한 뒤 중량을 더하세요."
+        ),
+        "leg-press": .init(
+            steps: [
+                "등과 엉덩이를 등받이에 붙여요.",
+                "무릎이 발끝 방향을 향하도록 발판을 내립니다.",
+                "무릎을 잠그지 않고 발판을 밀어 올려요."
+            ],
+            beginnerTip: "허리가 말리기 전까지만 내리고, 무릎을 끝까지 잠그지 마세요."
+        ),
+        "deadlift": .init(
+            steps: [
+                "바가 발 중앙 위에 오도록 서요.",
+                "엉덩이를 뒤로 보내고 등을 편 상태로 바를 잡습니다.",
+                "바를 몸 가까이 두고 엉덩이와 무릎을 펴며 일어나요."
+            ],
+            beginnerTip: "허리가 둥글게 말리지 않도록 가벼운 무게로 동작을 먼저 연습하세요."
+        ),
+        "shoulder-press": .init(
+            steps: [
+                "덤벨을 어깨 옆에 두고 손목을 곧게 세워요.",
+                "허리를 과하게 젖히지 않고 위로 밀어 올립니다.",
+                "팔꿈치를 잠그지 않고 어깨 옆으로 천천히 내립니다."
+            ],
+            beginnerTip: "등받이를 사용하고 어깨가 불편하면 가동 범위를 줄여 주세요."
+        ),
+        "cable-fly": .init(
+            steps: [
+                "케이블 앞에서 가슴을 세우고 팔꿈치를 살짝 굽혀요.",
+                "팔을 부드럽게 모아 가슴 앞에서 만납니다.",
+                "가슴이 당기는 범위까지만 천천히 벌려요."
+            ],
+            beginnerTip: "무게를 낮게 설정하고 팔꿈치 각도를 고정해 주세요."
+        ),
+        "triceps-pushdown": .init(
+            steps: [
+                "팔꿈치를 몸 옆에 붙이고 손잡이를 잡아요.",
+                "팔꿈치 위치를 고정한 채 팔을 아래로 폅니다.",
+                "천천히 팔을 굽혀 시작 위치로 돌아가요."
+            ],
+            beginnerTip: "어깨를 흔들지 말고 팔꿈치만 움직여 주세요."
+        )
+    ]
+
+    static func guidance(for exerciseID: String) -> WorkoutSessionGuidance {
+        byExercise[exerciseID] ?? fallback
+    }
+}
+
+enum WorkoutSessionCompletionDataFactory {
+    static func make(
+        plan: WorkoutSessionPlan,
+        elapsedSeconds: Int,
+        completedAt: Date
+    ) -> WorkoutCompletionData {
+        let completedSets = plan.exercises.flatMap(\.sets).filter(\.isCompleted)
+        let volume = completedSets.reduce(0.0) { $0 + ($1.weightKilograms * Double($1.repetitions)) }
+        let minutes = max(0, Int(ceil(Double(max(0, elapsedSeconds)) / 60)))
+        let sampleProgress = WorkoutCompletionData.sample
+
+        return WorkoutCompletionData(
+            routineName: plan.name,
+            completedAt: dateDescription(completedAt),
+            metrics: [
+                .init(title: "TIME", value: String(minutes), unit: "MIN"),
+                .init(title: "SETS", value: String(completedSets.count), unit: "SETS"),
+                .init(title: "VOLUME", value: formattedVolume(volume), unit: "KG")
+            ],
+            previousGrowth: sampleProgress.previousGrowth,
+            growth: sampleProgress.growth,
+            earnedXP: completedSets.count * 20,
+            weeklyWorkoutCount: sampleProgress.weeklyWorkoutCount,
+            weeklyWorkoutGoal: sampleProgress.weeklyWorkoutGoal,
+            streakWeeks: sampleProgress.streakWeeks,
+            levelReward: sampleProgress.levelReward,
+            stageReward: sampleProgress.stageReward,
+            peakReward: sampleProgress.peakReward,
+            exerciseDetails: plan.exercises.compactMap { exercise -> WorkoutCompletionData.ExerciseDetail? in
+                let completed = exercise.sets.enumerated().compactMap { index, set -> WorkoutCompletionData.ExerciseDetail.SetDetail? in
+                    guard set.isCompleted else { return nil }
+                    return WorkoutCompletionData.ExerciseDetail.SetDetail(
+                        id: "\(exercise.id)-\(index + 1)",
+                        number: index + 1,
+                        weightKilograms: set.weightKilograms,
+                        repetitions: set.repetitions
+                    )
+                }
+                guard !completed.isEmpty else { return nil }
+                return WorkoutCompletionData.ExerciseDetail(
+                    id: exercise.id,
+                    name: exercise.name,
+                    sets: completed
+                )
+            }
+        )
+    }
+
+    private static func dateDescription(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "yyyy. M. d · EEE · a h:mm"
+        return formatter.string(from: date)
+    }
+
+    private static func formattedVolume(_ volume: Double) -> String {
+        let formatter = NumberFormatter()
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.numberStyle = .decimal
+        formatter.maximumFractionDigits = 1
+        return formatter.string(from: NSNumber(value: volume)) ?? String(Int(volume))
+    }
+}
