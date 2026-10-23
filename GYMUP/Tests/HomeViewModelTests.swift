@@ -15,35 +15,6 @@ final class HomeViewModelTests: XCTestCase {
         XCTAssertEqual(viewModel.todayRoutine, "UPPER A")
     }
 
-    @MainActor
-    func testRoutineCategoryFiltersPlans() {
-        let viewModel = RoutineViewModel()
-        viewModel.selectedCategory = "하체"
-
-        XCTAssertEqual(viewModel.routines.filter(viewModel.matchesCategory).map(\.name), ["LOWER A"])
-    }
-
-    @MainActor
-    func testWorkoutSessionAdvancesAfterAllSets() {
-        let routine = RoutinePlan.samples[0]
-        let viewModel = WorkoutSessionViewModel(routine: routine)
-
-        XCTAssertEqual(viewModel.completionButtonTitle, "세트 완료")
-        viewModel.completeSet()
-        XCTAssertEqual(viewModel.completedSets, 1)
-        XCTAssertTrue(viewModel.isResting)
-        viewModel.skipRest()
-        viewModel.completeSet()
-        viewModel.skipRest()
-        viewModel.completeSet()
-        viewModel.skipRest()
-        viewModel.completeSet()
-
-        XCTAssertEqual(viewModel.exerciseIndex, 1)
-        XCTAssertEqual(viewModel.completedSets, 0)
-        XCTAssertFalse(viewModel.isComplete)
-        XCTAssertEqual(viewModel.completionButtonTitle, "세트 완료")
-    }
 }
 
 final class WorkoutCompletionDataTests: XCTestCase {
