@@ -2,15 +2,15 @@ import SwiftUI
 
 struct HomeView: View {
     let onOpenRoutines: () -> Void
-    let onGrowthRouteChanged: (Bool) -> Void
+    let onDetailRouteChanged: (Bool) -> Void
     @State private var viewModel = HomeViewModel()
 
     init(
         onOpenRoutines: @escaping () -> Void,
-        onGrowthRouteChanged: @escaping (Bool) -> Void = { _ in }
+        onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
-        self.onGrowthRouteChanged = onGrowthRouteChanged
+        self.onDetailRouteChanged = onDetailRouteChanged
     }
 
     var body: some View {
@@ -21,7 +21,7 @@ struct HomeView: View {
                         .frame(height: 56)
                     VStack(spacing: 16) {
                         NavigationLink {
-                            GrowthView(onNavigationStateChanged: onGrowthRouteChanged)
+                            GrowthView(onNavigationStateChanged: onDetailRouteChanged)
                         } label: {
                             growthCard
                         }
@@ -51,18 +51,23 @@ struct HomeView: View {
                     .foregroundStyle(GymupColors.primaryText)
             }
             Spacer()
-            HStack(spacing: 6) {
-                Image("H1IconZap")
-                    .resizable()
-                    .frame(width: 14, height: 14)
-                Text("LV.\(viewModel.level)")
-                    .font(.custom("BarlowCondensed-Bold", size: 15))
-                    .tracking(0.13)
-                    .foregroundStyle(GymupColors.primaryText)
+            NavigationLink {
+                LevelView(onNavigationStateChanged: onDetailRouteChanged)
+            } label: {
+                HStack(spacing: 6) {
+                    Image("H1IconZap")
+                        .resizable()
+                        .frame(width: 14, height: 14)
+                    Text("LV.\(viewModel.level)")
+                        .font(GymupTypography.number)
+                        .tracking(0.13)
+                        .foregroundStyle(GymupColors.primaryText)
+                }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 8)
+                .background(Color(red: 0.12, green: 0.12, blue: 0.14), in: Capsule())
             }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 8)
-            .background(Color(red: 0.12, green: 0.12, blue: 0.14), in: Capsule())
+            .buttonStyle(.plain)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -144,7 +149,7 @@ struct HomeView: View {
     private var statistics: some View {
         HStack(spacing: 8) {
             NavigationLink {
-                WeeklyGoalView(onNavigationStateChanged: onGrowthRouteChanged)
+                WeeklyGoalView(onNavigationStateChanged: onDetailRouteChanged)
             } label: {
                 statistic(
                     icon: "H1IconCalendar",
@@ -153,11 +158,15 @@ struct HomeView: View {
                 )
             }
             NavigationLink {
-                WeeklyGoalView(onNavigationStateChanged: onGrowthRouteChanged)
+                WeeklyGoalView(onNavigationStateChanged: onDetailRouteChanged)
             } label: {
                 statistic(icon: "H1IconFlame", value: "\(viewModel.streakWeeks)주", title: "Streak")
             }
-            statistic(icon: "H1IconZap", value: viewModel.experiencePoints.formatted(), title: "XP")
+            NavigationLink {
+                LevelView(onNavigationStateChanged: onDetailRouteChanged)
+            } label: {
+                statistic(icon: "H1IconZap", value: viewModel.experiencePoints.formatted(), title: "XP")
+            }
         }
         .buttonStyle(.plain)
         .frame(height: 91)
