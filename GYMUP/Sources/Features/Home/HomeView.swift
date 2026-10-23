@@ -1,9 +1,17 @@
 import SwiftUI
 
+private enum HomeRoute: Hashable {
+    case growth, weeklyGoal, level, customization
+}
+
 struct HomeView: View {
     let onOpenRoutines: () -> Void
     let onDetailRouteChanged: (Bool) -> Void
     @State private var viewModel = HomeViewModel()
+    @State private var inventory = BarbellCustomizationViewModel()
+    @State private var path: [HomeRoute] = []
+    @State private var isNewItemPresented = false
+    @State private var shouldOpenCustomization = false
 
     init(
         onOpenRoutines: @escaping () -> Void,
@@ -14,18 +22,13 @@ struct HomeView: View {
     }
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 12) {
                     header
                         .frame(height: 56)
                     VStack(spacing: 16) {
-                        NavigationLink {
-                            GrowthView(onNavigationStateChanged: onDetailRouteChanged)
-                        } label: {
-                            growthCard
-                        }
-                        .buttonStyle(.plain)
+                        growthCard
                         statistics
                         todayRoutine
                     }
@@ -36,7 +39,24 @@ struct HomeView: View {
             }
             .background(GymupColors.canvas.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: HomeRoute.self, destination: destination)
         }
+        .overlay {
+            if isNewItemPresented {
+                Color.black.opacity(0.7).ignoresSafeArea().allowsHitTesting(false)
+            }
+        }
+        .sheet(isPresented: $isNewItemPresented, onDismiss: finishUnlockPresentation) {
+            NewItemUnlockView(onEquip: equipNewItem, onLater: { isNewItemPresented = false })
+                .presentationDetents([.height(409)])
+                .presentationDragIndicator(.hidden)
+                .presentationCornerRadius(28)
+                .presentationBackground(GymupColors.surface)
+        }
+        .onChange(of: path) { _, newPath in
+            onDetailRouteChanged(!newPath.isEmpty)
+        }
+        .onAppear { onDetailRouteChanged(!path.isEmpty) }
     }
 
     private var header: some View {
@@ -51,9 +71,7 @@ struct HomeView: View {
                     .foregroundStyle(GymupColors.primaryText)
             }
             Spacer()
-            NavigationLink {
-                LevelView(onNavigationStateChanged: onDetailRouteChanged)
-            } label: {
+            NavigationLink(value: HomeRoute.level) {
                 HStack(spacing: 6) {
                     Image("H1IconZap")
                         .resizable()
@@ -78,63 +96,49 @@ struct HomeView: View {
                 Text(viewModel.stageTitle)
                     .font(GymupTypography.label)
                     .tracking(0.17)
-                    .foregroundStyle(Color(red: 1, green: 0.42, blue: 0.43))
+                    .foregroundStyle(GymupColors.brandText)
                 Spacer(minLength: 6)
-                HStack(spacing: 10) {
-                    Image("H1IconSparkle")
-                        .resizable()
-                        .frame(width: 16, height: 16)
-                    Text(viewModel.rewardNotice)
-                        .font(GymupTypography.uiMedium)
-                        .tracking(-0.09)
-                        .lineLimit(1)
-                    Image("H1IconChevronRight")
-                        .resizable()
-                        .frame(width: 16, height: 16)
-                }
-                .foregroundStyle(GymupColors.primaryText)
-                .padding(.horizontal, 10)
-                .padding(.vertical, 6)
-                .background(Color(red: 0.23, green: 0.07, blue: 0.08), in: RoundedRectangle(cornerRadius: 14))
-            }
-            equipment
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("GROWTH")
-                    .font(GymupTypography.label)
-                    .tracking(0.17)
-                    .foregroundStyle(GymupColors.secondaryText)
-                Text("\(viewModel.growth)")
-                    .font(GymupTypography.metric)
-                    .tracking(0.13)
-                    .foregroundStyle(GymupColors.primaryText)
-                Text("/100")
-                    .font(GymupTypography.uiMedium)
-                    .foregroundStyle(Color(red: 0.42, green: 0.42, blue: 0.46))
-                Spacer()
-                Text("다음 원판까지 \(viewModel.nextPlateProgress)")
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
-            }
-            GeometryReader { geometry in
-                ZStack(alignment: .leading) {
-                    Capsule().fill(Color(red: 0.16, green: 0.16, blue: 0.19))
-                    Capsule()
-                        .fill(GymupColors.accent)
-                        .frame(width: geometry.size.width * 0.687)
+                if inventory.hasNewItem {
+                    Button { isNewItemPresented = true } label: { newItemBanner }
+                        .buttonStyle(.plain)
                 }
             }
-            .frame(height: 6)
+            NavigationLink(value: HomeRoute.growth) {
+                VStack(spacing: 12) {
+                    equipment
+                    HomeGrowthSummaryView(growth: viewModel.growth, nextPlateProgress: viewModel.nextPlateProgress)
+                }
+            }
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 16)
         .padding(.vertical, 18)
         .frame(height: 318)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
-        .contentShape(RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var newItemBanner: some View {
+        HStack(spacing: 10) {
+            Image("H1IconSparkle")
+                .resizable()
+                .frame(width: 16, height: 16)
+            Text(viewModel.rewardNotice)
+                .font(GymupTypography.uiMedium)
+                .tracking(-0.09)
+                .lineLimit(1)
+            Image("H1IconChevronRight")
+                .resizable()
+                .frame(width: 16, height: 16)
+        }
+        .foregroundStyle(GymupColors.primaryText)
+        .padding(.horizontal, 10)
+        .padding(.vertical, 6)
+        .background(GymupColors.brandSubtle, in: RoundedRectangle(cornerRadius: 14))
     }
 
     private var equipment: some View {
         VStack(spacing: 0) {
-            Image("H1Equipment")
+            Image(inventory.equippedPlateID == .blackPlate ? "H6Equipment" : "H1Equipment")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 300, height: 150)
@@ -148,23 +152,17 @@ struct HomeView: View {
 
     private var statistics: some View {
         HStack(spacing: 8) {
-            NavigationLink {
-                WeeklyGoalView(onNavigationStateChanged: onDetailRouteChanged)
-            } label: {
+            NavigationLink(value: HomeRoute.weeklyGoal) {
                 statistic(
                     icon: "H1IconCalendar",
                     value: "\(viewModel.weeklyWorkoutCount)/\(viewModel.weeklyWorkoutGoal)",
                     title: "이번 주 운동"
                 )
             }
-            NavigationLink {
-                WeeklyGoalView(onNavigationStateChanged: onDetailRouteChanged)
-            } label: {
+            NavigationLink(value: HomeRoute.weeklyGoal) {
                 statistic(icon: "H1IconFlame", value: "\(viewModel.streakWeeks)주", title: "Streak")
             }
-            NavigationLink {
-                LevelView(onNavigationStateChanged: onDetailRouteChanged)
-            } label: {
+            NavigationLink(value: HomeRoute.level) {
                 statistic(icon: "H1IconZap", value: viewModel.experiencePoints.formatted(), title: "XP")
             }
         }
@@ -228,6 +226,36 @@ struct HomeView: View {
             .frame(height: 132)
         }
         .buttonStyle(.plain)
+    }
+
+    @ViewBuilder
+    private func destination(for route: HomeRoute) -> some View {
+        switch route {
+        case .growth:
+            GrowthView(onNavigationStateChanged: { _ in })
+        case .weeklyGoal:
+            WeeklyGoalView(onNavigationStateChanged: { _ in })
+        case .level:
+            LevelView(onNavigationStateChanged: { _ in })
+        case .customization:
+            BarbellCustomizationView(
+                viewModel: inventory,
+                onNavigationStateChanged: { _ in },
+                onOpenNewItem: { isNewItemPresented = true }
+            )
+        }
+    }
+
+    private func equipNewItem() {
+        guard inventory.equipPlate(.blackPlate) else { return }
+        shouldOpenCustomization = true
+        isNewItemPresented = false
+    }
+
+    private func finishUnlockPresentation() {
+        guard shouldOpenCustomization else { return }
+        shouldOpenCustomization = false
+        if path.last != .customization { path.append(.customization) }
     }
 }
 
