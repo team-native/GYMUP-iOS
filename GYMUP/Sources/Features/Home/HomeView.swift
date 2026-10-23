@@ -143,14 +143,23 @@ struct HomeView: View {
 
     private var statistics: some View {
         HStack(spacing: 8) {
-            statistic(
-                icon: "H1IconCalendar",
-                value: "\(viewModel.weeklyWorkoutCount)/\(viewModel.weeklyWorkoutGoal)",
-                title: "이번 주 운동"
-            )
-            statistic(icon: "H1IconFlame", value: "\(viewModel.streakWeeks)주", title: "Streak")
+            NavigationLink {
+                WeeklyGoalView(onNavigationStateChanged: onGrowthRouteChanged)
+            } label: {
+                statistic(
+                    icon: "H1IconCalendar",
+                    value: "\(viewModel.weeklyWorkoutCount)/\(viewModel.weeklyWorkoutGoal)",
+                    title: "이번 주 운동"
+                )
+            }
+            NavigationLink {
+                WeeklyGoalView(onNavigationStateChanged: onGrowthRouteChanged)
+            } label: {
+                statistic(icon: "H1IconFlame", value: "\(viewModel.streakWeeks)주", title: "Streak")
+            }
             statistic(icon: "H1IconZap", value: viewModel.experiencePoints.formatted(), title: "XP")
         }
+        .buttonStyle(.plain)
         .frame(height: 91)
     }
 
