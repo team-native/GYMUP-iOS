@@ -11,6 +11,7 @@ struct MainTabView: View {
     @State private var selection: GymupTab = .home
     @State private var inventory = BarbellCustomizationViewModel()
     @State private var routineStore = RoutineStore()
+    @State private var requestedRoutineID: String?
     @State private var isDetailPresented = false
 
     var body: some View {
@@ -18,12 +19,13 @@ struct MainTabView: View {
             switch selection {
             case .home:
                 HomeView(
-                    onOpenRoutines: { selection = .routine },
+                    onOpenRoutines: { requestedRoutineID = "upper-a"; selection = .routine },
                     inventory: inventory,
                     onDetailRouteChanged: { isDetailPresented = $0 }
                 )
             case .routine:
-                RoutineView(store: routineStore, onDetailRouteChanged: { isDetailPresented = $0 })
+                RoutineView(store: routineStore, requestedRoutineID: $requestedRoutineID,
+                            onDetailRouteChanged: { isDetailPresented = $0 })
             case .history:
                 HistoryPlaceholderView()
             case .profile:
