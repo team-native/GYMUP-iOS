@@ -15,12 +15,7 @@ struct RoutineView: View {
             VStack(spacing: 0) {
                 header
                     .padding(.top, 4)
-                Picker("루틴 목록", selection: $viewModel.mode) {
-                    ForEach(RoutineListMode.allCases) { mode in
-                        Text(mode.rawValue).tag(mode)
-                    }
-                }
-                .pickerStyle(.segmented)
+                GymupSegmentedControl(selection: $viewModel.mode)
                 .frame(height: 32)
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
