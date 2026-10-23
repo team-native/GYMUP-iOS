@@ -39,7 +39,7 @@ struct GrowthView: View {
             .buttonStyle(.plain)
             Spacer()
             Text("Growth")
-                .font(.custom("GothicA1-Bold", size: 14))
+                .font(GymupTypography.growthNavigationTitle)
                 .foregroundStyle(GymupColors.primaryText)
             Spacer()
             Button {} label: {
@@ -59,10 +59,10 @@ struct GrowthView: View {
     private var score: some View {
         HStack(alignment: .firstTextBaseline, spacing: 5) {
             Text("\(viewModel.growth)")
-                .font(.custom("BarlowCondensed-ExtraBold", size: 64))
+                .font(GymupTypography.growthScore)
                 .foregroundStyle(GymupColors.primaryText)
             Text("/100")
-                .font(.custom("BarlowCondensed-Bold", size: 18))
+                .font(GymupTypography.growthScoreUnit)
                 .foregroundStyle(Color.white.opacity(0.35))
         }
         .frame(height: 65, alignment: .leading)
@@ -72,7 +72,7 @@ struct GrowthView: View {
 
     private var goalDescription: some View {
         Text("\(viewModel.goalTitle) · \(viewModel.goalDurationWeeks)주 중 \(viewModel.currentWeek)주차")
-            .font(.custom("GothicA1-Medium", size: 13))
+            .font(GymupTypography.uiMedium)
             .foregroundStyle(GymupColors.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
     }
@@ -103,11 +103,11 @@ struct GrowthView: View {
             ForEach(viewModel.growthFactors) { factor in
                 HStack {
                     Text(factor.title)
-                        .font(.custom("GothicA1-Medium", size: 11))
+                        .font(GymupTypography.uiCaption)
                         .foregroundStyle(GymupColors.secondaryText)
                     Spacer(minLength: 4)
                     Text(factor.value)
-                        .font(.custom("BarlowCondensed-ExtraBold", size: 15))
+                        .font(GymupTypography.growthFactorValue)
                         .foregroundStyle(Color(red: 1, green: 0.42, blue: 0.43))
                 }
                 .padding(.horizontal, 12)
@@ -134,11 +134,11 @@ private struct GrowthStageRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
                     Text(stage.title)
-                        .font(.custom("GothicA1-Bold", size: 12))
+                        .font(GymupTypography.growthStageTitle)
                         .foregroundStyle(textColor)
                     if stage.isCurrent {
                         Text("현재")
-                            .font(.custom("GothicA1-Bold", size: 9))
+                            .font(GymupTypography.growthStageBadge)
                             .foregroundStyle(.white)
                             .padding(.horizontal, 6)
                             .padding(.vertical, 3)
@@ -146,7 +146,7 @@ private struct GrowthStageRow: View {
                     }
                 }
                 Text("\(stage.weight)kg · \(stage.growthRangeTitle)")
-                    .font(.custom("GothicA1-Medium", size: 11))
+                    .font(GymupTypography.uiCaption)
                     .foregroundStyle(stage.isLocked ? Color.white.opacity(0.25) : GymupColors.secondaryText)
             }
             Spacer(minLength: 0)
