@@ -1,6 +1,8 @@
 import SwiftUI
 
 enum GymupColors {
+    static let brandSubtle = Color("BrandSubtle")
+    static let strongBorder = Color("BorderStrong")
     static let brandText = Color("BrandText")
     static let tertiaryText = Color("TextTertiary")
     static let overlay = Color("SurfaceOverlay")
