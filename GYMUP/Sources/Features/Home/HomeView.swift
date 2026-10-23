@@ -2,24 +2,41 @@ import SwiftUI
 
 struct HomeView: View {
     let onOpenRoutines: () -> Void
+    let onGrowthRouteChanged: (Bool) -> Void
     @State private var viewModel = HomeViewModel()
 
+    init(
+        onOpenRoutines: @escaping () -> Void,
+        onGrowthRouteChanged: @escaping (Bool) -> Void = { _ in }
+    ) {
+        self.onOpenRoutines = onOpenRoutines
+        self.onGrowthRouteChanged = onGrowthRouteChanged
+    }
+
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 12) {
-                header
-                    .frame(height: 56)
-                VStack(spacing: 16) {
-                    growthCard
-                    statistics
-                    todayRoutine
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 12) {
+                    header
+                        .frame(height: 56)
+                    VStack(spacing: 16) {
+                        NavigationLink {
+                            GrowthView(onNavigationStateChanged: onGrowthRouteChanged)
+                        } label: {
+                            growthCard
+                        }
+                        .buttonStyle(.plain)
+                        statistics
+                        todayRoutine
+                    }
                 }
+                .padding(.horizontal, 20)
+                .padding(.top, 0)
+                .padding(.bottom, 24)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 0)
-            .padding(.bottom, 24)
+            .background(GymupColors.canvas.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
         }
-        .background(GymupColors.canvas.ignoresSafeArea())
     }
 
     private var header: some View {
@@ -108,7 +125,6 @@ struct HomeView: View {
         .frame(height: 318)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
         .contentShape(RoundedRectangle(cornerRadius: 20))
-        .onTapGesture(perform: onOpenRoutines)
     }
 
     private var equipment: some View {

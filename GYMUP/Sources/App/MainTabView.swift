@@ -9,12 +9,16 @@ enum GymupTab: Hashable {
 
 struct MainTabView: View {
     @State private var selection: GymupTab = .home
+    @State private var isGrowthDetailPresented = false
 
     var body: some View {
         Group {
             switch selection {
             case .home:
-                HomeView(onOpenRoutines: { selection = .routine })
+                HomeView(
+                    onOpenRoutines: { selection = .routine },
+                    onGrowthRouteChanged: { isGrowthDetailPresented = $0 }
+                )
             case .routine:
                 RoutinePlaceholderView()
             case .history:
@@ -24,7 +28,9 @@ struct MainTabView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            tabBar
+            if !isGrowthDetailPresented {
+                tabBar
+            }
         }
         .background(GymupColors.canvas)
         .preferredColorScheme(.dark)
