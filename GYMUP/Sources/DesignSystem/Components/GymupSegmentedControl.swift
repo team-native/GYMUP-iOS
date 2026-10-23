@@ -10,6 +10,13 @@ where Selection: CaseIterable & Hashable & RawRepresentable, Selection.RawValue 
         let control = UISegmentedControl(items: options.map(\.rawValue))
         control.backgroundColor = UIColor(GymupColors.elevatedSurface)
         control.selectedSegmentTintColor = UIColor(GymupColors.overlay)
+        control.setBackgroundImage(
+            background(color: UIColor(GymupColors.elevatedSurface), inset: 0, radius: 9), for: .normal, barMetrics: .default
+        )
+        control.setBackgroundImage(
+            background(color: UIColor(GymupColors.overlay), inset: 2, radius: 7), for: .selected, barMetrics: .default
+        )
+        control.setDividerImage(UIImage(), forLeftSegmentState: .normal, rightSegmentState: .normal, barMetrics: .default)
         control.layer.cornerRadius = 9
         control.clipsToBounds = true
         control.setTitleTextAttributes([
@@ -30,6 +37,15 @@ where Selection: CaseIterable & Hashable & RawRepresentable, Selection.RawValue 
     }
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
+
+    private func background(color: UIColor, inset: CGFloat, radius: CGFloat) -> UIImage {
+        let size = CGSize(width: 32, height: 32)
+        let image = UIGraphicsImageRenderer(size: size).image { _ in
+            color.setFill()
+            UIBezierPath(roundedRect: CGRect(origin: .zero, size: size).insetBy(dx: inset, dy: inset), cornerRadius: radius).fill()
+        }
+        return image.resizableImage(withCapInsets: UIEdgeInsets(top: 10, left: 10, bottom: 10, right: 10))
+    }
 
     final class Coordinator: NSObject {
         var parent: GymupSegmentedControl<Selection>
