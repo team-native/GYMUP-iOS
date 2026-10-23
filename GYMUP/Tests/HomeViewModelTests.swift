@@ -6,25 +6,43 @@ final class HomeViewModelTests: XCTestCase {
     func testInitialState() {
         let viewModel = HomeViewModel()
 
-        XCTAssertEqual(viewModel.greeting, "디자인 시스템 기본 구성이 준비되었습니다.")
-        XCTAssertFalse(viewModel.hasStarted)
+        XCTAssertEqual(viewModel.dateTitle, "10월 11일 토요일")
+        XCTAssertEqual(viewModel.growth, 67)
+        XCTAssertEqual(viewModel.weeklyWorkoutCount, 2)
+        XCTAssertEqual(viewModel.weeklyWorkoutGoal, 3)
+        XCTAssertEqual(viewModel.streakWeeks, 7)
+        XCTAssertEqual(viewModel.experiencePoints, 2_340)
+        XCTAssertEqual(viewModel.todayRoutine, "UPPER A")
     }
 
     @MainActor
-    func testGreetingUsesEnteredName() {
-        let viewModel = HomeViewModel()
-        viewModel.name = "시우"
+    func testRoutineCategoryFiltersPlans() {
+        let viewModel = RoutineViewModel()
+        viewModel.selectedCategory = "하체"
 
-        XCTAssertEqual(viewModel.greeting, "안녕하세요, 시우님.")
+        XCTAssertEqual(viewModel.routines.filter(viewModel.matchesCategory).map(\.name), ["LOWER A"])
     }
 
     @MainActor
-    func testStartUpdatesState() {
-        let viewModel = HomeViewModel()
+    func testWorkoutSessionAdvancesAfterAllSets() {
+        let routine = RoutinePlan.samples[0]
+        let viewModel = WorkoutSessionViewModel(routine: routine)
 
-        viewModel.start()
+        XCTAssertEqual(viewModel.completionButtonTitle, "세트 완료")
+        viewModel.completeSet()
+        XCTAssertEqual(viewModel.completedSets, 1)
+        XCTAssertTrue(viewModel.isResting)
+        viewModel.skipRest()
+        viewModel.completeSet()
+        viewModel.skipRest()
+        viewModel.completeSet()
+        viewModel.skipRest()
+        viewModel.completeSet()
 
-        XCTAssertTrue(viewModel.hasStarted)
+        XCTAssertEqual(viewModel.exerciseIndex, 1)
+        XCTAssertEqual(viewModel.completedSets, 0)
+        XCTAssertFalse(viewModel.isComplete)
+        XCTAssertEqual(viewModel.completionButtonTitle, "세트 완료")
     }
 }
 
