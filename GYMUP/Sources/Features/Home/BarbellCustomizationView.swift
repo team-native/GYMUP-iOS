@@ -60,11 +60,15 @@ struct BarbellCustomizationView: View {
     private var inventory: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
             ForEach(viewModel.filteredItems) { item in
-                if item.isNew, let onOpenNewItem {
-                    Button(action: onOpenNewItem) {
+                if item.isNew {
+                    if let onOpenNewItem {
+                        Button(action: onOpenNewItem) {
+                            itemTile(item)
+                        }
+                        .buttonStyle(.plain)
+                    } else {
                         itemTile(item)
                     }
-                    .buttonStyle(.plain)
                 } else if !item.isLocked && item.id != viewModel.equippedPlateID {
                     Button {
                         viewModel.equipPlate(item.id)
