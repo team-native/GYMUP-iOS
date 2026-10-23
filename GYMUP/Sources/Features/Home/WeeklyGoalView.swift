@@ -124,7 +124,7 @@ struct WeeklyGoalView: View {
                 ForEach(viewModel.progressBars) { bar in
                     VStack(spacing: 8) {
                         RoundedRectangle(cornerRadius: 3)
-                            .fill(bar.isMissedGoal ? GymupColors.accent.opacity(0.45) : GymupColors.accent)
+                            .fill(historyBarColor(for: bar))
                             .frame(maxWidth: .infinity)
                             .frame(height: bar.isMissedGoal ? 12 : (bar.week < 4 ? 40 : 56))
                         Text("\(bar.week)")
@@ -141,6 +141,13 @@ struct WeeklyGoalView: View {
         }
         .padding(14)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 14))
+    }
+
+    private func historyBarColor(for bar: WeeklyProgressBar) -> Color {
+        if bar.isMissedGoal {
+            return GymupColors.accent.opacity(0.45)
+        }
+        return bar.week < 4 ? Color.white.opacity(0.16) : GymupColors.accent
     }
 
     private var workouts: some View {
