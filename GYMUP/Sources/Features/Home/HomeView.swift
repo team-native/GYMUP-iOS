@@ -1,7 +1,7 @@
 import SwiftUI
 
 private enum HomeRoute: Hashable {
-    case growth, weeklyGoal, level, customization
+    case growth, weeklyGoal, level, customization, goalHistory
 }
 
 struct HomeView: View {
@@ -234,11 +234,13 @@ struct HomeView: View {
     private func destination(for route: HomeRoute) -> some View {
         switch route {
         case .growth:
-            GrowthView(onNavigationStateChanged: { _ in })
+            GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) })
         case .weeklyGoal:
             WeeklyGoalView(onNavigationStateChanged: { _ in })
         case .level:
             LevelView(onNavigationStateChanged: { _ in })
+        case .goalHistory:
+            GoalHistoryView()
         case .customization:
             BarbellCustomizationView(
                 viewModel: inventory,

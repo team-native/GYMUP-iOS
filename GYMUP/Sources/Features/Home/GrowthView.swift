@@ -2,6 +2,7 @@ import SwiftUI
 
 struct GrowthView: View {
     let onNavigationStateChanged: (Bool) -> Void
+    let onOpenHistory: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = GrowthViewModel()
 
@@ -42,7 +43,7 @@ struct GrowthView: View {
                 .font(GymupTypography.growthNavigationTitle)
                 .foregroundStyle(GymupColors.primaryText)
             Spacer()
-            Button {} label: {
+            Button(action: onOpenHistory) {
                 Image("H2IconHistory")
                     .resizable()
                     .frame(width: 22, height: 22)
