@@ -9,6 +9,7 @@ enum GymupTab: Hashable {
 
 struct MainTabView: View {
     @State private var selection: GymupTab = .home
+    @State private var inventory = BarbellCustomizationViewModel()
     @State private var isHomeDetailPresented = false
 
     var body: some View {
@@ -17,6 +18,7 @@ struct MainTabView: View {
             case .home:
                 HomeView(
                     onOpenRoutines: { selection = .routine },
+                    inventory: inventory,
                     onDetailRouteChanged: { isHomeDetailPresented = $0 }
                 )
             case .routine:

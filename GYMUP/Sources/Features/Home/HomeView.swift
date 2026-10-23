@@ -8,16 +8,18 @@ struct HomeView: View {
     let onOpenRoutines: () -> Void
     let onDetailRouteChanged: (Bool) -> Void
     @State private var viewModel = HomeViewModel()
-    @State private var inventory = BarbellCustomizationViewModel()
+    @Bindable private var inventory: BarbellCustomizationViewModel
     @State private var path: [HomeRoute] = []
     @State private var isNewItemPresented = false
     @State private var shouldOpenCustomization = false
 
     init(
         onOpenRoutines: @escaping () -> Void,
+        inventory: BarbellCustomizationViewModel,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
+        self.inventory = inventory
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -260,5 +262,5 @@ struct HomeView: View {
 }
 
 #Preview {
-    HomeView(onOpenRoutines: {})
+    HomeView(onOpenRoutines: {}, inventory: BarbellCustomizationViewModel())
 }
