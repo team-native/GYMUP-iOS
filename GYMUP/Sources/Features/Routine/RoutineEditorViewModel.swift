@@ -33,6 +33,15 @@ final class RoutineEditorViewModel {
         exercises.insert(movingExercise, at: destination)
     }
 
+    func updateExercise(_ exercise: RoutineExercise) {
+        guard let index = exercises.firstIndex(where: { $0.id == exercise.id }) else { return }
+        exercises[index] = exercise
+    }
+
+    func removeExercise(id: String) {
+        exercises.removeAll { $0.id == id }
+    }
+
     @discardableResult
     func save() -> String? {
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)

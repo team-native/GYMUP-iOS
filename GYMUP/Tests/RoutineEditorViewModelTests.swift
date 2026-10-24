@@ -37,4 +37,15 @@ final class RoutineEditorViewModelTests: XCTestCase {
         let newID = newEditor.save()
         XCTAssertEqual(store.routine(id: newID ?? "")?.title, "하체 A")
     }
+
+    @MainActor
+    func testExerciseSettingsApplyAndDeleteUpdateEditorDraft() {
+        let viewModel = RoutineEditorViewModel(store: RoutineStore(), routineID: "upper-a")
+        var edited = viewModel.exercises[0]
+        edited.weight = 62.5
+        viewModel.updateExercise(edited)
+        XCTAssertEqual(viewModel.exercises.first?.weight, 62.5)
+        viewModel.removeExercise(id: edited.id)
+        XCTAssertFalse(viewModel.exercises.contains(where: { $0.id == edited.id }))
+    }
 }
