@@ -48,7 +48,11 @@ struct WorkoutPhotoImagePreview: View {
             .resizable()
             .scaledToFill()
             .scaleEffect(x: filter == .mirror ? -1 : 1, y: 1)
-            .overlay(filter.overlayColor.blendMode(.softLight))
+            .overlay {
+    Rectangle()
+        .fill(filter.overlayColor)
+        .blendMode(.softLight)
+}
             .clipped()
     }
 
