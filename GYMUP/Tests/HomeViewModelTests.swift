@@ -6,26 +6,15 @@ final class HomeViewModelTests: XCTestCase {
     func testInitialState() {
         let viewModel = HomeViewModel()
 
-        XCTAssertEqual(viewModel.greeting, "디자인 시스템 기본 구성이 준비되었습니다.")
-        XCTAssertFalse(viewModel.hasStarted)
+        XCTAssertEqual(viewModel.dateTitle, "10월 11일 토요일")
+        XCTAssertEqual(viewModel.growth, 67)
+        XCTAssertEqual(viewModel.weeklyWorkoutCount, 2)
+        XCTAssertEqual(viewModel.weeklyWorkoutGoal, 3)
+        XCTAssertEqual(viewModel.streakWeeks, 7)
+        XCTAssertEqual(viewModel.experiencePoints, 2_340)
+        XCTAssertEqual(viewModel.todayRoutine, "UPPER A")
     }
 
-    @MainActor
-    func testGreetingUsesEnteredName() {
-        let viewModel = HomeViewModel()
-        viewModel.name = "시우"
-
-        XCTAssertEqual(viewModel.greeting, "안녕하세요, 시우님.")
-    }
-
-    @MainActor
-    func testStartUpdatesState() {
-        let viewModel = HomeViewModel()
-
-        viewModel.start()
-
-        XCTAssertTrue(viewModel.hasStarted)
-    }
 }
 
 final class WorkoutCompletionDataTests: XCTestCase {

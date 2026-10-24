@@ -1,0 +1,80 @@
+import SwiftUI
+
+struct RoutineView: View {
+    let onDetailRouteChanged: (Bool) -> Void
+    @State private var viewModel: RoutineViewModel
+    @State private var path: [RoutineRoute] = []
+
+    init(store: RoutineStore, onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
+        _viewModel = State(initialValue: RoutineViewModel(store: store))
+        self.onDetailRouteChanged = onDetailRouteChanged
+    }
+
+    var body: some View {
+        NavigationStack(path: $path) {
+            VStack(spacing: 0) {
+                header
+                    .padding(.top, 4)
+                GymupSegmentedControl(selection: $viewModel.mode)
+                .frame(height: 32)
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                ScrollView(showsIndicators: false) {
+                    LazyVStack(spacing: 16) {
+                        ForEach(viewModel.routines) { routine in
+                            if routine.isEmpty {
+                                EmptyRoutineCard(
+                                    onOpen: { path.append(.edit(routine.id)) },
+                                    onStart: { path.append(.emptyStart(routine.id)) }
+                                )
+                            } else {
+                                RoutineCard(
+                                    routine: routine,
+                                    onOpen: { path.append(.detail(routine.id)) },
+                                    onStart: { path.append(.workout(routine.id)) }
+                                )
+                            }
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 20)
+                    .padding(.bottom, 24)
+                }
+            }
+            .background(GymupColors.canvas.ignoresSafeArea())
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(for: RoutineRoute.self) { route in
+                RoutinePendingView(route: route)
+            }
+        }
+        .onChange(of: path) { _, newPath in onDetailRouteChanged(!newPath.isEmpty) }
+        .onAppear { onDetailRouteChanged(!path.isEmpty) }
+    }
+
+    private var header: some View {
+        HStack {
+            Text("루틴")
+                .font(GymupTypography.homeTitle)
+                .tracking(-0.43)
+                .foregroundStyle(GymupColors.primaryText)
+            Spacer()
+            Button { path.append(.create) } label: {
+                Image("R1IconPlus")
+                    .resizable()
+                    .frame(width: 16.4, height: 16.4)
+                    .frame(width: 32.8, height: 32.8)
+                    .background(GymupColors.accent, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel("루틴 추가")
+            .accessibilityIdentifier("routine.add")
+        }
+        .padding(.horizontal, 20)
+        .frame(height: 48)
+    }
+}
+
+#Preview {
+    RoutineView(store: RoutineStore())
+        .preferredColorScheme(.dark)
+}

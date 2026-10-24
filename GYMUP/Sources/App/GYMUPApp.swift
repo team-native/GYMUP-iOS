@@ -4,8 +4,7 @@ import SwiftUI
 struct GYMUPApp: App {
     var body: some Scene {
         WindowGroup {
-            WorkoutPhotoFlowHostView()
-                .preferredColorScheme(.dark)
+            MainTabView()
         }
     }
 }

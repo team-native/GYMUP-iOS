@@ -12,7 +12,17 @@ let project = Project(
             infoPlist: .extendingDefault(
                 with: [
                     "UILaunchScreen": [:],
-                    "UIAppFonts": ["NotoSansKR[wght].ttf"],
+                    "UIAppFonts": [
+                        "NotoSansKR[wght].ttf",
+                        "GothicA1-Medium.ttf",
+                        "GothicA1-SemiBold.ttf",
+                        "GothicA1-Bold.ttf",
+                        "GothicA1-ExtraBold.ttf",
+                        "BarlowCondensed-Black.ttf",
+                        "BarlowCondensed-Bold.ttf",
+                        "BarlowCondensed-ExtraBold.ttf",
+                        "Archivo[wdth,wght].ttf",
+                    ],
                 ]
             ),
             sources: ["GYMUP/Sources/**"],
