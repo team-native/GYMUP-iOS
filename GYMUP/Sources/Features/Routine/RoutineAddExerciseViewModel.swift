@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 struct RoutineExerciseOption: Identifiable, Hashable {
@@ -7,7 +8,6 @@ struct RoutineExerciseOption: Identifiable, Hashable {
     let difficulty: String?
 
     var id: String { exercise.id }
-    var categories: [String] { ["전체", muscleGroup] }
     var descriptor: String {
         [equipment, muscleGroup, difficulty].compactMap { $0 }.joined(separator: " · ")
     }
