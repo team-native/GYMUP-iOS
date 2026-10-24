@@ -136,3 +136,41 @@ enum ProfileAction: Equatable {
         }
     }
 }
+
+struct ProfileNotificationPreferences {
+    var workoutReminderEnabled = true
+    var restTimerEnabled = true
+    var weeklySummaryEnabled = false
+}
+
+struct ProfileReminderSchedule {
+    var weekdays: Set<Int> = [2, 4, 6]
+    var time = Calendar.current.date(from: DateComponents(hour: 19, minute: 0)) ?? .now
+
+    var summary: String {
+        let names = ["일", "월", "화", "수", "목", "금", "토"]
+        let selectedDays = weekdays.sorted().compactMap { index in
+            names.indices.contains(index - 1) ? names[index - 1] : nil
+        }
+        let daysSummary: String
+        if selectedDays.count == 7 {
+            daysSummary = "매일"
+        } else if selectedDays.isEmpty {
+            daysSummary = "요일 미선택"
+        } else {
+            daysSummary = selectedDays.joined(separator: " · ")
+        }
+
+        let components = Calendar.current.dateComponents([.hour, .minute], from: time)
+        let hour = components.hour ?? 0
+        let minute = components.minute ?? 0
+        return "\(daysSummary) · \(String(format: "%02d:%02d", hour, minute))"
+    }
+}
+
+enum ProfileSheetDestination: String, Identifiable {
+    case restTime
+    case playlist
+
+    var id: String { rawValue }
+}
