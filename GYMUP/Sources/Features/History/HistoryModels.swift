@@ -97,17 +97,17 @@ enum HistorySampleData {
                         WorkoutSetRecord(id: 1, weight: 40, repetitions: 12),
                         WorkoutSetRecord(id: 2, weight: 50, repetitions: 10),
                         WorkoutSetRecord(id: 3, weight: 62.5, repetitions: 8, isPersonalRecord: true),
-                        WorkoutSetRecord(id: 4, weight: 55, repetitions: 10),
+                        WorkoutSetRecord(id: 4, weight: 55, repetitions: 10)
                     ]),
                     WorkoutExerciseRecord(id: 2, name: "인클라인 덤벨 프레스", sets: [
                         WorkoutSetRecord(id: 1, weight: 20, repetitions: 12),
                         WorkoutSetRecord(id: 2, weight: 22.5, repetitions: 10),
-                        WorkoutSetRecord(id: 3, weight: 22.5, repetitions: 9),
+                        WorkoutSetRecord(id: 3, weight: 22.5, repetitions: 9)
                     ]),
                     WorkoutExerciseRecord(id: 3, name: "케이블 플라이", sets: [
                         WorkoutSetRecord(id: 1, weight: 15, repetitions: 15),
-                        WorkoutSetRecord(id: 2, weight: 17.5, repetitions: 12),
-                    ]),
+                        WorkoutSetRecord(id: 2, weight: 17.5, repetitions: 12)
+                    ])
                 ]
             ),
             WorkoutRecord(
@@ -124,12 +124,12 @@ enum HistorySampleData {
                     WorkoutExerciseRecord(id: 1, name: "스쿼트", sets: [
                         WorkoutSetRecord(id: 1, weight: 60, repetitions: 10),
                         WorkoutSetRecord(id: 2, weight: 80, repetitions: 8),
-                        WorkoutSetRecord(id: 3, weight: 90, repetitions: 6, isPersonalRecord: true),
+                        WorkoutSetRecord(id: 3, weight: 90, repetitions: 6, isPersonalRecord: true)
                     ]),
                     WorkoutExerciseRecord(id: 2, name: "레그 프레스", sets: [
                         WorkoutSetRecord(id: 1, weight: 120, repetitions: 12),
-                        WorkoutSetRecord(id: 2, weight: 140, repetitions: 10),
-                    ]),
+                        WorkoutSetRecord(id: 2, weight: 140, repetitions: 10)
+                    ])
                 ]
             ),
             WorkoutRecord(
@@ -146,14 +146,14 @@ enum HistorySampleData {
                     WorkoutExerciseRecord(id: 1, name: "랫 풀 다운", sets: [
                         WorkoutSetRecord(id: 1, weight: 40, repetitions: 12),
                         WorkoutSetRecord(id: 2, weight: 45, repetitions: 10),
-                        WorkoutSetRecord(id: 3, weight: 50, repetitions: 8),
+                        WorkoutSetRecord(id: 3, weight: 50, repetitions: 8)
                     ]),
                     WorkoutExerciseRecord(id: 2, name: "시티드 로우", sets: [
                         WorkoutSetRecord(id: 1, weight: 35, repetitions: 12),
-                        WorkoutSetRecord(id: 2, weight: 40, repetitions: 10),
-                    ]),
+                        WorkoutSetRecord(id: 2, weight: 40, repetitions: 10)
+                    ])
                 ]
-            ),
+            )
         ]
     }()
 
