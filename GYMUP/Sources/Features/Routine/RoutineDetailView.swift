@@ -2,16 +2,19 @@ import SwiftUI
 
 struct RoutineDetailView: View {
     let onEdit: () -> Void
-    let onMore: () -> Void
+    let onDuplicate: (String) -> Void
+    let onDelete: () -> Void
     let onStart: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: RoutineDetailViewModel
 
     init(store: RoutineStore, routineID: String, onEdit: @escaping () -> Void,
-         onMore: @escaping () -> Void, onStart: @escaping () -> Void) {
+         onDuplicate: @escaping (String) -> Void, onDelete: @escaping () -> Void,
+         onStart: @escaping () -> Void) {
         _viewModel = State(initialValue: RoutineDetailViewModel(store: store, routineID: routineID))
         self.onEdit = onEdit
-        self.onMore = onMore
+        self.onDuplicate = onDuplicate
+        self.onDelete = onDelete
         self.onStart = onStart
     }
 
@@ -49,6 +52,27 @@ struct RoutineDetailView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if viewModel.routine != nil { actions }
         }
+        .confirmationDialog(
+            "루틴 더보기",
+            isPresented: $viewModel.isMoreActionsPresented,
+            titleVisibility: .visible
+        ) {
+            Button("편집", action: onEdit)
+                .accessibilityIdentifier("routine.more.edit")
+            Button("복제") {
+                if let duplicateID = viewModel.duplicateRoutine() {
+                    onDuplicate(duplicateID)
+                }
+            }
+            .accessibilityIdentifier("routine.more.duplicate")
+            Button("삭제", role: .destructive) {
+                viewModel.deleteRoutine()
+                onDelete()
+            }
+            .accessibilityIdentifier("routine.more.delete")
+            Button("취소", role: .cancel) {}
+                .accessibilityIdentifier("routine.more.cancel")
+        }
     }
 
     private var navigationBar: some View {
@@ -60,12 +84,13 @@ struct RoutineDetailView: View {
             }
             .accessibilityLabel("뒤로")
             Spacer()
-            Button(action: onMore) {
+            Button(action: viewModel.presentMoreActions) {
                 Image("R2IconMore").resizable().frame(width: 22, height: 22)
                     .frame(width: 40, height: 40)
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("루틴 더보기")
+            .accessibilityIdentifier("routine.detail.more")
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 8)
