@@ -2,8 +2,10 @@ import SwiftUI
 
 struct WorkoutPeakUnlockView: View {
     let reward: WorkoutCompletionData.PeakReward
+    let onFinish: () -> Void
     let onCreateGoal: () -> Void
     let onGoalHistory: () -> Void
+    var showsGoalActions = true
 
     private let columns = [GridItem(.flexible(), spacing: 9), GridItem(.flexible(), spacing: 9)]
 
@@ -37,12 +39,37 @@ struct WorkoutPeakUnlockView: View {
             .padding(.bottom, 24)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            WorkoutCompletionActionBar(
-                primary: WorkoutCompletionPrimaryButton(title: "새 목표 설정하기", action: onCreateGoal),
-                secondary: WorkoutCompletionSecondaryButton(title: "목표 히스토리", action: onGoalHistory)
-            )
+            VStack(spacing: 10) {
+                WorkoutCompletionPrimaryButton(title: "운동 완료", action: onFinish)
+                    .accessibilityIdentifier("workout.completion.finish")
+
+                if showsGoalActions {
+                    goalActions
+                }
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 12)
+            .padding(.bottom, 8)
+            .background {
+                WorkoutCompletionColors.canvas
+                    .ignoresSafeArea(edges: .bottom)
+            }
         }
         .background(WorkoutCompletionColors.canvas)
+    }
+
+    private var goalActions: some View {
+        ViewThatFits(in: .horizontal) {
+            HStack(spacing: 10) {
+                WorkoutCompletionSecondaryButton(title: "새 목표 설정하기", action: onCreateGoal)
+                WorkoutCompletionSecondaryButton(title: "목표 히스토리", action: onGoalHistory)
+            }
+
+            VStack(spacing: 10) {
+                WorkoutCompletionSecondaryButton(title: "새 목표 설정하기", action: onCreateGoal)
+                WorkoutCompletionSecondaryButton(title: "목표 히스토리", action: onGoalHistory)
+            }
+        }
     }
 
     private var header: some View {
