@@ -65,11 +65,13 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
         title: "하체 B",
         estimatedDurationMinutes: 60,
         exercises: [
-            exercise("squat", "스쿼트", target: "하체 · 둔근", sets: 4, weight: 60, reps: 10),
-            exercise("leg-press", "레그 프레스", target: "대퇴사두근", sets: 4, weight: 100, reps: 12),
-            exercise("leg-curl", "레그 컬", target: "햄스트링", sets: 3, weight: 25, reps: 12),
-            exercise("leg-extension", "레그 익스텐션", target: "대퇴사두근", sets: 3, weight: 30, reps: 15),
-            exercise("calf-raise", "카프 레이즈", target: "종아리", sets: 3, weight: 40, reps: 15)
+            exercise(.init(id: "squat", name: "스쿼트", target: "하체 · 둔근", sets: 4, weight: 60, repetitions: 10)),
+            exercise(.init(id: "leg-press", name: "레그 프레스", target: "대퇴사두근", sets: 4, weight: 100, repetitions: 12)),
+            exercise(.init(id: "leg-curl", name: "레그 컬", target: "햄스트링", sets: 3, weight: 25, repetitions: 12)),
+            exercise(.init(
+                id: "leg-extension", name: "레그 익스텐션", target: "대퇴사두근", sets: 3, weight: 30, repetitions: 15
+            )),
+            exercise(.init(id: "calf-raise", name: "카프 레이즈", target: "종아리", sets: 3, weight: 40, repetitions: 15))
         ]
     )
 
@@ -79,12 +81,12 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
         title: "등 · 이두 C",
         estimatedDurationMinutes: 50,
         exercises: [
-            exercise("deadlift", "데드리프트", target: "등 · 하체", sets: 4, weight: 60, reps: 8),
-            exercise("lat-pulldown", "랫 풀다운", target: "광배근", sets: 4, weight: 35, reps: 12),
-            exercise("seated-row", "시티드 로우", target: "등 중앙", sets: 3, weight: 30, reps: 12),
-            exercise("face-pull", "페이스 풀", target: "후면 어깨", sets: 3, weight: 15, reps: 15),
-            exercise("dumbbell-curl", "덤벨 컬", target: "이두근", sets: 3, weight: 8, reps: 12),
-            exercise("hammer-curl", "해머 컬", target: "이두근", sets: 3, weight: 8, reps: 12)
+            exercise(.init(id: "deadlift", name: "데드리프트", target: "등 · 하체", sets: 4, weight: 60, repetitions: 8)),
+            exercise(.init(id: "lat-pulldown", name: "랫 풀다운", target: "광배근", sets: 4, weight: 35, repetitions: 12)),
+            exercise(.init(id: "seated-row", name: "시티드 로우", target: "등 중앙", sets: 3, weight: 30, repetitions: 12)),
+            exercise(.init(id: "face-pull", name: "페이스 풀", target: "후면 어깨", sets: 3, weight: 15, repetitions: 15)),
+            exercise(.init(id: "dumbbell-curl", name: "덤벨 컬", target: "이두근", sets: 3, weight: 8, repetitions: 12)),
+            exercise(.init(id: "hammer-curl", name: "해머 컬", target: "이두근", sets: 3, weight: 8, repetitions: 12))
         ]
     )
 
@@ -94,35 +96,41 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
         title: "상체 A",
         estimatedDurationMinutes: 55,
         exercises: [
-            exercise("bench-press", "벤치 프레스", target: "가슴 · 삼두", sets: 4, weight: 40, reps: 10),
-            exercise("incline-press", "인클라인 덤벨 프레스", target: "윗가슴", sets: 3, weight: 16, reps: 12),
-            exercise("lat-pulldown", "랫 풀다운", target: "광배근", sets: 3, weight: 35, reps: 12),
-            exercise("shoulder-press", "숄더 프레스", target: "어깨", sets: 3, weight: 16, reps: 10),
-            exercise("cable-fly", "케이블 플라이", target: "가슴", sets: 3, weight: 12, reps: 15),
-            exercise("triceps-pushdown", "케이블 푸시다운", target: "삼두", sets: 3, weight: 20, reps: 15)
+            exercise(.init(id: "bench-press", name: "벤치 프레스", target: "가슴 · 삼두", sets: 4, weight: 40, repetitions: 10)),
+            exercise(.init(
+                id: "incline-press", name: "인클라인 덤벨 프레스", target: "윗가슴", sets: 3, weight: 16, repetitions: 12
+            )),
+            exercise(.init(id: "lat-pulldown", name: "랫 풀다운", target: "광배근", sets: 3, weight: 35, repetitions: 12)),
+            exercise(.init(id: "shoulder-press", name: "숄더 프레스", target: "어깨", sets: 3, weight: 16, repetitions: 10)),
+            exercise(.init(id: "cable-fly", name: "케이블 플라이", target: "가슴", sets: 3, weight: 12, repetitions: 15)),
+            exercise(.init(id: "triceps-pushdown", name: "케이블 푸시다운", target: "삼두", sets: 3, weight: 20, repetitions: 15))
         ]
     )
 
-    private static func exercise(
-        _ id: String,
-        _ name: String,
-        target: String,
-        sets: Int,
-        weight: Double,
-        reps: Int,
-        restSeconds: Int = 90
-    ) -> WorkoutSessionExercise {
-        let guidance = WorkoutSessionGuidanceLibrary.guidance(for: id)
+    private static func exercise(_ template: WorkoutSessionExerciseTemplate) -> WorkoutSessionExercise {
+        let guidance = WorkoutSessionGuidanceLibrary.guidance(for: template.id)
         return WorkoutSessionExercise(
-            id: id,
-            name: name,
-            target: target,
-            restDurationSeconds: restSeconds,
+            id: template.id,
+            name: template.name,
+            target: template.target,
+            restDurationSeconds: template.restSeconds,
             formSteps: guidance.steps,
             beginnerTip: guidance.beginnerTip,
-            sets: (0..<sets).map { _ in WorkoutSessionSet(weightKilograms: weight, repetitions: reps) }
+            sets: (0..<template.sets).map { _ in
+                WorkoutSessionSet(weightKilograms: template.weight, repetitions: template.repetitions)
+            }
         )
     }
+}
+
+private struct WorkoutSessionExerciseTemplate {
+    let id: String
+    let name: String
+    let target: String
+    let sets: Int
+    let weight: Double
+    let repetitions: Int
+    var restSeconds = 90
 }
 
 private struct WorkoutSessionGuidance {
@@ -248,10 +256,10 @@ enum WorkoutSessionCompletionDataFactory {
             levelReward: sampleProgress.levelReward,
             stageReward: sampleProgress.stageReward,
             peakReward: sampleProgress.peakReward,
-            exerciseDetails: plan.exercises.compactMap { exercise -> WorkoutCompletionData.ExerciseDetail? in
-                let completed = exercise.sets.enumerated().compactMap { index, set -> WorkoutCompletionData.ExerciseDetail.SetDetail? in
+            exerciseDetails: plan.exercises.compactMap { exercise -> WorkoutCompletionExerciseDetail? in
+                let completed = exercise.sets.enumerated().compactMap { index, set -> WorkoutCompletionSetDetail? in
                     guard set.isCompleted else { return nil }
-                    return WorkoutCompletionData.ExerciseDetail.SetDetail(
+                    return WorkoutCompletionSetDetail(
                         id: "\(exercise.id)-\(index + 1)",
                         number: index + 1,
                         weightKilograms: set.weightKilograms,
@@ -259,7 +267,7 @@ enum WorkoutSessionCompletionDataFactory {
                     )
                 }
                 guard !completed.isEmpty else { return nil }
-                return WorkoutCompletionData.ExerciseDetail(
+                return WorkoutCompletionExerciseDetail(
                     id: exercise.id,
                     name: exercise.name,
                     sets: completed
