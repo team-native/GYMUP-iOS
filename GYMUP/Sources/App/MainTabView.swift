@@ -29,7 +29,7 @@ struct MainTabView: View {
             case .history:
                 HistoryView(onOpenRoutines: { selection = .routine })
             case .profile:
-                ProfilePlaceholderView()
+                MyProfileView()
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -80,15 +80,5 @@ struct MainTabView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct ProfilePlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            GymupEmptyState(symbol: "person", title: "내 프로필", message: "내 운동 정보를 확인할 수 있어요.")
-                .background(GymupColors.canvas)
-                .navigationTitle("마이")
-        }
     }
 }
