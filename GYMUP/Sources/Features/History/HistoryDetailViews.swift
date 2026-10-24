@@ -311,7 +311,7 @@ struct HistoryCalendarView: View {
         guard let interval = Calendar.current.dateInterval(of: .month, for: displayedMonth),
               let dayRange = Calendar.current.range(of: .day, in: .month, for: displayedMonth) else { return [] }
         let leadingDays = Calendar.current.component(.weekday, from: interval.start) - 1
-        let blanks = Array<Date?>(repeating: nil, count: leadingDays)
+        let blanks = [Date?](repeating: nil, count: leadingDays)
         let dates = dayRange.compactMap { day in
             Calendar.current.date(byAdding: .day, value: day - 1, to: interval.start)
         }
