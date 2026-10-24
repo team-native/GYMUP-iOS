@@ -55,7 +55,7 @@ struct WorkoutPhotoFlowView: View {
                 WorkoutPhotoFilterScreen(
                     image: selectedImage,
                     filter: $selectedFilter,
-                    
+
                     onClose: onClose,
                     onContinue: advanceToAdjustments
                 )
