@@ -4,7 +4,7 @@ import XCTest
 final class RoutineEditorViewModelTests: XCTestCase {
     @MainActor
     func testTitleIsLimitedToTwentyCharactersAndWhitespaceCannotSave() {
-        let viewModel = RoutineEditorViewModel(store: RoutineStore(), routineID: nil)
+        let viewModel = RoutineEditorViewModel(store: RoutineStore(), routineID: "upper-a")
         viewModel.limitTitle(String(repeating: "가", count: 21))
         XCTAssertEqual(viewModel.title.count, 20)
         XCTAssertTrue(viewModel.canSave)
@@ -34,8 +34,20 @@ final class RoutineEditorViewModelTests: XCTestCase {
 
         let newEditor = RoutineEditorViewModel(store: store, routineID: nil)
         newEditor.title = "하체 A"
+        newEditor.exercises = [RoutineExercise.lower[0]]
         let newID = newEditor.save()
         XCTAssertEqual(store.routine(id: newID ?? "")?.title, "하체 A")
+    }
+
+    @MainActor
+    func testRoutineWithoutExercisesCannotBeSaved() {
+        let store = RoutineStore()
+        let editor = RoutineEditorViewModel(store: store, routineID: nil)
+        editor.title = "상체 A"
+
+        XCTAssertFalse(editor.canSave)
+        XCTAssertNil(editor.save())
+        XCTAssertEqual(store.routines.count, RoutinePlan.samples.count)
     }
 
     @MainActor

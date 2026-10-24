@@ -17,8 +17,11 @@ final class RoutineEditorViewModel {
         exercises = routine?.exercises ?? []
     }
 
-    var canSave: Bool { !title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     var exerciseCount: Int { exercises.count }
+    var validation: RoutineSaveValidation {
+        RoutineSaveValidation(title: title, exerciseCount: exerciseCount)
+    }
+    var canSave: Bool { validation.isValid }
 
     func limitTitle(_ value: String) {
         title = String(value.prefix(20))
@@ -45,7 +48,7 @@ final class RoutineEditorViewModel {
     @discardableResult
     func save() -> String? {
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !normalizedTitle.isEmpty else { return nil }
+        guard validation.isValid else { return nil }
         return store.saveRoutine(id: routineID, title: normalizedTitle, exercises: exercises)
     }
 }

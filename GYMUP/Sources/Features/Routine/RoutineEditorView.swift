@@ -7,6 +7,9 @@ struct RoutineEditorView: View {
     @State private var viewModel: RoutineEditorViewModel
     @State private var isAddExercisePresented = false
     @State private var settingsExerciseID: String?
+    @State private var didAttemptSave = false
+    @State private var toastVersion = 0
+    @State private var isValidationToastVisible = false
 
     let onSave: (String) -> Void
 
@@ -20,9 +23,15 @@ struct RoutineEditorView: View {
             navigationBar
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-                    nameInput
+                    RoutineEditorNameInput(
+                        title: $viewModel.title,
+                        isFocused: $isNameFocused,
+                        showsError: showsNameError
+                    )
                     exerciseList
-                    addExerciseButton
+                    if !showsEmptyExerciseError {
+                        addExerciseButton
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -35,7 +44,26 @@ struct RoutineEditorView: View {
         .onDisappear { viewModel.draggingExerciseID = nil }
         .overlay { addExerciseOverlay }
         .overlay { exerciseSettingsOverlay }
+        .overlay(alignment: .bottom) {
+            if isValidationToastVisible {
+                RoutineValidationToast()
+                    .padding(.bottom, 34)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .task(id: toastVersion) {
+            guard toastVersion > 0 else { return }
+            do {
+                try await Task.sleep(nanoseconds: 2_000_000_000)
+            } catch {
+                return
+            }
+            isValidationToastVisible = false
+        }
     }
+
+    private var showsNameError: Bool { didAttemptSave && viewModel.validation.isRoutineNameMissing }
+    private var showsEmptyExerciseError: Bool { didAttemptSave && viewModel.validation.areExercisesMissing }
 
     private var navigationBar: some View {
         HStack {
@@ -53,48 +81,24 @@ struct RoutineEditorView: View {
                 .foregroundStyle(GymupColors.primaryText)
             Spacer()
             Button {
-                guard let id = viewModel.save() else { return }
+                didAttemptSave = true
+                guard let id = viewModel.save() else {
+                    isValidationToastVisible = true
+                    toastVersion += 1
+                    return
+                }
                 onSave(id)
             } label: {
                 Text("저장")
                     .font(GymupTypography.uiStrong)
-                    .foregroundStyle(GymupColors.brandText)
+                    .foregroundStyle(viewModel.canSave ? GymupColors.brandText : GymupColors.tertiaryText)
                     .frame(width: 64, height: 40)
             }
-            .disabled(!viewModel.canSave)
-            .opacity(viewModel.canSave ? 1 : 0.45)
             .accessibilityIdentifier("routine.editor.save")
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 8)
         .frame(height: 48)
-    }
-
-    private var nameInput: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            Text("루틴 이름")
-                .font(GymupTypography.uiCaption)
-                .foregroundStyle(GymupColors.secondaryText)
-            HStack(alignment: .firstTextBaseline) {
-                TextField("루틴 이름", text: $viewModel.title)
-                    .font(GymupTypography.homeTitle)
-                    .foregroundStyle(GymupColors.primaryText)
-                    .focused($isNameFocused)
-                    .submitLabel(.done)
-                    .onSubmit { isNameFocused = false }
-                    .accessibilityIdentifier("routine.editor.name")
-                Text("\(viewModel.title.count)/20")
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.tertiaryText)
-                    .accessibilityIdentifier("routine.editor.name-count")
-            }
-            .padding(.bottom, 10)
-            .overlay(alignment: .bottom) {
-                Rectangle()
-                    .fill(isNameFocused ? GymupColors.accent : GymupColors.border)
-                    .frame(height: isNameFocused ? 2 : 1)
-            }
-        }
     }
 
     private var exerciseList: some View {
@@ -109,21 +113,25 @@ struct RoutineEditorView: View {
                     .foregroundStyle(GymupColors.secondaryText)
             }
 
-            VStack(spacing: 0) {
-                ForEach(viewModel.exercises) { exercise in
-                    exerciseRow(exercise)
-                        .onDrag {
-                            viewModel.draggingExerciseID = exercise.id
-                            return NSItemProvider(object: exercise.id as NSString)
-                        }
-                        .onDrop(
-                            of: [UTType.text],
-                            delegate: RoutineExerciseReorderDelegate(
-                                item: exercise,
-                                exercises: $viewModel.exercises,
-                                draggingExerciseID: $viewModel.draggingExerciseID
+            if showsEmptyExerciseError {
+                RoutineEmptyExerciseErrorView { isAddExercisePresented = true }
+            } else {
+                VStack(spacing: 0) {
+                    ForEach(viewModel.exercises) { exercise in
+                        exerciseRow(exercise)
+                            .onDrag {
+                                viewModel.draggingExerciseID = exercise.id
+                                return NSItemProvider(object: exercise.id as NSString)
+                            }
+                            .onDrop(
+                                of: [UTType.text],
+                                delegate: RoutineExerciseReorderDelegate(
+                                    item: exercise,
+                                    exercises: $viewModel.exercises,
+                                    draggingExerciseID: $viewModel.draggingExerciseID
+                                )
                             )
-                        )
+                    }
                 }
             }
         }
