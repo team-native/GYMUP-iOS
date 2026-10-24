@@ -90,8 +90,7 @@ struct RoutineView: View {
             onSave: { savedID in
                 if !path.isEmpty { path.removeLast() }
                 if path.isEmpty { path.append(.detail(savedID)) }
-            },
-            onSelectExercise: { path.append(.exerciseSettings(routineID ?? "new", $0)) }
+            }
         )
     }
 

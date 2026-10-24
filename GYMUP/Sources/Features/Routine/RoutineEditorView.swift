@@ -6,15 +6,13 @@ struct RoutineEditorView: View {
     @FocusState private var isNameFocused: Bool
     @State private var viewModel: RoutineEditorViewModel
     @State private var isAddExercisePresented = false
+    @State private var settingsExerciseID: String?
 
     let onSave: (String) -> Void
-    let onSelectExercise: (String) -> Void
 
-    init(store: RoutineStore, routineID: String?, onSave: @escaping (String) -> Void,
-         onSelectExercise: @escaping (String) -> Void) {
+    init(store: RoutineStore, routineID: String?, onSave: @escaping (String) -> Void) {
         _viewModel = State(initialValue: RoutineEditorViewModel(store: store, routineID: routineID))
         self.onSave = onSave
-        self.onSelectExercise = onSelectExercise
     }
 
     var body: some View {
@@ -36,6 +34,7 @@ struct RoutineEditorView: View {
         .onChange(of: viewModel.title) { _, newValue in viewModel.limitTitle(newValue) }
         .onDisappear { viewModel.draggingExerciseID = nil }
         .overlay { addExerciseOverlay }
+        .overlay { exerciseSettingsOverlay }
     }
 
     private var navigationBar: some View {
@@ -132,7 +131,7 @@ struct RoutineEditorView: View {
 
     private func exerciseRow(_ exercise: RoutineExercise) -> some View {
         let isDragging = viewModel.draggingExerciseID == exercise.id
-        return Button { onSelectExercise(exercise.id) } label: {
+        return Button { settingsExerciseID = exercise.id } label: {
             HStack(spacing: 14) {
                 Image(exercise.imageAssetName)
                     .resizable()
@@ -221,6 +220,38 @@ struct RoutineEditorView: View {
             .animation(.easeInOut(duration: 0.2), value: isAddExercisePresented)
         }
     }
+
+    @ViewBuilder
+    private var exerciseSettingsOverlay: some View {
+        if let exerciseID = settingsExerciseID,
+           let exercise = viewModel.exercises.first(where: { $0.id == exerciseID }) {
+            GeometryReader { geometry in
+                ZStack(alignment: .bottom) {
+                    Color.black.opacity(0.6)
+                        .ignoresSafeArea()
+                        .onTapGesture { settingsExerciseID = nil }
+                    RoutineExerciseSettingsView(
+                        exercise: exercise,
+                        onApply: { updatedExercise in
+                            viewModel.updateExercise(updatedExercise)
+                            settingsExerciseID = nil
+                        },
+                        onDelete: {
+                            viewModel.removeExercise(id: exerciseID)
+                            settingsExerciseID = nil
+                        },
+                        onClose: { settingsExerciseID = nil }
+                    )
+                    .frame(height: geometry.size.height * 0.52)
+                    .clipShape(UnevenRoundedRectangle(topLeadingRadius: 28, topTrailingRadius: 28))
+                    .transition(.move(edge: .bottom))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+            }
+            .ignoresSafeArea()
+            .animation(.easeInOut(duration: 0.2), value: settingsExerciseID)
+        }
+    }
 }
 
 private struct RoutineExerciseReorderDelegate: DropDelegate {
@@ -249,7 +280,6 @@ private struct RoutineExerciseReorderDelegate: DropDelegate {
 }
 
 #Preview {
-    RoutineEditorView(store: RoutineStore(), routineID: "upper-a", onSave: { _ in },
-                      onSelectExercise: { _ in })
+    RoutineEditorView(store: RoutineStore(), routineID: "upper-a", onSave: { _ in })
         .preferredColorScheme(.dark)
 }
