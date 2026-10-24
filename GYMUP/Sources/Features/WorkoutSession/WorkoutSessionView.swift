@@ -38,9 +38,10 @@ struct WorkoutSessionView: View {
         .toolbar(.hidden, for: .navigationBar)
         .sheet(isPresented: $isShowingWorkoutPhoto, onDismiss: { photoCompletionData = nil }) {
             if let photoCompletionData {
-                WorkoutPhotoFlowView(data: photoCompletionData) {
-                    isShowingWorkoutPhoto = false
-                }
+                WorkoutPhotoFlowView(
+                    data: photoCompletionData,
+                    onClose: { isShowingWorkoutPhoto = false }
+                )
                 .presentationDragIndicator(.visible)
             }
         }
