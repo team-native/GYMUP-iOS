@@ -4,10 +4,13 @@ struct RoutineView: View {
     let onDetailRouteChanged: (Bool) -> Void
     @State private var viewModel: RoutineViewModel
     @State private var path: [RoutineRoute] = []
+    @Binding private var requestedRoutineID: String?
 
-    init(store: RoutineStore, onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
+    init(store: RoutineStore, requestedRoutineID: Binding<String?> = .constant(nil),
+         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
         _viewModel = State(initialValue: RoutineViewModel(store: store))
         self.onDetailRouteChanged = onDetailRouteChanged
+        self._requestedRoutineID = requestedRoutineID
     }
 
     var body: some View {
@@ -44,15 +47,36 @@ struct RoutineView: View {
             .background(GymupColors.canvas.ignoresSafeArea())
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(for: RoutineRoute.self) { route in
-                if case let .workout(routineID) = route {
+                switch route {
+                case .detail(let id):
+                    RoutineDetailView(
+                        store: viewModel.store,
+                        routineID: id,
+                        onEdit: { path.append(.edit(id)) },
+                        onMore: { path.append(.more(id)) },
+                        onStart: {
+                            path.append(viewModel.store.routine(id: id)?.isEmpty == true ? .emptyStart(id) : .workout(id))
+                        }
+                    )
+                case .workout(let routineID):
                     WorkoutSessionView(routineID: routineID)
-                } else {
+                default:
                     RoutinePendingView(route: route)
                 }
             }
         }
         .onChange(of: path) { _, newPath in onDetailRouteChanged(!newPath.isEmpty) }
-        .onAppear { onDetailRouteChanged(!path.isEmpty) }
+        .onAppear {
+            openRequestedRoutine()
+            onDetailRouteChanged(!path.isEmpty)
+        }
+        .onChange(of: requestedRoutineID) { _, _ in openRequestedRoutine() }
+    }
+
+    private func openRequestedRoutine() {
+        guard let id = requestedRoutineID else { return }
+        requestedRoutineID = nil
+        if viewModel.store.routine(id: id) != nil { path.append(.detail(id)) }
     }
 
     private var header: some View {
