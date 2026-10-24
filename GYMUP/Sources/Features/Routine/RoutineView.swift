@@ -58,6 +58,10 @@ struct RoutineView: View {
                             path.append(viewModel.store.routine(id: id)?.isEmpty == true ? .emptyStart(id) : .workout(id))
                         }
                     )
+                case .create:
+                    routineEditor(routineID: nil)
+                case .edit(let id):
+                    routineEditor(routineID: id)
                 case .workout(let routineID):
                     WorkoutSessionView(routineID: routineID)
                 default:
@@ -77,6 +81,19 @@ struct RoutineView: View {
         guard let id = requestedRoutineID else { return }
         requestedRoutineID = nil
         if viewModel.store.routine(id: id) != nil { path.append(.detail(id)) }
+    }
+
+    private func routineEditor(routineID: String?) -> some View {
+        RoutineEditorView(
+            store: viewModel.store,
+            routineID: routineID,
+            onSave: { savedID in
+                if !path.isEmpty { path.removeLast() }
+                if path.isEmpty { path.append(.detail(savedID)) }
+            },
+            onAddExercise: { path.append(.addExercise($0)) },
+            onSelectExercise: { path.append(.exerciseSettings(routineID ?? "new", $0)) }
+        )
     }
 
     private var header: some View {
