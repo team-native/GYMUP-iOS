@@ -1,8 +1,6 @@
 import SwiftUI
 
 struct MyProfileView: View {
-    @State private var isAlertPresented = false
-    @State private var alertMessage = ""
     @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
     @State private var goals = ProfileSampleData.goalHistory
@@ -86,11 +84,6 @@ struct MyProfileView: View {
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
-            .alert("화면 안내", isPresented: $isAlertPresented) {
-                Button("확인", role: .cancel) {}
-            } message: {
-                Text(alertMessage)
-            }
         }
     }
 
@@ -120,9 +113,6 @@ struct MyProfileView: View {
             isPhotoPermissionsPresented = true
         case .playlist:
             presentedSheet = .playlist
-        case .level:
-            alertMessage = action.message
-            isAlertPresented = true
         }
     }
 }
