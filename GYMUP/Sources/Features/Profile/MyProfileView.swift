@@ -40,7 +40,7 @@ struct MyProfileView: View {
                         .foregroundStyle(GymupColors.primaryText)
                         .accessibilityAddTraits(.isHeader)
 
-                    ProfileLevelCard(profile: profile) { perform(.level) }
+                    ProfileLevelCard(profile: profile) { isLevelPresented = true }
 
                     if !profile.notificationPermissionEnabled {
                         ProfileNotificationPermissionBanner { perform(.notifications) }
@@ -164,7 +164,7 @@ struct ProfileLevelCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("레벨 \(profile.level), \(profile.stage), 프로필 상세 보기")
+        .accessibilityLabel("레벨 \(profile.level), \(profile.stage), 레벨 상세 보기")
         .accessibilityHint("레벨 정보를 확인합니다")
     }
 }
