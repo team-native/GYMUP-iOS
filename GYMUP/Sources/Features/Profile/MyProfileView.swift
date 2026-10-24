@@ -3,6 +3,7 @@ import SwiftUI
 struct MyProfileView: View {
     @State private var isAlertPresented = false
     @State private var alertMessage = ""
+    @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
     @State private var goals = ProfileSampleData.goalHistory
     @State private var isNotificationSettingsPresented = false
@@ -65,6 +66,9 @@ struct MyProfileView: View {
             }
             .background(GymupColors.canvas)
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $isLevelPresented) {
+                LevelView(onNavigationStateChanged: { _ in })
+            }
             .navigationDestination(isPresented: $isGoalHistoryPresented) {
                 ProfileGoalHistoryView(goals: $goals)
             }
