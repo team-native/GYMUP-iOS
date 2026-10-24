@@ -36,15 +36,19 @@ struct WorkoutSessionView: View {
         }
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
-        .sheet(isPresented: $isShowingWorkoutPhoto, onDismiss: { photoCompletionData = nil }) {
-            if let photoCompletionData {
-                WorkoutPhotoFlowView(
-                    data: photoCompletionData,
-                    onClose: { isShowingWorkoutPhoto = false }
-                )
-                .presentationDragIndicator(.visible)
+        .sheet(
+            isPresented: $isShowingWorkoutPhoto,
+            onDismiss: { photoCompletionData = nil },
+            content: {
+                if let photoCompletionData {
+                    WorkoutPhotoFlowView(
+                        data: photoCompletionData,
+                        onClose: { isShowingWorkoutPhoto = false }
+                    )
+                    .presentationDragIndicator(.visible)
+                }
             }
-        }
+        )
         .onReceive(clock) { viewModel.refreshClock(at: $0) }
         .confirmationDialog(
             "운동을 마칠까요?",
