@@ -70,6 +70,7 @@ struct MainTabView: View {
                 Image(icon)
                     .resizable()
                     .frame(width: 24, height: 24)
+                    .accessibilityHidden(true)
                 Text(title)
                     .font(GymupTypography.uiCaption)
                     .foregroundStyle(selection == value ? GymupColors.primaryText : Color(red: 0.42, green: 0.42, blue: 0.46))
@@ -80,5 +81,7 @@ struct MainTabView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .accessibilityLabel(title)
+        .accessibilityAddTraits(selection == value ? .isSelected : [])
     }
 }
