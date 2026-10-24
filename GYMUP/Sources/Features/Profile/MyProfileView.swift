@@ -39,15 +39,25 @@ struct MyProfileView: View {
                         .foregroundStyle(GymupColors.primaryText)
                         .accessibilityAddTraits(.isHeader)
 
-                    levelCard
+                    ProfileLevelCard(profile: profile) { perform(.level) }
 
                     if !profile.notificationPermissionEnabled {
-                        notificationPermissionBanner
+                        ProfileNotificationPermissionBanner { perform(.notifications) }
                     }
 
-                    goalAndWorkoutSection
-                    permissionSection
-                    playlistSection
+                    ProfileGoalWorkoutSection(
+                        goalSummary: currentGoalSummary,
+                        restTimeSummary: restTimeSummary,
+                        onGoal: { perform(.goals) },
+                        onRestTime: { perform(.restTime) }
+                    )
+                    ProfilePermissionSection(
+                        notificationSummary: notificationSummary,
+                        photoPermissionSummary: profile.photoPermissionSummary,
+                        onNotifications: { perform(.notifications) },
+                        onPhotoAccess: { perform(.photoAccess) }
+                    )
+                    ProfilePlaylistSection { perform(.playlist) }
                 }
                 .padding(.horizontal, GymupSpacing.large)
                 .padding(.top, GymupSpacing.large)
@@ -68,16 +78,9 @@ struct MyProfileView: View {
                 ProfilePhotoPermissionView()
             }
             .sheet(item: $presentedSheet) { destination in
-                Group {
-                    switch destination {
-                    case .restTime:
-                        ProfileRestTimeSheetView(selection: $restTimeSeconds)
-                    case .playlist:
-                        ProfilePlaylistSheetView()
-                    }
-                }
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
+                sheet(for: destination)
+                    .presentationDetents([.medium, .large])
+                    .presentationDragIndicator(.visible)
             }
             .alert("화면 안내", isPresented: $isAlertPresented) {
                 Button("확인", role: .cancel) {}
@@ -87,8 +90,45 @@ struct MyProfileView: View {
         }
     }
 
-    private var levelCard: some View {
-        actionButton(.level) {
+    private var currentGoalSummary: String {
+        "\(currentGoal.type.rawValue) · \(currentGoal.durationWeeks)주 · 주 \(currentGoal.workoutsPerWeek)회"
+    }
+
+    @ViewBuilder
+    private func sheet(for destination: ProfileSheetDestination) -> some View {
+        switch destination {
+        case .restTime:
+            ProfileRestTimeSheetView(selection: $restTimeSeconds)
+        case .playlist:
+            ProfilePlaylistSheetView()
+        }
+    }
+
+    private func perform(_ action: ProfileAction) {
+        switch action {
+        case .goals:
+            isGoalHistoryPresented = true
+        case .restTime:
+            presentedSheet = .restTime
+        case .notifications:
+            isNotificationSettingsPresented = true
+        case .photoAccess:
+            isPhotoPermissionsPresented = true
+        case .playlist:
+            presentedSheet = .playlist
+        case .level:
+            alertMessage = action.message
+            isAlertPresented = true
+        }
+    }
+}
+
+struct ProfileLevelCard: View {
+    let profile: ProfileSummary
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
             HStack(spacing: GymupSpacing.medium) {
                 Image("H2EquipmentHeavy")
                     .resizable()
@@ -112,17 +152,23 @@ struct MyProfileView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
-                chevron
+                ProfileChevron()
             }
             .padding(.horizontal, GymupSpacing.large)
             .frame(maxWidth: .infinity, minHeight: 72)
             .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+            .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("레벨 \(profile.level), \(profile.stage), 프로필 상세 보기")
         .accessibilityHint("레벨 정보를 확인합니다")
     }
+}
 
-    private var notificationPermissionBanner: some View {
+struct ProfileNotificationPermissionBanner: View {
+    let onEnable: () -> Void
+
+    var body: some View {
         HStack(spacing: GymupSpacing.medium) {
             Image(systemName: "bell.badge")
                 .font(.system(size: 18, weight: .medium))
@@ -139,7 +185,7 @@ struct MyProfileView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button("켜기") { perform(.notifications) }
+            Button("켜기", action: onEnable)
                 .font(GymupTypography.uiBold)
                 .foregroundStyle(.white)
                 .frame(minWidth: 56, minHeight: 44)
@@ -154,98 +200,109 @@ struct MyProfileView: View {
                 .strokeBorder(GymupColors.accent, lineWidth: 1)
         }
     }
+}
 
-    private var goalAndWorkoutSection: some View {
+struct ProfileGoalWorkoutSection: View {
+    let goalSummary: String
+    let restTimeSummary: String
+    let onGoal: () -> Void
+    let onRestTime: () -> Void
+
+    var body: some View {
         VStack(alignment: .leading, spacing: GymupSpacing.small) {
-            sectionLabel("목표 · 운동")
+            ProfileSectionTitle("목표 · 운동")
             VStack(spacing: 0) {
-                settingRow(
+                ProfileSettingRow(
                     icon: "target",
                     title: "운동 목표",
-                    subtitle: "\(currentGoal.type.rawValue) · \(currentGoal.durationWeeks)주 · 주 \(currentGoal.workoutsPerWeek)회",
-                    action: .goals
+                    subtitle: goalSummary,
+                    action: onGoal
                 )
-                rowSeparator
-                settingRow(
+                ProfileRowSeparator()
+                ProfileSettingRow(
                     icon: "timer",
                     title: "기본 휴식 시간",
                     subtitle: "운동별 설정이 없을 때 사용",
                     value: restTimeSummary,
-                    action: .restTime
+                    action: onRestTime
                 )
             }
             .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
         }
     }
+}
 
-    private var permissionSection: some View {
+struct ProfilePermissionSection: View {
+    let notificationSummary: String
+    let photoPermissionSummary: String
+    let onNotifications: () -> Void
+    let onPhotoAccess: () -> Void
+
+    var body: some View {
         VStack(alignment: .leading, spacing: GymupSpacing.small) {
-            sectionLabel("알림 · 권한")
+            ProfileSectionTitle("알림 · 권한")
             VStack(spacing: 0) {
-                settingRow(
+                ProfileSettingRow(
                     icon: "bell",
                     title: "알림 설정",
                     subtitle: notificationSummary,
-                    action: .notifications
+                    action: onNotifications
                 )
-                rowSeparator
-                settingRow(
+                ProfileRowSeparator()
+                ProfileSettingRow(
                     icon: "camera",
                     title: "카메라 · 사진 권한",
-                    subtitle: profile.photoPermissionSummary,
-                    action: .photoAccess
+                    subtitle: photoPermissionSummary,
+                    action: onPhotoAccess
                 )
             }
             .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
         }
     }
+}
 
-    private var playlistSection: some View {
+struct ProfilePlaylistSection: View {
+    let onPlaylist: () -> Void
+
+    var body: some View {
         VStack(alignment: .leading, spacing: GymupSpacing.small) {
-            sectionLabel("V2")
-            settingRow(
+            ProfileSectionTitle("V2")
+            ProfileSettingRow(
                 icon: "music.note",
                 title: "루틴별 플레이리스트",
                 subtitle: "Apple Music · Spotify 연결",
                 value: "V2",
-                action: .playlist
+                action: onPlaylist
             )
             .padding(.horizontal, GymupSpacing.medium)
-            .overlay(alignment: .bottom) { rowSeparator }
+            .overlay(alignment: .bottom) { ProfileRowSeparator() }
         }
     }
+}
 
-    private var rowSeparator: some View {
-        Rectangle()
-            .fill(GymupColors.border)
-            .frame(height: 1)
-            .padding(.leading, 56)
-    }
+private struct ProfileSettingRow: View {
+    let icon: String
+    let title: String
+    let subtitle: String
+    let value: String?
+    let action: () -> Void
 
-    private var chevron: some View {
-        Image("H1IconChevronRight")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 16, height: 16)
-            .accessibilityHidden(true)
-    }
-
-    private func sectionLabel(_ title: String) -> some View {
-        Text(title)
-            .font(GymupTypography.label)
-            .foregroundStyle(GymupColors.secondaryText)
-            .frame(minHeight: 20, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-    }
-
-    private func settingRow(
+    init(
         icon: String,
         title: String,
         subtitle: String,
         value: String? = nil,
-        action: ProfileAction
-    ) -> some View {
-        actionButton(action) {
+        action: @escaping () -> Void
+    ) {
+        self.icon = icon
+        self.title = title
+        self.subtitle = subtitle
+        self.value = value
+        self.action = action
+    }
+
+    var body: some View {
+        Button(action: action) {
             HStack(spacing: GymupSpacing.medium) {
                 Image(systemName: icon)
                     .font(.system(size: 17, weight: .medium))
@@ -272,48 +329,51 @@ struct MyProfileView: View {
                         .lineLimit(1)
                 }
 
-                chevron
+                ProfileChevron()
             }
             .padding(.horizontal, GymupSpacing.medium)
             .padding(.vertical, GymupSpacing.small)
             .frame(minHeight: 64)
             .contentShape(Rectangle())
         }
+        .buttonStyle(.plain)
         .accessibilityLabel("\(title), \(subtitle)\(value.map { ", \($0)" } ?? "")")
         .accessibilityHint("설정을 엽니다")
     }
+}
 
-    private func actionButton<Label: View>(
-        _ action: ProfileAction,
-        @ViewBuilder label: () -> Label
-    ) -> some View {
-        Button { perform(action) } label: {
-            label()
-                .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
+private struct ProfileSectionTitle: View {
+    let title: String
+
+    init(_ title: String) {
+        self.title = title
     }
 
-    private func perform(_ action: ProfileAction) {
-        switch action {
-        case .goals:
-            isGoalHistoryPresented = true
-        case .restTime:
-            presentedSheet = .restTime
-        case .notifications:
-            isNotificationSettingsPresented = true
-        case .photoAccess:
-            isPhotoPermissionsPresented = true
-        case .playlist:
-            presentedSheet = .playlist
-        case .level:
-            showPlaceholder(for: action)
-        }
+    var body: some View {
+        Text(title)
+            .font(GymupTypography.label)
+            .foregroundStyle(GymupColors.secondaryText)
+            .frame(minHeight: 20, alignment: .leading)
+            .accessibilityAddTraits(.isHeader)
     }
+}
 
-    private func showPlaceholder(for action: ProfileAction) {
-        alertMessage = action.message
-        isAlertPresented = true
+private struct ProfileRowSeparator: View {
+    var body: some View {
+        Rectangle()
+            .fill(GymupColors.border)
+            .frame(height: 1)
+            .padding(.leading, 56)
+    }
+}
+
+private struct ProfileChevron: View {
+    var body: some View {
+        Image("H1IconChevronRight")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 16, height: 16)
+            .accessibilityHidden(true)
     }
 }
 
