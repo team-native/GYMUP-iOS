@@ -2,9 +2,9 @@ import Observation
 
 struct RoutinePlan: Identifiable, Hashable {
     let id: String
-    let name: String
-    let title: String
-    let exerciseCount: Int
+    var name: String
+    var title: String
+    var exerciseCount: Int
     let durationMinutes: Int
     let lastPerformed: String
     let coverAssetName: String
@@ -55,4 +55,31 @@ final class RoutineStore {
     var routines = RoutinePlan.samples
 
     func routine(id: String) -> RoutinePlan? { routines.first { $0.id == id } }
+
+    func saveRoutine(id: String?, title: String, exercises: [RoutineExercise]) -> String {
+        let routineID = id ?? UUID().uuidString.lowercased()
+        if let index = routines.firstIndex(where: { $0.id == routineID }) {
+            routines[index].name = title.uppercased()
+            routines[index].title = title
+            routines[index].exerciseCount = exercises.count
+            routines[index].exercises = exercises
+            routines[index].summarySetCount = nil
+            return routineID
+        }
+
+        routines.append(
+            RoutinePlan(
+                id: routineID,
+                name: title.uppercased(),
+                title: title,
+                exerciseCount: exercises.count,
+                durationMinutes: 0,
+                lastPerformed: "",
+                coverAssetName: "R1RoutineUpper",
+                isRecommended: false,
+                exercises: exercises
+            )
+        )
+        return routineID
+    }
 }
