@@ -8,6 +8,7 @@ struct WorkoutCompletionFlowView: View {
     let onCreateGoal: () -> Void
     let onGoalHistory: () -> Void
     let showsPhotoAction: Bool
+    let showsPeakGoalActions: Bool
 
     @State private var step: WorkoutCompletionStep = .summary
 
@@ -18,7 +19,8 @@ struct WorkoutCompletionFlowView: View {
         onViewItems: @escaping () -> Void = {},
         onCreateGoal: @escaping () -> Void = {},
         onGoalHistory: @escaping () -> Void = {},
-        showsPhotoAction: Bool = true
+        showsPhotoAction: Bool = true,
+        showsPeakGoalActions: Bool = true
     ) {
         self.data = data
         self.onWorkoutPhoto = onWorkoutPhoto
@@ -27,6 +29,7 @@ struct WorkoutCompletionFlowView: View {
         self.onCreateGoal = onCreateGoal
         self.onGoalHistory = onGoalHistory
         self.showsPhotoAction = showsPhotoAction
+        self.showsPeakGoalActions = showsPeakGoalActions
     }
 
     var body: some View {
@@ -56,8 +59,10 @@ struct WorkoutCompletionFlowView: View {
                 if let reward = data.peakReward {
                     WorkoutPeakUnlockView(
                         reward: reward,
+                        onFinish: onFinish,
                         onCreateGoal: onCreateGoal,
-                        onGoalHistory: onGoalHistory
+                        onGoalHistory: onGoalHistory,
+                        showsGoalActions: showsPeakGoalActions
                     )
                 }
             }

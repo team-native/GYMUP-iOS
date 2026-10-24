@@ -26,7 +26,8 @@ struct WorkoutSessionView: View {
                         isShowingWorkoutPhoto = true
                     },
                     onFinish: dismiss.callAsFunction,
-                    showsPhotoAction: true
+                    showsPhotoAction: true,
+                    showsPeakGoalActions: false
                 )
             } else if !viewModel.hasStarted {
                 preparationContent
