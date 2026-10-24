@@ -5,6 +5,7 @@ enum GymupTypography {
     static let uiSemibold = Font.custom("GothicA1-SemiBold", size: 13)
     static let number = Font.custom("BarlowCondensed-Bold", size: 15)
     static let uiStrong = Font.custom("GothicA1-SemiBold", size: 14)
+    static let uiBody = Font.custom("GothicA1-Regular", size: 14)
     static let score = Font.custom("BarlowCondensed-Black", size: 64)
     static let sectionTitle = Font.custom("GothicA1-Bold", size: 16)
     static let homeTitle = Font.custom("GothicA1-ExtraBold", size: 20)
