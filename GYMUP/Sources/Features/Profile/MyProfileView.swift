@@ -3,36 +3,48 @@ import SwiftUI
 struct MyProfileView: View {
     @State private var isAlertPresented = false
     @State private var alertMessage = ""
+    @State private var isGoalHistoryPresented = false
+    @State private var goals = ProfileSampleData.goalHistory
 
     private let profile = ProfileSampleData.summary
 
+    private var currentGoal: ProfileGoalRecord {
+        goals.first(where: \.isCurrent) ?? ProfileSampleData.goalHistory[0]
+    }
+
     var body: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
-                Text("마이")
-                    .font(GymupTypography.homeTitle)
-                    .foregroundStyle(GymupColors.primaryText)
-                    .accessibilityAddTraits(.isHeader)
+        NavigationStack {
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
+                    Text("마이")
+                        .font(GymupTypography.homeTitle)
+                        .foregroundStyle(GymupColors.primaryText)
+                        .accessibilityAddTraits(.isHeader)
 
-                levelCard
+                    levelCard
 
-                if !profile.notificationPermissionEnabled {
-                    notificationPermissionBanner
+                    if !profile.notificationPermissionEnabled {
+                        notificationPermissionBanner
+                    }
+
+                    goalAndWorkoutSection
+                    permissionSection
+                    playlistSection
                 }
-
-                goalAndWorkoutSection
-                permissionSection
-                playlistSection
+                .padding(.horizontal, GymupSpacing.large)
+                .padding(.top, GymupSpacing.large)
+                .padding(.bottom, GymupSpacing.xxLarge)
             }
-            .padding(.horizontal, GymupSpacing.large)
-            .padding(.top, GymupSpacing.large)
-            .padding(.bottom, GymupSpacing.xxLarge)
-        }
-        .background(GymupColors.canvas)
-        .alert("화면 안내", isPresented: $isAlertPresented) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(alertMessage)
+            .background(GymupColors.canvas)
+            .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $isGoalHistoryPresented) {
+                ProfileGoalHistoryView(goals: $goals)
+            }
+            .alert("화면 안내", isPresented: $isAlertPresented) {
+                Button("확인", role: .cancel) {}
+            } message: {
+                Text(alertMessage)
+            }
         }
     }
 
@@ -111,7 +123,7 @@ struct MyProfileView: View {
                 settingRow(
                     icon: "target",
                     title: "운동 목표",
-                    subtitle: "\(profile.currentGoal) · \(profile.goalDurationWeeks)주 · 주 \(profile.workoutsPerWeek)회",
+                    subtitle: "\(currentGoal.type.rawValue) · \(currentGoal.durationWeeks)주 · 주 \(currentGoal.workoutsPerWeek)회",
                     action: .goals
                 )
                 rowSeparator
@@ -236,11 +248,19 @@ struct MyProfileView: View {
         _ action: ProfileAction,
         @ViewBuilder label: () -> Label
     ) -> some View {
-        Button { showPlaceholder(for: action) } label: {
+        Button { perform(action) } label: {
             label()
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+    }
+
+    private func perform(_ action: ProfileAction) {
+        if action == .goals {
+            isGoalHistoryPresented = true
+        } else {
+            showPlaceholder(for: action)
+        }
     }
 
     private func showPlaceholder(for action: ProfileAction) {
