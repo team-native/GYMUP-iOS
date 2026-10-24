@@ -30,7 +30,9 @@ struct GymupDetailNavigationBar: View {
                             Text(actionTitle)
                                 .font(GymupTypography.uiStrong)
                                 .foregroundStyle(GymupColors.brandText)
-                                .frame(width: 64, height: 40)
+                                .fixedSize(horizontal: true, vertical: false)
+                                .frame(minWidth: 64, minHeight: 44)
+                                .contentShape(Rectangle())
                         }
                         .disabled(onAction == nil)
                     }
