@@ -9,57 +9,42 @@ struct ProfileGoalCreationView: View {
 
     private let workoutsPerWeek = 3
     private let durations = [4, 8, 12, 16]
+    private let customTabBarClearance: CGFloat = 58
 
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
-                    VStack(alignment: .leading, spacing: GymupSpacing.small) {
-                        Text("새 목표")
-                            .font(GymupTypography.homeTitle)
-                            .foregroundStyle(GymupColors.primaryText)
-                            .accessibilityAddTraits(.isHeader)
-                        Text("나에게 맞는 목표를 선택해요")
-                            .font(GymupTypography.caption)
-                            .foregroundStyle(GymupColors.secondaryText)
-                    }
-
-                    VStack(alignment: .leading, spacing: GymupSpacing.small) {
-                        sectionTitle("목표 유형")
-                        ForEach(ProfileGoalType.allCases) { type in
-                            goalTypeCard(type)
-                        }
-                    }
-
-                    VStack(alignment: .leading, spacing: GymupSpacing.small) {
-                        sectionTitle("목표 기간")
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: GymupSpacing.small) {
-                            ForEach(durations, id: \.self) { duration in
-                                durationButton(duration)
-                            }
-                        }
-                    }
-
-                    summaryCard
+        ScrollView(showsIndicators: false) {
+            VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
+                VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                    Text("새 목표")
+                        .font(GymupTypography.homeTitle)
+                        .foregroundStyle(GymupColors.primaryText)
+                        .accessibilityAddTraits(.isHeader)
+                    Text("나에게 맞는 목표를 선택해요")
+                        .font(GymupTypography.caption)
+                        .foregroundStyle(GymupColors.secondaryText)
                 }
-                .padding(.horizontal, GymupSpacing.large)
-                .padding(.top, GymupSpacing.large)
-                .padding(.bottom, GymupSpacing.large)
-            }
 
-            Button(action: startGoal) {
-                Text("목표 시작하기")
-                    .font(GymupTypography.uiBold)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(GymupColors.accent, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+                VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                    sectionTitle("목표 유형")
+                    ForEach(ProfileGoalType.allCases) { type in
+                        goalTypeCard(type)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                    sectionTitle("목표 기간")
+                    LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: GymupSpacing.small) {
+                        ForEach(durations, id: \.self) { duration in
+                            durationButton(duration)
+                        }
+                    }
+                }
+
+                summaryCard
             }
-            .buttonStyle(.plain)
             .padding(.horizontal, GymupSpacing.large)
-            .padding(.top, GymupSpacing.small)
-            .padding(.bottom, GymupSpacing.medium)
-            .background(GymupColors.canvas)
-            .accessibilityHint("선택한 목표를 현재 목표로 설정합니다")
+            .padding(.top, GymupSpacing.large)
+            .padding(.bottom, GymupSpacing.large)
         }
         .background(GymupColors.canvas)
         .toolbar(.hidden, for: .navigationBar)
@@ -67,6 +52,25 @@ struct ProfileGoalCreationView: View {
             GymupDetailNavigationBar(title: "목표 설정", onBack: { dismiss() })
                 .background(GymupColors.canvas)
         }
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            startButton
+                .padding(.horizontal, GymupSpacing.large)
+                .padding(.top, GymupSpacing.small)
+                .padding(.bottom, GymupSpacing.medium + customTabBarClearance)
+                .background(GymupColors.canvas)
+        }
+    }
+
+    private var startButton: some View {
+        Button(action: startGoal) {
+            Text("목표 시작하기")
+                .font(GymupTypography.uiBold)
+                .foregroundStyle(.white)
+                .frame(maxWidth: .infinity, minHeight: 52)
+                .background(GymupColors.accent, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+        }
+        .buttonStyle(.plain)
+        .accessibilityHint("선택한 목표를 현재 목표로 설정합니다")
     }
 
     private func goalTypeCard(_ type: ProfileGoalType) -> some View {
