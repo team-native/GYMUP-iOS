@@ -5,6 +5,8 @@ struct WorkoutSessionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: WorkoutSessionViewModel
     @State private var isConfirmingFinish = false
+    @State private var isShowingWorkoutPhoto = false
+    @State private var photoCompletionData: WorkoutCompletionData?
     @State private var guideIndex = 0
     @State private var isShowingCurrentGuide = false
 
@@ -19,8 +21,12 @@ struct WorkoutSessionView: View {
             if let data = viewModel.completionData {
                 WorkoutCompletionFlowView(
                     data: data,
+                    onWorkoutPhoto: {
+                        photoCompletionData = data
+                        isShowingWorkoutPhoto = true
+                    },
                     onFinish: dismiss.callAsFunction,
-                    showsPhotoAction: false
+                    showsPhotoAction: true
                 )
             } else if !viewModel.hasStarted {
                 preparationContent
@@ -30,6 +36,14 @@ struct WorkoutSessionView: View {
         }
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .sheet(isPresented: $isShowingWorkoutPhoto, onDismiss: { photoCompletionData = nil }) {
+            if let photoCompletionData {
+                WorkoutPhotoFlowView(data: photoCompletionData) {
+                    isShowingWorkoutPhoto = false
+                }
+                .presentationDragIndicator(.visible)
+            }
+        }
         .onReceive(clock) { viewModel.refreshClock(at: $0) }
         .confirmationDialog(
             "운동을 마칠까요?",
