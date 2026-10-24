@@ -118,23 +118,11 @@ struct ProfileGoalRecord: Identifiable, Equatable {
 }
 
 enum ProfileAction: Equatable {
-    case level
     case goals
     case restTime
     case notifications
     case photoAccess
     case playlist
-
-    var message: String {
-        switch self {
-        case .level: "레벨 상세 화면을 다음 단계에서 연결할게요."
-        case .goals: "운동 목표 화면을 다음 단계에서 연결할게요."
-        case .restTime: "기본 휴식 시간 설정을 다음 단계에서 연결할게요."
-        case .notifications: "알림 설정을 다음 단계에서 연결할게요."
-        case .photoAccess: "카메라와 사진 권한 설정을 다음 단계에서 연결할게요."
-        case .playlist: "플레이리스트 연결을 다음 단계에서 연결할게요."
-        }
-    }
 }
 
 struct ProfileNotificationPreferences {

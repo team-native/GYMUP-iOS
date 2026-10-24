@@ -1,8 +1,7 @@
 import SwiftUI
 
 struct MyProfileView: View {
-    @State private var isAlertPresented = false
-    @State private var alertMessage = ""
+    @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
     @State private var goals = ProfileSampleData.goalHistory
     @State private var isNotificationSettingsPresented = false
@@ -39,7 +38,7 @@ struct MyProfileView: View {
                         .foregroundStyle(GymupColors.primaryText)
                         .accessibilityAddTraits(.isHeader)
 
-                    ProfileLevelCard(profile: profile) { perform(.level) }
+                    ProfileLevelCard(profile: profile) { isLevelPresented = true }
 
                     if !profile.notificationPermissionEnabled {
                         ProfileNotificationPermissionBanner { perform(.notifications) }
@@ -65,6 +64,9 @@ struct MyProfileView: View {
             }
             .background(GymupColors.canvas)
             .toolbar(.hidden, for: .navigationBar)
+            .navigationDestination(isPresented: $isLevelPresented) {
+                LevelView(onNavigationStateChanged: { _ in })
+            }
             .navigationDestination(isPresented: $isGoalHistoryPresented) {
                 ProfileGoalHistoryView(goals: $goals)
             }
@@ -81,11 +83,6 @@ struct MyProfileView: View {
                 sheet(for: destination)
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
-            }
-            .alert("화면 안내", isPresented: $isAlertPresented) {
-                Button("확인", role: .cancel) {}
-            } message: {
-                Text(alertMessage)
             }
         }
     }
@@ -116,9 +113,6 @@ struct MyProfileView: View {
             isPhotoPermissionsPresented = true
         case .playlist:
             presentedSheet = .playlist
-        case .level:
-            alertMessage = action.message
-            isAlertPresented = true
         }
     }
 }
@@ -160,7 +154,7 @@ struct ProfileLevelCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("레벨 \(profile.level), \(profile.stage), 프로필 상세 보기")
+        .accessibilityLabel("레벨 \(profile.level), \(profile.stage), 레벨 상세 보기")
         .accessibilityHint("레벨 정보를 확인합니다")
     }
 }
