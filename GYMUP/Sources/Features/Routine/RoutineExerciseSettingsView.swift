@@ -5,11 +5,14 @@ struct RoutineExerciseSettingsView: View {
 
     let onApply: (RoutineExercise) -> Void
     let onDelete: () -> Void
+    let onClose: () -> Void
 
-    init(exercise: RoutineExercise, onApply: @escaping (RoutineExercise) -> Void, onDelete: @escaping () -> Void) {
+    init(exercise: RoutineExercise, onApply: @escaping (RoutineExercise) -> Void,
+         onDelete: @escaping () -> Void, onClose: @escaping () -> Void) {
         _viewModel = State(initialValue: RoutineExerciseSettingsViewModel(exercise: exercise))
         self.onApply = onApply
         self.onDelete = onDelete
+        self.onClose = onClose
     }
 
     var body: some View {
@@ -53,6 +56,12 @@ struct RoutineExerciseSettingsView: View {
         .padding(.bottom, 34)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .background(GymupColors.surface)
+        .gesture(
+            DragGesture(minimumDistance: 12)
+                .onEnded { value in
+                    if value.translation.height > 60 { onClose() }
+                }
+        )
         .overlay(alignment: .top) {
             Capsule()
                 .fill(GymupColors.overlay)
@@ -182,6 +191,6 @@ private struct RoutineExerciseSettingStepper: View {
 }
 
 #Preview {
-    RoutineExerciseSettingsView(exercise: RoutineExercise.upper[0], onApply: { _ in }, onDelete: {})
+    RoutineExerciseSettingsView(exercise: RoutineExercise.upper[0], onApply: { _ in }, onDelete: {}, onClose: {})
         .preferredColorScheme(.dark)
 }
