@@ -53,7 +53,10 @@ struct RoutineView: View {
                         store: viewModel.store,
                         routineID: id,
                         onEdit: { path.append(.edit(id)) },
-                        onMore: { path.append(.more(id)) },
+                        onDuplicate: { duplicateID in path.append(.detail(duplicateID)) },
+                        onDelete: {
+                            if path.last == .detail(id) { path.removeLast() }
+                        },
                         onStart: {
                             path.append(viewModel.store.routine(id: id)?.isEmpty == true ? .emptyStart(id) : .workout(id))
                         }

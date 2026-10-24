@@ -57,6 +57,36 @@ final class RoutineStore {
 
     func routine(id: String) -> RoutinePlan? { routines.first { $0.id == id } }
 
+    @discardableResult
+    func duplicateRoutine(id: String) -> String? {
+        guard let originalIndex = routines.firstIndex(where: { $0.id == id }) else { return nil }
+        let original = routines[originalIndex]
+        let duplicateTitle = nextDuplicateTitle(for: original.title)
+        let duplicateID = UUID().uuidString.lowercased()
+        let duplicate = RoutinePlan(
+            id: duplicateID,
+            name: duplicateTitle.uppercased(),
+            title: duplicateTitle,
+            exerciseCount: original.exerciseCount,
+            durationMinutes: original.durationMinutes,
+            lastPerformed: "기록 없음",
+            coverAssetName: original.coverAssetName,
+            isRecommended: false,
+            exercises: original.exercises,
+            muscleGroups: original.muscleGroups,
+            summarySetCount: original.summarySetCount
+        )
+        routines.insert(duplicate, at: originalIndex + 1)
+        return duplicateID
+    }
+
+    @discardableResult
+    func deleteRoutine(id: String) -> Bool {
+        guard let index = routines.firstIndex(where: { $0.id == id }) else { return false }
+        routines.remove(at: index)
+        return true
+    }
+
     func saveRoutine(id: String?, title: String, exercises: [RoutineExercise]) -> String {
         let routineID = id ?? UUID().uuidString.lowercased()
         if let index = routines.firstIndex(where: { $0.id == routineID }) {
@@ -82,5 +112,20 @@ final class RoutineStore {
             )
         )
         return routineID
+    }
+
+    private func nextDuplicateTitle(for title: String) -> String {
+        let baseTitle = "\(title) 복사본"
+        let firstCandidate = String(baseTitle.prefix(20))
+        guard routines.contains(where: { $0.title == firstCandidate }) else { return firstCandidate }
+
+        var suffix = 2
+        while true {
+            let suffixTitle = " \(suffix)"
+            let prefix = String(baseTitle.prefix(20 - suffixTitle.count))
+            let candidate = prefix + suffixTitle
+            if !routines.contains(where: { $0.title == candidate }) { return candidate }
+            suffix += 1
+        }
     }
 }
