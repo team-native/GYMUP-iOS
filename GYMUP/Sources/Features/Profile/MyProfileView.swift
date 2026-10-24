@@ -5,11 +5,29 @@ struct MyProfileView: View {
     @State private var alertMessage = ""
     @State private var isGoalHistoryPresented = false
     @State private var goals = ProfileSampleData.goalHistory
+    @State private var isNotificationSettingsPresented = false
+    @State private var isPhotoPermissionsPresented = false
+    @State private var restTimeSeconds = 90
+    @State private var notificationPreferences = ProfileNotificationPreferences()
+    @State private var reminderSchedule = ProfileReminderSchedule()
+    @State private var presentedSheet: ProfileSheetDestination?
 
     private let profile = ProfileSampleData.summary
 
     private var currentGoal: ProfileGoalRecord {
         goals.first(where: \.isCurrent) ?? ProfileSampleData.goalHistory[0]
+    }
+
+    private var restTimeSummary: String {
+        String(format: "%d:%02d", restTimeSeconds / 60, restTimeSeconds % 60)
+    }
+
+    private var notificationSummary: String {
+        var items: [String] = []
+        if notificationPreferences.restTimerEnabled { items.append("휴식 종료") }
+        if notificationPreferences.workoutReminderEnabled { items.append("운동 리마인더") }
+        if notificationPreferences.weeklySummaryEnabled { items.append("주간 요약") }
+        return items.isEmpty ? "모든 알림 꺼짐" : items.joined(separator: " · ")
     }
 
     var body: some View {
@@ -39,6 +57,27 @@ struct MyProfileView: View {
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isGoalHistoryPresented) {
                 ProfileGoalHistoryView(goals: $goals)
+            }
+            .navigationDestination(isPresented: $isNotificationSettingsPresented) {
+                ProfileNotificationSettingsView(
+                    preferences: $notificationPreferences,
+                    schedule: $reminderSchedule
+                )
+            }
+            .navigationDestination(isPresented: $isPhotoPermissionsPresented) {
+                ProfilePhotoPermissionView()
+            }
+            .sheet(item: $presentedSheet) { destination in
+                Group {
+                    switch destination {
+                    case .restTime:
+                        ProfileRestTimeSheetView(selection: $restTimeSeconds)
+                    case .playlist:
+                        ProfilePlaylistSheetView()
+                    }
+                }
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
             }
             .alert("화면 안내", isPresented: $isAlertPresented) {
                 Button("확인", role: .cancel) {}
@@ -100,7 +139,7 @@ struct MyProfileView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
 
-            Button("켜기") { showPlaceholder(for: .notifications) }
+            Button("켜기") { perform(.notifications) }
                 .font(GymupTypography.uiBold)
                 .foregroundStyle(.white)
                 .frame(minWidth: 56, minHeight: 44)
@@ -131,7 +170,7 @@ struct MyProfileView: View {
                     icon: "timer",
                     title: "기본 휴식 시간",
                     subtitle: "운동별 설정이 없을 때 사용",
-                    value: profile.restTimeSummary,
+                    value: restTimeSummary,
                     action: .restTime
                 )
             }
@@ -146,7 +185,7 @@ struct MyProfileView: View {
                 settingRow(
                     icon: "bell",
                     title: "알림 설정",
-                    subtitle: profile.notificationSummary,
+                    subtitle: notificationSummary,
                     action: .notifications
                 )
                 rowSeparator
@@ -256,9 +295,18 @@ struct MyProfileView: View {
     }
 
     private func perform(_ action: ProfileAction) {
-        if action == .goals {
+        switch action {
+        case .goals:
             isGoalHistoryPresented = true
-        } else {
+        case .restTime:
+            presentedSheet = .restTime
+        case .notifications:
+            isNotificationSettingsPresented = true
+        case .photoAccess:
+            isPhotoPermissionsPresented = true
+        case .playlist:
+            presentedSheet = .playlist
+        case .level:
             showPlaceholder(for: action)
         }
     }
