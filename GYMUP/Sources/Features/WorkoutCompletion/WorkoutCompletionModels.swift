@@ -1,5 +1,18 @@
 import Foundation
 
+struct WorkoutCompletionSetDetail: Identifiable {
+    let id: String
+    let number: Int
+    let weightKilograms: Double
+    let repetitions: Int
+}
+
+struct WorkoutCompletionExerciseDetail: Identifiable {
+    let id: String
+    let name: String
+    let sets: [WorkoutCompletionSetDetail]
+}
+
 struct WorkoutCompletionData {
     struct Metric: Identifiable {
         let title: String
@@ -45,6 +58,7 @@ struct WorkoutCompletionData {
     let levelReward: LevelReward?
     let stageReward: StageReward?
     let peakReward: PeakReward?
+    var exerciseDetails: [WorkoutCompletionExerciseDetail] = []
 
     static let sample = WorkoutCompletionData(
         routineName: "UPPER A",

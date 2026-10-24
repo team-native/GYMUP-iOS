@@ -58,6 +58,8 @@ struct RoutineView: View {
                             path.append(viewModel.store.routine(id: id)?.isEmpty == true ? .emptyStart(id) : .workout(id))
                         }
                     )
+                case .workout(let routineID):
+                    WorkoutSessionView(routineID: routineID)
                 default:
                     RoutinePendingView(route: route)
                 }

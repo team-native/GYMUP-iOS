@@ -27,7 +27,7 @@ struct MainTabView: View {
                 RoutineView(store: routineStore, requestedRoutineID: $requestedRoutineID,
                             onDetailRouteChanged: { isDetailPresented = $0 })
             case .history:
-                HistoryPlaceholderView()
+                HistoryView(onOpenRoutines: { selection = .routine })
             case .profile:
                 ProfilePlaceholderView()
             }
@@ -80,16 +80,6 @@ struct MainTabView: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-    }
-}
-
-private struct HistoryPlaceholderView: View {
-    var body: some View {
-        NavigationStack {
-            GymupEmptyState(symbol: "chart.bar", title: "운동 기록", message: "운동을 완료하면 기록이 쌓여요.")
-                .background(GymupColors.canvas)
-                .navigationTitle("기록")
-        }
     }
 }
 
