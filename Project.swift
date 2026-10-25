@@ -13,6 +13,7 @@ let project = Project(
                 with: [
                     "UILaunchScreen": [:],
                     "NSSupportsLiveActivities": true,
+                    "NSCameraUsageDescription": "운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.",
                     "UIAppFonts": [
                         "NotoSansKR[wght].ttf",
                         "GothicA1-Medium.ttf",

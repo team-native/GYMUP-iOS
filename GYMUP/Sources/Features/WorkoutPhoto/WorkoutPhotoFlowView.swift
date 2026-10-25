@@ -5,6 +5,8 @@ import UIKit
 struct WorkoutPhotoFlowView: View {
     let data: WorkoutCompletionData
     let onClose: () -> Void
+    var onCameraAuthorized: () -> Void = {}
+    var onCameraPermissionDenied: () -> Void = {}
 
     @State private var step: WorkoutPhotoStep = .intro
     @State private var selectedItem: PhotosPickerItem?
@@ -14,7 +16,10 @@ struct WorkoutPhotoFlowView: View {
     @State private var stampStyle: WorkoutPhotoStampStyle = .card
     @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
+    @State private var isRequestingCameraPermission = false
     @State private var selectionError: String?
+
+    private let cameraPermissionRequester = WorkoutCameraPermissionRequester.live
 
     var body: some View {
         stepContent
@@ -49,7 +54,7 @@ struct WorkoutPhotoFlowView: View {
     private var stepContent: some View {
         switch step {
         case .intro:
-            introScreen
+            permissionGuideScreen
         case .filters:
             if let selectedImage {
                 WorkoutPhotoFilterScreen(
@@ -60,7 +65,7 @@ struct WorkoutPhotoFlowView: View {
                     onContinue: advanceToAdjustments
                 )
             } else {
-                introScreen
+                permissionGuideScreen
             }
         case .adjustments:
             if let selectedImage {
@@ -72,7 +77,7 @@ struct WorkoutPhotoFlowView: View {
                     onContinue: { step = .stamp }
                 )
             } else {
-                introScreen
+                permissionGuideScreen
             }
         case .stamp:
             if let selectedImage {
@@ -87,82 +92,20 @@ struct WorkoutPhotoFlowView: View {
                     onShare: prepareSharePayload
                 )
             } else {
-                introScreen
+                permissionGuideScreen
             }
         case .saved:
             WorkoutPhotoSavedScreen(onClose: onClose)
         }
     }
 
-    private var introScreen: some View {
-        VStack(spacing: 0) {
-            navigationBar(title: "오운완 사진")
-
-            ScrollView {
-                VStack(spacing: 24) {
-                    Image(systemName: "camera.fill")
-                        .font(.system(size: 34, weight: .semibold))
-                        .foregroundStyle(WorkoutCompletionColors.red)
-                        .frame(width: 88, height: 88)
-                        .background(WorkoutCompletionColors.red.opacity(0.12), in: Circle())
-                        .padding(.top, 64)
-                        .accessibilityHidden(true)
-
-                    VStack(spacing: 10) {
-                        Text("오늘의 운동을\n사진으로 남겨볼까요?")
-                            .font(GymupTypography.title)
-                            .multilineTextAlignment(.center)
-                            .fixedSize(horizontal: false, vertical: true)
-
-                        VStack(spacing: 4) {
-                            Text("사진을 선택해 오늘의 운동 스탬프를 만들어요.")
-                            Text("사진은 앱 서버로 전송되지 않아요.")
-                        }
-                        .font(GymupTypography.callout)
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                        .multilineTextAlignment(.center)
-                    }
-
-                    if let selectionError {
-                        Label(selectionError, systemImage: "exclamationmark.circle.fill")
-                            .font(GymupTypography.caption)
-                            .foregroundStyle(WorkoutCompletionColors.red)
-                            .multilineTextAlignment(.center)
-                            .accessibilityAddTraits(.updatesFrequently)
-                    }
-                }
-                .frame(maxWidth: .infinity)
-                .padding(.horizontal, 24)
-                .padding(.bottom, 24)
-            }
-
-            VStack(spacing: 10) {
-                PhotosPicker(selection: $selectedItem, matching: .images) {
-                    HStack(spacing: 8) {
-                        if isLoadingImage {
-                            ProgressView()
-                                .tint(.white)
-                        }
-                        Text(isLoadingImage ? "사진을 불러오는 중" : "사진 선택하기")
-                    }
-                    .font(GymupTypography.headline)
-                    .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity, minHeight: 52)
-                    .background(WorkoutCompletionColors.red, in: RoundedRectangle(cornerRadius: 14))
-                    .contentShape(RoundedRectangle(cornerRadius: 14))
-                }
-                .disabled(isLoadingImage)
-                .accessibilityHint("기기에 있는 사진을 선택합니다. 앱 서버로 전송되지 않습니다.")
-
-                Button("나중에", action: onClose)
-                    .font(GymupTypography.callout)
-                    .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                    .frame(maxWidth: .infinity, minHeight: 44)
-            }
-            .padding(.horizontal, 20)
-            .padding(.top, 12)
-            .padding(.bottom, 8)
-        }
+    private var permissionGuideScreen: some View {
+        WorkoutPhotoPermissionGuideScreen(
+            isRequestingPermission: isRequestingCameraPermission,
+            onClose: onClose,
+            onAllowCamera: requestCameraPermission,
+            onLater: onClose
+        )
     }
 
     private var isShowingSelectionError: Binding<Bool> {
@@ -172,31 +115,6 @@ struct WorkoutPhotoFlowView: View {
                 if !isPresented { selectionError = nil }
             }
         )
-    }
-
-    private func navigationBar(title: String) -> some View {
-        HStack {
-            Button(action: onClose) {
-                Image(systemName: "xmark")
-                    .font(.system(size: 15, weight: .semibold))
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
-            }
-            .accessibilityLabel("닫기")
-
-            Spacer()
-
-            Text(title)
-                .font(GymupTypography.headline)
-
-            Spacer()
-
-            Color.clear
-                .frame(width: 44, height: 44)
-                .accessibilityHidden(true)
-        }
-        .padding(.horizontal, 12)
-        .padding(.top, 4)
     }
 
     private func advanceToAdjustments() {
@@ -258,6 +176,21 @@ struct WorkoutPhotoFlowView: View {
                 step = .filters
             } catch {
                 selectionError = "사진을 불러오지 못했어요. 다시 선택해 주세요."
+            }
+        }
+    }
+
+    private func requestCameraPermission() {
+        guard !isRequestingCameraPermission else { return }
+        isRequestingCameraPermission = true
+
+        Task { @MainActor in
+            defer { isRequestingCameraPermission = false }
+
+            if await cameraPermissionRequester.requestCameraAccess() {
+                onCameraAuthorized()
+            } else {
+                onCameraPermissionDenied()
             }
         }
     }
