@@ -6,6 +6,7 @@ final class RoutineDetailViewModel {
     let store: RoutineStore
     let routineID: String
     var isMoreActionsPresented = false
+    var isDeleteConfirmationPresented = false
 
     init(store: RoutineStore, routineID: String) {
         self.store = store
@@ -22,8 +23,19 @@ final class RoutineDetailViewModel {
         store.duplicateRoutine(id: routineID)
     }
 
-    func deleteRoutine() {
-        store.deleteRoutine(id: routineID)
+    func presentDeleteConfirmation() {
+        isDeleteConfirmationPresented = true
+    }
+
+    func cancelDeleteConfirmation() {
+        isDeleteConfirmationPresented = false
+    }
+
+    @discardableResult
+    func confirmDeleteRoutine() -> Bool {
+        guard store.deleteRoutine(id: routineID) else { return false }
+        isDeleteConfirmationPresented = false
+        return true
     }
 
     var summary: String {

@@ -44,4 +44,23 @@ final class RoutineMoreActionsTests: XCTestCase {
         XCTAssertNil(store.routine(id: firstID))
         XCTAssertFalse(store.deleteRoutine(id: firstID))
     }
+
+    @MainActor
+    func testDeleteRemainsPendingUntilConfirmedAndCanBeCancelled() throws {
+        let store = RoutineStore()
+        let viewModel = RoutineDetailViewModel(store: store, routineID: "upper-a")
+
+        viewModel.presentDeleteConfirmation()
+        XCTAssertTrue(viewModel.isDeleteConfirmationPresented)
+        XCTAssertNotNil(store.routine(id: "upper-a"))
+
+        viewModel.cancelDeleteConfirmation()
+        XCTAssertFalse(viewModel.isDeleteConfirmationPresented)
+        XCTAssertNotNil(store.routine(id: "upper-a"))
+
+        viewModel.presentDeleteConfirmation()
+        XCTAssertTrue(viewModel.confirmDeleteRoutine())
+        XCTAssertFalse(viewModel.isDeleteConfirmationPresented)
+        XCTAssertNil(store.routine(id: "upper-a"))
+    }
 }
