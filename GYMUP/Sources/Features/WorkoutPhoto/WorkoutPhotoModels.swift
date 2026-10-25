@@ -1,11 +1,22 @@
 import Foundation
 
-enum WorkoutPhotoStep {
+enum WorkoutPhotoStep: Equatable {
     case intro
+    case camera
     case filters
     case adjustments
     case stamp
     case saved
+}
+
+enum WorkoutPhotoCameraFlow {
+    static func cameraStep(afterPermissionGranted granted: Bool) -> WorkoutPhotoStep? {
+        granted ? .camera : nil
+    }
+
+    static func editorStep(afterCaptureSucceeded succeeded: Bool) -> WorkoutPhotoStep? {
+        succeeded ? .filters : nil
+    }
 }
 
 enum WorkoutPhotoFilter: String, CaseIterable, Identifiable {
