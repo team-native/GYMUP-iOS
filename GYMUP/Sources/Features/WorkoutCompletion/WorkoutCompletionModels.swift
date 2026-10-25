@@ -13,6 +13,13 @@ struct WorkoutCompletionExerciseDetail: Identifiable {
     let sets: [WorkoutCompletionSetDetail]
 }
 
+struct WorkoutCompletionExperienceItem: Identifiable {
+    let title: String
+    let amount: Int
+
+    var id: String { title }
+}
+
 struct WorkoutCompletionData {
     struct Metric: Identifiable {
         let title: String
@@ -52,6 +59,7 @@ struct WorkoutCompletionData {
     let previousGrowth: Int
     let growth: Int
     let earnedXP: Int
+    var experienceBreakdown: [WorkoutCompletionExperienceItem] = []
     let weeklyWorkoutCount: Int
     let weeklyWorkoutGoal: Int
     let streakWeeks: Int
@@ -62,7 +70,7 @@ struct WorkoutCompletionData {
 
     static let sample = WorkoutCompletionData(
         routineName: "UPPER A",
-        completedAt: "2026. 10. 22 · 목요일 · 오후 9:42",
+        completedAt: "10월 11일 토 · 18:02 - 19:00",
         metrics: [
             Metric(title: "TIME", value: "58", unit: "MIN"),
             Metric(title: "SETS", value: "18", unit: "SETS"),
@@ -72,6 +80,12 @@ struct WorkoutCompletionData {
         previousGrowth: 67,
         growth: 68,
         earnedXP: 380,
+        experienceBreakdown: [
+            WorkoutCompletionExperienceItem(title: "운동 완료", amount: 200),
+            WorkoutCompletionExperienceItem(title: "루틴 100% 완료", amount: 100),
+            WorkoutCompletionExperienceItem(title: "PR 2개", amount: 50),
+            WorkoutCompletionExperienceItem(title: "주간 목표 달성", amount: 30)
+        ],
         weeklyWorkoutCount: 3,
         weeklyWorkoutGoal: 3,
         streakWeeks: 8,
