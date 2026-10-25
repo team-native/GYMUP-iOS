@@ -68,30 +68,49 @@ struct WorkoutCompletionMetricTile: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
-            Text(metric.title)
-                .font(.system(size: 10, weight: .semibold, design: .rounded))
-                .tracking(1.1)
-                .foregroundStyle(WorkoutCompletionColors.secondaryText)
-
             HStack(alignment: .firstTextBaseline, spacing: 5) {
                 Text(metric.value)
-                    .font(GymupTypography.headline)
+                    .font(Font.custom("BarlowCondensed-ExtraBold", size: 20, relativeTo: .title2))
                     .foregroundStyle(WorkoutCompletionColors.primaryText)
-                    .minimumScaleFactor(0.75)
-                    .lineLimit(1)
 
                 Text(metric.unit)
-                    .font(.system(size: 10, weight: .semibold, design: .rounded))
+                    .font(Font.custom("Archivo-SemiBold", size: 10, relativeTo: .caption))
                     .tracking(0.5)
                     .foregroundStyle(WorkoutCompletionColors.secondaryText)
             }
+
+            Text(localizedTitle)
+                .font(Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption))
+                .foregroundStyle(WorkoutCompletionColors.secondaryText)
         }
         .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
-        .padding(.horizontal, 13)
-        .padding(.vertical, 10)
+        .fixedSize(horizontal: false, vertical: true)
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
         .background(WorkoutCompletionColors.surface, in: RoundedRectangle(cornerRadius: 14))
         .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(metric.title), \(metric.value) \(metric.unit)")
+        .accessibilityLabel(accessibilityLabel)
+    }
+
+    private var localizedTitle: String {
+        switch metric.title {
+        case "TIME": "시간"
+        case "SETS": "세트"
+        case "VOLUME": "총 볼륨"
+        case "PERSONAL RECORD": "신기록"
+        default: metric.title
+        }
+    }
+
+    private var accessibilityLabel: String {
+        let unit = switch metric.title {
+        case "TIME": "분"
+        case "SETS": "세트"
+        case "VOLUME": "킬로그램"
+        case "PERSONAL RECORD": "개"
+        default: metric.unit
+        }
+        return "\(localizedTitle), \(metric.value)\(unit)"
     }
 }
 
@@ -145,66 +164,53 @@ struct WorkoutCompletionActionBar<Primary: View, Secondary: View>: View {
     }
 }
 
-struct WorkoutCompletionBarbellArtwork: View {
+struct WorkoutCompletionHero: View {
+    let routineName: String
+    let completedAt: String
+
+    @ScaledMetric(relativeTo: .largeTitle) private var heroHeight: CGFloat = 208
+
     var body: some View {
         GeometryReader { geometry in
-            ZStack {
-                LinearGradient(
-                    colors: [Color(red: 0.18, green: 0.18, blue: 0.2), WorkoutCompletionColors.canvas],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
+            Image("H1RoutinePhoto")
+                .resizable()
+                .scaledToFill()
+                .frame(width: geometry.size.width, height: geometry.size.height)
+                .clipped()
+                .overlay {
+                    LinearGradient(
+                        stops: [
+                            .init(color: .black.opacity(0.08), location: 0),
+                            .init(color: .clear, location: 0.3),
+                            .init(color: .black.opacity(0.84), location: 1)
+                        ],
+                        startPoint: .top,
+                        endPoint: .bottom
+                    )
+                }
+                .overlay(alignment: .bottomLeading) {
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("WORKOUT COMPLETE")
+                            .font(Font.custom("Archivo-SemiBold", size: 10, relativeTo: .caption))
+                            .tracking(1.4)
+                            .foregroundStyle(WorkoutCompletionColors.red)
 
-                Circle()
-                    .fill(WorkoutCompletionColors.red.opacity(0.16))
-                    .frame(width: geometry.size.width * 0.62)
-                    .blur(radius: 28)
-                    .offset(x: geometry.size.width * 0.28, y: -geometry.size.height * 0.25)
+                        Text(routineName)
+                            .font(Font.custom("BarlowCondensed-Black", size: 34, relativeTo: .title))
+                            .foregroundStyle(.white)
+                            .fixedSize(horizontal: false, vertical: true)
 
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    HStack(spacing: 4) {
-                        plateStack
-                        Capsule()
-                            .fill(Color(red: 0.72, green: 0.73, blue: 0.76))
-                            .frame(width: geometry.size.width * 0.37, height: 7)
-                        plateStack
+                        Text(completedAt)
+                            .font(Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption))
+                            .foregroundStyle(.white.opacity(0.78))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
-                    .shadow(color: .black.opacity(0.5), radius: 14, y: 9)
-                    Spacer(minLength: 0)
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, 12)
                 }
-                .frame(maxWidth: .infinity)
-
-                VStack(alignment: .leading, spacing: 2) {
-                    Text("GYMUP · WORKOUT 024")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .tracking(1.5)
-                        .foregroundStyle(.white.opacity(0.8))
-                    Text("UPPER BODY")
-                        .font(.system(size: 18, weight: .bold, design: .rounded))
-                        .foregroundStyle(.white)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .bottomLeading)
-                .padding(14)
-            }
-            .clipShape(RoundedRectangle(cornerRadius: 18))
         }
-        .frame(height: 128)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("운동을 마친 바벨 사진 영역")
-    }
-
-    private var plateStack: some View {
-        HStack(spacing: 3) {
-            RoundedRectangle(cornerRadius: 3)
-                .fill(WorkoutCompletionColors.red)
-                .frame(width: 13, height: 61)
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color(red: 0.66, green: 0.08, blue: 0.1))
-                .frame(width: 8, height: 48)
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color(red: 0.38, green: 0.38, blue: 0.41))
-                .frame(width: 6, height: 36)
-        }
+        .frame(height: heroHeight)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("운동 완료, \(routineName), \(completedAt)")
     }
 }
