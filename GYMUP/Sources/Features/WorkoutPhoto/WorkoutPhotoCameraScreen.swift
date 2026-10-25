@@ -225,17 +225,22 @@ private struct WorkoutPhotoCameraPreview: UIViewRepresentable {
 
     func makeUIView(context: Context) -> WorkoutPhotoCameraPreviewView {
         let view = WorkoutPhotoCameraPreviewView()
-        view.previewLayer.session = session
-        view.previewLayer.videoGravity = .resizeAspectFill
-        updateMirroring(on: view.previewLayer)
+        guard let previewLayer = view.previewLayer else {
+            assertionFailure("카메라 미리보기 레이어를 만들지 못했어요.")
+            return view
+        }
+        previewLayer.session = session
+        previewLayer.videoGravity = .resizeAspectFill
+        updateMirroring(on: previewLayer)
         return view
     }
 
     func updateUIView(_ view: WorkoutPhotoCameraPreviewView, context: Context) {
-        if view.previewLayer.session !== session {
-            view.previewLayer.session = session
+        guard let previewLayer = view.previewLayer else { return }
+        if previewLayer.session !== session {
+            previewLayer.session = session
         }
-        updateMirroring(on: view.previewLayer)
+        updateMirroring(on: previewLayer)
     }
 
     private func updateMirroring(on previewLayer: AVCaptureVideoPreviewLayer) {
@@ -250,9 +255,9 @@ private struct WorkoutPhotoCameraPreview: UIViewRepresentable {
 }
 
 private final class WorkoutPhotoCameraPreviewView: UIView {
-    override class var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
+    override static var layerClass: AnyClass { AVCaptureVideoPreviewLayer.self }
 
-    var previewLayer: AVCaptureVideoPreviewLayer {
-        layer as! AVCaptureVideoPreviewLayer
+    var previewLayer: AVCaptureVideoPreviewLayer? {
+        layer as? AVCaptureVideoPreviewLayer
     }
 }
