@@ -12,6 +12,8 @@ struct WorkoutSessionView: View {
     @State private var isShowingRestFinishedAlert = false
     @State private var guideIndex = 0
     @State private var isShowingCurrentGuide = false
+    @State private var isShowingFirstExercisePrompt = false
+    @State private var promptedExerciseIDs: Set<String> = []
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -66,6 +68,20 @@ struct WorkoutSessionView: View {
                 )
             }
         }
+        .fullScreenCover(isPresented: $isShowingFirstExercisePrompt) {
+            if let exercise = viewModel.currentExercise {
+                WorkoutFirstExercisePromptScreen(
+                    exercise: exercise,
+                    onViewGuide: {
+                        isShowingFirstExercisePrompt = false
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                            isShowingCurrentGuide = true
+                        }
+                    },
+                    onStartNow: { isShowingFirstExercisePrompt = false }
+                )
+            }
+        }
         .onReceive(clock) { date in
             guard viewModel.refreshClock(at: date) else { return }
             isShowingRestFinishedAlert = true
@@ -88,7 +104,9 @@ struct WorkoutSessionView: View {
         }
         .onChange(of: viewModel.currentExerciseIndex) { _, _ in
             isShowingCurrentGuide = false
+            showFirstExercisePromptIfNeeded()
         }
+        .task { showFirstExercisePromptIfNeeded() }
     }
 
     private var preparationContent: some View {
@@ -170,6 +188,14 @@ struct WorkoutSessionView: View {
             setIndex: currentSetIndex,
             at: date
         )
+    }
+
+    private func showFirstExercisePromptIfNeeded() {
+        guard let exercise = viewModel.currentExercise,
+              !exercise.hasPreviousPerformance,
+              !promptedExerciseIDs.contains(exercise.id) else { return }
+        promptedExerciseIDs.insert(exercise.id)
+        isShowingFirstExercisePrompt = true
     }
 
     private func formattedDuration(_ seconds: Int) -> String {
