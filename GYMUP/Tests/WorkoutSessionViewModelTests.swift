@@ -44,6 +44,13 @@ final class WorkoutSessionViewModelTests: XCTestCase {
         XCTAssertTrue(plan.exercises.allSatisfy { !$0.beginnerTip.isEmpty })
     }
 
+    func testFinalSetUsesItsPreviousPerformanceForTheSummary() throws {
+        let exercise = try XCTUnwrap(WorkoutSessionPlan.sample(for: "upper-a").exercises.first)
+
+        XCTAssertEqual(exercise.previousPerformanceTitle(for: 0), "이전 · 10월 8일 60kg × 8")
+        XCTAssertEqual(exercise.previousPerformanceTitle(for: 3), "이전 · 10월 8일 60kg × 6")
+    }
+
     @MainActor
     func testSetValuesCanBeEditedAndNewSetCopiesThePreviousTarget() throws {
         let viewModel = WorkoutSessionViewModel(routineID: "upper-a")
