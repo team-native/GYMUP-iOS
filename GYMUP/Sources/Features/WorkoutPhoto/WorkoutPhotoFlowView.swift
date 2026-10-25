@@ -41,10 +41,16 @@ struct WorkoutPhotoFlowView: View {
         .sheet(item: $sharePayload) { payload in
             WorkoutPhotoShareSheet(image: payload.image) { didSaveToPhotos, didFail in
                 sharePayload = nil
-                if didSaveToPhotos {
-                    step = .saved
+                if let nextStep = WorkoutPhotoSaveFlow.stepAfterActivityCompletion(
+                    didSaveToPhotos: didSaveToPhotos,
+                    didFail: didFail,
+                    hasSelectedImage: selectedImage != nil
+                ) {
+                    step = nextStep
                 } else if didFail {
                     selectionError = "사진을 공유하지 못했어요. 다시 시도해 주세요."
+                } else if didSaveToPhotos {
+                    selectionError = "저장한 사진 미리보기를 찾지 못했어요. 다시 시도해 주세요."
                 }
             }
         }
@@ -102,7 +108,16 @@ struct WorkoutPhotoFlowView: View {
                 permissionGuideScreen
             }
         case .saved:
-            WorkoutPhotoSavedScreen(onClose: onClose)
+            if let selectedImage {
+                WorkoutPhotoSavedScreen(
+                    image: selectedImage,
+                    data: data,
+                    posterModel: stamp.posterModel(editor: editor),
+                    onClose: onClose
+                )
+            } else {
+                permissionGuideScreen
+            }
         }
     }
 
