@@ -19,6 +19,8 @@ struct WorkoutPhotoFlowView: View {
     @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
     @State private var isRequestingCameraPermission = false
+    @State private var isShowingPhotoSaveFailure = false
+    @State private var shouldRetryPhotoSave = false
     @State private var selectionError: String?
     @StateObject private var cameraController = WorkoutPhotoCameraController()
 
@@ -38,21 +40,31 @@ struct WorkoutPhotoFlowView: View {
             guard phase == .active else { return }
             refreshCameraPermissionAfterForegrounding()
         }
+        .onChange(of: isShowingPhotoSaveFailure) { wasPresented, isPresented in
+            guard wasPresented, !isPresented, shouldRetryPhotoSave else { return }
+            shouldRetryPhotoSave = false
+            prepareSharePayload()
+        }
         .sheet(item: $sharePayload) { payload in
-            WorkoutPhotoShareSheet(image: payload.image) { didSaveToPhotos, didFail in
+            WorkoutPhotoShareSheet(image: payload.image) { result in
+                guard WorkoutPhotoShareFlow.shouldHandleCompletion(
+                    activePayloadID: sharePayload?.id,
+                    completedPayloadID: payload.id
+                ) else { return }
+
                 sharePayload = nil
                 step = WorkoutPhotoShareFlow.stepAfterActivityCompletion(
                     currentStep: step,
-                    didSaveToPhotos: didSaveToPhotos,
-                    didFail: didFail,
+                    result: result,
                     hasSelectedImage: selectedImage != nil
                 )
-                if didFail {
+
+                if result == .photoSaveFailed, selectedImage != nil {
+                    isShowingPhotoSaveFailure = true
+                } else if result == .shareFailed {
                     selectionError = "사진을 공유하지 못했어요. 다시 시도해 주세요."
-                } else if didSaveToPhotos {
-                    if selectedImage == nil {
-                        selectionError = "저장한 사진 미리보기를 찾지 못했어요. 다시 시도해 주세요."
-                    }
+                } else if result == .photoSaveFailed || result == .savedToPhotos, selectedImage == nil {
+                    selectionError = "저장한 사진 미리보기를 찾지 못했어요. 다시 시도해 주세요."
                 }
             }
         }
@@ -106,6 +118,19 @@ struct WorkoutPhotoFlowView: View {
                     onSave: prepareSharePayload,
                     onShare: prepareSharePayload
                 )
+                .alert("사진을 저장하지 못했어요", isPresented: $isShowingPhotoSaveFailure) {
+                    Button("다시 시도") {
+                        shouldRetryPhotoSave = true
+                        isShowingPhotoSaveFailure = false
+                    }
+                    .accessibilityIdentifier("workout.photo.save-failure.retry")
+
+                    Button("설정 열기", role: .cancel, action: openAppSettings)
+                        .accessibilityIdentifier("workout.photo.save-failure.open-settings")
+                } message: {
+                    Text("사진 보관함 접근 권한이 꺼져 있거나 저장 공간이 부족해요.")
+                }
+                .tint(WorkoutCompletionColors.red)
             } else {
                 permissionGuideScreen
             }
@@ -157,6 +182,8 @@ struct WorkoutPhotoFlowView: View {
     }
 
     private func prepareSharePayload() {
+        guard sharePayload == nil else { return }
+
         guard let selectedImage else {
             selectionError = "사진을 먼저 선택해 주세요."
             step = .intro
@@ -240,6 +267,10 @@ struct WorkoutPhotoFlowView: View {
     }
 
     private func openCameraSettings() {
+        openAppSettings()
+    }
+
+    private func openAppSettings() {
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
         openURL(settingsURL)
     }

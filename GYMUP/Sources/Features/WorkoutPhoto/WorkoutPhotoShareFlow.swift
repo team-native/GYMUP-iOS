@@ -3,6 +3,21 @@ import Foundation
 enum WorkoutPhotoShareFlow {
     static func stepAfterActivityCompletion(
         currentStep: WorkoutPhotoStep,
+        result: WorkoutPhotoActivityResult,
+        hasSelectedImage: Bool
+    ) -> WorkoutPhotoStep {
+        guard result == .savedToPhotos else { return currentStep }
+
+        return stepAfterActivityCompletion(
+            currentStep: currentStep,
+            didSaveToPhotos: true,
+            didFail: false,
+            hasSelectedImage: hasSelectedImage
+        )
+    }
+
+    static func stepAfterActivityCompletion(
+        currentStep: WorkoutPhotoStep,
         didSaveToPhotos: Bool,
         didFail: Bool,
         hasSelectedImage: Bool
@@ -12,5 +27,9 @@ enum WorkoutPhotoShareFlow {
             didFail: didFail,
             hasSelectedImage: hasSelectedImage
         ) ?? currentStep
+    }
+
+    static func shouldHandleCompletion(activePayloadID: UUID?, completedPayloadID: UUID) -> Bool {
+        activePayloadID == completedPayloadID
     }
 }
