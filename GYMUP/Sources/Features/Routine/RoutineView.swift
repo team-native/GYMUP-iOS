@@ -60,7 +60,9 @@ struct RoutineView: View {
                             duplicateToastVersion += 1
                             isDuplicateToastVisible = true
                         },
-                        onDelete: { path.append(.deleteConfirm(id)) },
+                        onDelete: {
+                            if path.last == .detail(id) { path.removeLast() }
+                        },
                         onStart: {
                             path.append(viewModel.store.routine(id: id)?.isEmpty == true ? .emptyStart(id) : .workout(id))
                         }

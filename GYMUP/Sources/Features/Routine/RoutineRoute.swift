@@ -4,7 +4,6 @@ enum RoutineRoute: Hashable {
     case detail(String)
     case create
     case edit(String)
-    case deleteConfirm(String)
     case emptyStart(String)
     case workout(String)
 
@@ -13,7 +12,6 @@ enum RoutineRoute: Hashable {
         case .detail: "루틴 상세"
         case .create: "루틴 만들기"
         case .edit: "루틴 편집"
-        case .deleteConfirm: "루틴 삭제"
         case .emptyStart: "빈 루틴"
         case .workout: "운동"
         }
