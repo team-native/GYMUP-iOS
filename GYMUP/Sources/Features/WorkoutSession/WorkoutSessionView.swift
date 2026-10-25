@@ -14,6 +14,7 @@ struct WorkoutSessionView: View {
     @State private var isShowingCurrentGuide = false
     @State private var isShowingFirstExercisePrompt = false
     @State private var promptedExerciseIDs: Set<String> = []
+    @State private var isShowingWorkoutProcessing = false
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -23,7 +24,9 @@ struct WorkoutSessionView: View {
 
     var body: some View {
         Group {
-            if let data = viewModel.completionData {
+            if isShowingWorkoutProcessing {
+                WorkoutSessionProcessingScreen()
+            } else if let data = viewModel.completionData {
                 WorkoutCompletionFlowView(
                     data: data,
                     onWorkoutPhoto: {
@@ -192,7 +195,20 @@ struct WorkoutSessionView: View {
         )
         if viewModel.currentExerciseIndex == viewModel.plan.exercises.count - 1,
            viewModel.currentExercise?.isComplete == true {
-            viewModel.finish(at: date)
+            showWorkoutProcessing()
+        }
+    }
+
+    private func showWorkoutProcessing() {
+        isShowingWorkoutProcessing = true
+        Task { @MainActor in
+            do {
+                try await Task.sleep(for: .milliseconds(1_800))
+            } catch {
+                return
+            }
+            isShowingWorkoutProcessing = false
+            viewModel.finish()
         }
     }
 
