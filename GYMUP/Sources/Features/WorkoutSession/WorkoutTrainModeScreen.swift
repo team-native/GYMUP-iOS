@@ -94,10 +94,11 @@ struct WorkoutTrainModeScreen: View {
     }
 
     private var exerciseProgress: some View {
-        HStack(spacing: 4) {
+        let activeProgressIndex = min(exerciseIndex + 1, max(totalExerciseCount - 1, 0))
+        return HStack(spacing: 4) {
             ForEach(0..<max(totalExerciseCount, 1), id: \.self) { index in
                 Capsule()
-                    .fill(progressColor(for: index))
+                    .fill(progressColor(for: index, activeIndex: activeProgressIndex))
                     .frame(maxWidth: .infinity)
                     .frame(height: 3)
             }
@@ -106,9 +107,9 @@ struct WorkoutTrainModeScreen: View {
         .accessibilityLabel("운동 진행 \(exerciseIndex + 1)/\(totalExerciseCount)")
     }
 
-    private func progressColor(for index: Int) -> Color {
-        if index < exerciseIndex { return GymupColors.secondaryText }
-        if index == exerciseIndex { return GymupColors.accent }
+    private func progressColor(for index: Int, activeIndex: Int) -> Color {
+        if index < activeIndex { return GymupColors.secondaryText }
+        if index == activeIndex { return GymupColors.accent }
         return GymupColors.overlay
     }
 
@@ -175,7 +176,7 @@ struct WorkoutTrainModeScreen: View {
 
     private var exerciseTitle: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("EXERCISE \(exerciseIndex + 1) / \(totalExerciseCount)")
+            Text("EXERCISE \(min(exerciseIndex + 2, totalExerciseCount)) / \(totalExerciseCount)")
                 .font(GymupTypography.label)
                 .tracking(0.16)
                 .foregroundStyle(GymupColors.accent)
