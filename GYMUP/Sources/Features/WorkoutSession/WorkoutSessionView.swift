@@ -1,5 +1,6 @@
 import Combine
 import SwiftUI
+import UIKit
 
 struct WorkoutSessionView: View {
     @Environment(\.dismiss) private var dismiss
@@ -8,6 +9,7 @@ struct WorkoutSessionView: View {
     @State private var isShowingWorkoutPhoto = false
     @State private var photoCompletionData: WorkoutCompletionData?
     @State private var isShowingPlaylist = false
+    @State private var isShowingRestFinishedAlert = false
     @State private var guideIndex = 0
     @State private var isShowingCurrentGuide = false
 
@@ -56,7 +58,11 @@ struct WorkoutSessionView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
-        .onReceive(clock) { viewModel.refreshClock(at: $0) }
+        .onReceive(clock) { date in
+            guard viewModel.refreshClock(at: date) else { return }
+            isShowingRestFinishedAlert = true
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
         .confirmationDialog(
             "운동을 마칠까요?",
             isPresented: $isConfirmingFinish,
@@ -66,6 +72,11 @@ struct WorkoutSessionView: View {
             Button("완료 화면 보기") { viewModel.finish() }
         } message: {
             Text("현재까지 기록한 세트 결과로 운동을 마무리합니다.")
+        }
+        .alert("휴식 시간이 끝났어요", isPresented: $isShowingRestFinishedAlert) {
+            Button("다음 세트 진행", role: .cancel) {}
+        } message: {
+            Text("준비가 되면 다음 세트를 시작해 주세요.")
         }
         .onChange(of: viewModel.currentExerciseIndex) { _, _ in
             isShowingCurrentGuide = false
@@ -83,7 +94,19 @@ struct WorkoutSessionView: View {
 
     private var sessionContent: some View {
         Group {
-            if let exercise = viewModel.currentExercise {
+            if viewModel.isResting,
+               let exercise = viewModel.currentExercise,
+               let nextSetIndex = viewModel.currentSetIndex {
+                WorkoutSessionRestTimerScreen(
+                    exercise: exercise,
+                    completedSetCount: exercise.completedSetCount,
+                    nextSetIndex: nextSetIndex,
+                    remainingSeconds: viewModel.restSecondsRemaining,
+                    totalSeconds: viewModel.activeRestDurationSeconds,
+                    onExtend: { viewModel.extendRest(by: 15) },
+                    onSkip: viewModel.skipRest
+                )
+            } else if let exercise = viewModel.currentExercise {
                 WorkoutTrainModeScreen(
                     routineTitle: viewModel.plan.title,
                     elapsedTime: formattedDuration(viewModel.elapsedSeconds),
