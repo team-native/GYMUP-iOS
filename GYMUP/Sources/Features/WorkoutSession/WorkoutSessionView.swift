@@ -42,6 +42,18 @@ struct WorkoutSessionView: View {
         }
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .overlay {
+            if isConfirmingFinish {
+                WorkoutExitConfirmationDialog(
+                    completedExerciseCount: viewModel.completedExerciseCount,
+                    completedSetCount: viewModel.plan.exercises.reduce(0) { $0 + $1.completedSetCount },
+                    onFinish: { viewModel.finish() },
+                    onContinue: { isConfirmingFinish = false }
+                )
+                .transition(.opacity)
+                .zIndex(2)
+            }
+        }
         .sheet(
             isPresented: $isShowingWorkoutPhoto,
             onDismiss: { photoCompletionData = nil },
@@ -86,16 +98,6 @@ struct WorkoutSessionView: View {
             guard viewModel.refreshClock(at: date) else { return }
             isShowingRestFinishedAlert = true
             UINotificationFeedbackGenerator().notificationOccurred(.success)
-        }
-        .confirmationDialog(
-            "운동을 마칠까요?",
-            isPresented: $isConfirmingFinish,
-            titleVisibility: .visible
-        ) {
-            Button("계속 운동하기", role: .cancel) {}
-            Button("완료 화면 보기") { viewModel.finish() }
-        } message: {
-            Text("현재까지 기록한 세트 결과로 운동을 마무리합니다.")
         }
         .alert("휴식 시간이 끝났어요", isPresented: $isShowingRestFinishedAlert) {
             Button("다음 세트 진행", role: .cancel) {}
