@@ -71,6 +71,15 @@ final class WorkoutSessionViewModelTests: XCTestCase {
         XCTAssertEqual(inclinePress.commonMistakes, ["허리를 과하게 띄우기", "반동으로 튕겨 올리기"])
     }
 
+    func testExerciseHistoryDistinguishesFirstTimeExerciseFromRecordedExercise() throws {
+        let exercises = WorkoutSessionPlan.sample(for: "upper-a").exercises
+        let benchPress = try XCTUnwrap(exercises.first)
+        let inclinePress = try XCTUnwrap(exercises.dropFirst().first)
+
+        XCTAssertTrue(benchPress.hasPreviousPerformance)
+        XCTAssertFalse(inclinePress.hasPreviousPerformance)
+    }
+
     @MainActor
     func testSetValuesCanBeEditedAndNewSetCopiesThePreviousTarget() throws {
         let viewModel = WorkoutSessionViewModel(routineID: "upper-a")

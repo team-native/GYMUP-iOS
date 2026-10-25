@@ -105,6 +105,10 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
         return setIndex == 3 ? "60 × 6" : "60 × 8"
     }
 
+    var hasPreviousPerformance: Bool {
+        previousPerformance(for: 0) != nil
+    }
+
     var personalRecordKilograms: Double? { id == "bench-press" ? 62.5 : nil }
 
     var personalRecordSet: WorkoutSessionSet? {
