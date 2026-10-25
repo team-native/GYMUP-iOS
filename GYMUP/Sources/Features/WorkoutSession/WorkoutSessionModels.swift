@@ -30,6 +30,9 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
     var isComplete: Bool { !sets.isEmpty && sets.allSatisfy(\.isCompleted) }
+    var completedVolumeKilograms: Double {
+        sets.filter(\.isCompleted).reduce(0) { $0 + $1.weightKilograms * Double($1.repetitions) }
+    }
 
     var displayTitle: String {
         switch id {
@@ -75,6 +78,11 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     }
 
     var personalRecordKilograms: Double? { id == "bench-press" ? 62.5 : nil }
+
+    var personalRecordSet: WorkoutSessionSet? {
+        guard let personalRecordKilograms else { return nil }
+        return sets.first { $0.isCompleted && $0.weightKilograms >= personalRecordKilograms }
+    }
 }
 
 struct WorkoutSessionPlan: Identifiable, Equatable {
@@ -143,7 +151,7 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
         exercises: [
             exercise(.init(id: "bench-press", name: "벤치 프레스", target: "가슴 · 삼두", sets: 4, weight: 62.5, repetitions: 8)),
             exercise(.init(
-                id: "incline-press", name: "인클라인 덤벨 프레스", target: "윗가슴", sets: 3, weight: 16, repetitions: 12
+                id: "incline-press", name: "인클라인 덤벨 프레스", target: "윗가슴", sets: 3, weight: 22, repetitions: 10
             )),
             exercise(.init(id: "lat-pulldown", name: "랫 풀다운", target: "광배근", sets: 3, weight: 35, repetitions: 12)),
             exercise(.init(id: "shoulder-press", name: "숄더 프레스", target: "어깨", sets: 3, weight: 16, repetitions: 10)),
