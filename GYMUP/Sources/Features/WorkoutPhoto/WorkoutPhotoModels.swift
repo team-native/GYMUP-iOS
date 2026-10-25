@@ -3,6 +3,7 @@ import Foundation
 enum WorkoutPhotoStep: Equatable {
     case intro
     case camera
+    case permissionDenied
     case filters
     case adjustments
     case stamp
@@ -12,6 +13,14 @@ enum WorkoutPhotoStep: Equatable {
 enum WorkoutPhotoCameraFlow {
     static func cameraStep(afterPermissionGranted granted: Bool) -> WorkoutPhotoStep? {
         granted ? .camera : nil
+    }
+
+    static func permissionStep(isAuthorized: Bool) -> WorkoutPhotoStep {
+        isAuthorized ? .camera : .permissionDenied
+    }
+
+    static func stepAfterSettingsReturn(isAuthorized: Bool) -> WorkoutPhotoStep {
+        permissionStep(isAuthorized: isAuthorized)
     }
 
     static func editorStep(afterCaptureSucceeded succeeded: Bool) -> WorkoutPhotoStep? {
