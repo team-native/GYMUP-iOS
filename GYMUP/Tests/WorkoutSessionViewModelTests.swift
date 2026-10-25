@@ -142,6 +142,22 @@ final class WorkoutSessionViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRestTimerSynchronizesLiveActivityExtensionToSession() {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let viewModel = WorkoutSessionViewModel(routineID: "upper-a", startedAt: start)
+        viewModel.toggleSetCompletion(exerciseIndex: 0, setIndex: 0, at: start)
+
+        viewModel.synchronizeRestTimer(
+            endsAt: start.addingTimeInterval(105),
+            durationSeconds: 105,
+            at: start.addingTimeInterval(5)
+        )
+
+        XCTAssertEqual(viewModel.activeRestDurationSeconds, 105)
+        XCTAssertEqual(viewModel.restSecondsRemaining, 100)
+    }
+
+    @MainActor
     func testSessionCanAdvanceThroughFinalExerciseAndFinishWithRecordedSets() throws {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
         let viewModel = WorkoutSessionViewModel(routineID: "upper-a", startedAt: start)

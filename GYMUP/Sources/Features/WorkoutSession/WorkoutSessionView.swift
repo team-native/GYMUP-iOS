@@ -15,6 +15,7 @@ struct WorkoutSessionView: View {
     @State private var isShowingFirstExercisePrompt = false
     @State private var promptedExerciseIDs: Set<String> = []
     @State private var isShowingWorkoutProcessing = false
+    @State private var liveActivitySessionID = UUID().uuidString
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
@@ -98,9 +99,24 @@ struct WorkoutSessionView: View {
             }
         }
         .onReceive(clock) { date in
-            guard viewModel.refreshClock(at: date) else { return }
-            isShowingRestFinishedAlert = true
-            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            Task { @MainActor in
+                if let activityState = WorkoutRestActivityController.shared.currentState(sessionID: liveActivitySessionID) {
+                    if activityState.isSkipped {
+                        viewModel.skipRest()
+                        await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+                        return
+                    }
+                    viewModel.synchronizeRestTimer(
+                        endsAt: activityState.restEndsAt,
+                        durationSeconds: activityState.restDurationSeconds,
+                        at: date
+                    )
+                }
+                guard viewModel.refreshClock(at: date) else { return }
+                isShowingRestFinishedAlert = true
+                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+            }
         }
         .alert("휴식 시간이 끝났어요", isPresented: $isShowingRestFinishedAlert) {
             Button("다음 세트 진행", role: .cancel) {}
@@ -145,8 +161,14 @@ struct WorkoutSessionView: View {
                     nextSetIndex: nextSetIndex,
                     remainingSeconds: viewModel.restSecondsRemaining,
                     totalSeconds: viewModel.activeRestDurationSeconds,
-                    onExtend: { viewModel.extendRest(by: 15) },
-                    onSkip: viewModel.skipRest
+                    onExtend: {
+                        viewModel.extendRest(by: 15)
+                        syncRestActivity()
+                    },
+                    onSkip: {
+                        viewModel.skipRest()
+                        Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
+                    }
                 )
             } else if let exercise = viewModel.currentExercise {
                 WorkoutTrainModeScreen(
@@ -172,6 +194,7 @@ struct WorkoutSessionView: View {
                             setIndex: setIndex,
                             at: Date()
                         )
+                        syncRestActivity()
                     },
                     onAdjustWeight: viewModel.adjustCurrentWeight,
                     onAdjustRepetitions: viewModel.adjustCurrentRepetitions,
@@ -193,13 +216,51 @@ struct WorkoutSessionView: View {
             setIndex: currentSetIndex,
             at: date
         )
+        syncRestActivity()
         if viewModel.currentExerciseIndex == viewModel.plan.exercises.count - 1,
            viewModel.currentExercise?.isComplete == true {
             showWorkoutProcessing()
         }
     }
 
-    private func showWorkoutProcessing() {
+    private func formattedDuration(_ seconds: Int) -> String {
+        String(format: "%02d:%02d", seconds / 60, seconds % 60)
+    }
+
+}
+
+private extension WorkoutSessionView {
+    func syncRestActivity() {
+        guard viewModel.isResting,
+              let exercise = viewModel.currentExercise,
+              let setIndex = viewModel.currentSetIndex,
+              let restEndsAt = viewModel.activeRestEndsAt else {
+            Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
+            return
+        }
+
+        let nextSet = exercise.sets[setIndex]
+        let duration = viewModel.activeRestDurationSeconds
+        let state = WorkoutRestActivityAttributes.ContentState(
+            restStartedAt: restEndsAt.addingTimeInterval(TimeInterval(-duration)),
+            restEndsAt: restEndsAt,
+            restDurationSeconds: duration,
+            routineName: viewModel.plan.title,
+            exerciseName: exercise.name,
+            exerciseIndex: viewModel.currentExerciseIndex + 1,
+            totalExerciseCount: viewModel.plan.exercises.count,
+            completedSetCount: exercise.completedSetCount,
+            nextSetNumber: setIndex + 1,
+            nextSetWeightKilograms: nextSet.weightKilograms,
+            nextSetRepetitions: nextSet.repetitions,
+            isSkipped: false
+        )
+        Task {
+            await WorkoutRestActivityController.shared.startOrUpdate(sessionID: liveActivitySessionID, state: state)
+        }
+    }
+
+    func showWorkoutProcessing() {
         isShowingWorkoutProcessing = true
         Task { @MainActor in
             do {
@@ -212,18 +273,13 @@ struct WorkoutSessionView: View {
         }
     }
 
-    private func showFirstExercisePromptIfNeeded() {
+    func showFirstExercisePromptIfNeeded() {
         guard let exercise = viewModel.currentExercise,
               !exercise.hasPreviousPerformance,
               !promptedExerciseIDs.contains(exercise.id) else { return }
         promptedExerciseIDs.insert(exercise.id)
         isShowingFirstExercisePrompt = true
     }
-
-    private func formattedDuration(_ seconds: Int) -> String {
-        String(format: "%02d:%02d", seconds / 60, seconds % 60)
-    }
-
 }
 
 #Preview {

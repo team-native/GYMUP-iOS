@@ -51,6 +51,15 @@ final class WorkoutSessionViewModel {
         return max(0, Int(ceil(restEndsAt.timeIntervalSince(now))))
     }
 
+    var activeRestEndsAt: Date? { restEndsAt }
+
+    func synchronizeRestTimer(endsAt: Date, durationSeconds: Int, at date: Date) {
+        guard restEndsAt != nil, !isPaused else { return }
+        now = date
+        activeRestDurationSeconds = min(max(durationSeconds, 0), 600)
+        restEndsAt = endsAt
+    }
+
     func elapsedSeconds(at date: Date) -> Int {
         guard let startedAt else { return 0 }
         let endDate = finishedAt ?? pausedAt ?? date
