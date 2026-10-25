@@ -4,147 +4,226 @@ struct WorkoutStageUpView: View {
     let reward: WorkoutCompletionData.StageReward
     let onContinue: () -> Void
 
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+
     var body: some View {
         ScrollView {
-            VStack(spacing: 25) {
+            VStack(spacing: 0) {
                 header
-                barbell
+                    .padding(.top, topPadding)
+
+                Color.clear
+                    .frame(height: headerToPreviousBarbellSpacing)
+                    .accessibilityHidden(true)
+
+                previousBarbell
+                    .padding(.bottom, previousToUpdatedSpacing)
+
+                updatedBarbell
+                    .padding(.bottom, updatedToWeightSpacing)
+
                 weightTransition
-                stageCard
+                    .padding(.bottom, 8)
+
+                stageDescription
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 30)
+            .padding(.horizontal, 24)
             .padding(.bottom, 24)
             .frame(maxWidth: .infinity)
         }
+        .scrollIndicators(.hidden)
         .safeAreaInset(edge: .bottom, spacing: 0) {
             WorkoutCompletionActionBar(
-                primary: WorkoutCompletionPrimaryButton(title: "계속", action: onContinue),
+                primary: WorkoutCompletionPrimaryButton(title: "계속", action: onContinue)
+                    .accessibilityIdentifier("workout.completion.stage-up.continue"),
                 secondary: EmptyView()
             )
         }
         .background(WorkoutCompletionColors.canvas)
+        .accessibilityIdentifier("workout.completion.stage-up")
+    }
+
+    private var topPadding: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 28 : 70
+    }
+
+    private var headerToPreviousBarbellSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 48 : 104
+    }
+
+    private var previousToUpdatedSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 56 : 102
+    }
+
+    private var updatedToWeightSpacing: CGFloat {
+        dynamicTypeSize.isAccessibilitySize ? 40 : 82
     }
 
     private var header: some View {
-        VStack(spacing: 7) {
+        VStack(spacing: 8) {
             Text("STAGE UP")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .tracking(2.2)
+                .font(Font.custom("Archivo-SemiBold", size: 11, relativeTo: .caption))
+                .tracking(1.5)
                 .foregroundStyle(WorkoutCompletionColors.red)
+
             Text("원판이 추가됐어요")
-                .font(GymupTypography.title)
-                .foregroundStyle(.white)
+                .font(Font.custom("NotoSansKR-Bold", size: 24, relativeTo: .title))
+                .foregroundStyle(WorkoutCompletionColors.primaryText)
                 .multilineTextAlignment(.center)
-        }
-        .accessibilityElement(children: .combine)
-    }
-
-    private var barbell: some View {
-        VStack(spacing: 0) {
-            HStack(spacing: 4) {
-                plateStack
-                Capsule()
-                    .fill(Color(red: 0.72, green: 0.73, blue: 0.76))
-                    .frame(maxWidth: .infinity, minHeight: 7, maxHeight: 7)
-                plateStack
-            }
-            .padding(.horizontal, 34)
-            .shadow(color: WorkoutCompletionColors.red.opacity(0.2), radius: 22)
-
-            Text("+\(reward.plateWeight) KG")
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .tracking(1.2)
-                .foregroundStyle(WorkoutCompletionColors.red)
-                .padding(.top, 15)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 170)
-        .background {
-            RoundedRectangle(cornerRadius: 22)
-                .fill(
-                    LinearGradient(
-                        colors: [WorkoutCompletionColors.red.opacity(0.12), WorkoutCompletionColors.surface],
-                        startPoint: .top,
-                        endPoint: .bottom
-                    )
-                )
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("양쪽 바벨에 빨간색 \(reward.plateWeight)킬로 원판이 추가됐어요")
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("스테이지 업. 원판이 추가됐어요.")
+        .accessibilityIdentifier("workout.completion.stage-up.heading")
     }
 
-    private var plateStack: some View {
-        HStack(spacing: 3) {
-            RoundedRectangle(cornerRadius: 5)
-                .fill(WorkoutCompletionColors.red)
-                .frame(width: 22, height: 82)
-            RoundedRectangle(cornerRadius: 4)
-                .fill(Color(red: 0.69, green: 0.08, blue: 0.11))
-                .frame(width: 13, height: 68)
-            RoundedRectangle(cornerRadius: 3)
-                .fill(Color(red: 0.43, green: 0.43, blue: 0.46))
-                .frame(width: 8, height: 51)
-        }
+    private var previousBarbell: some View {
+        StageBarbellIllustration(highlightsNewPlate: false)
+            .frame(maxWidth: 328)
+            .frame(height: 56)
+            .opacity(0.42)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("이전 바벨, 총 \(reward.previousWeight)킬로그램")
+            .accessibilityIdentifier("workout.completion.stage-up.barbell.before")
+    }
+
+    private var updatedBarbell: some View {
+        StageBarbellIllustration(highlightsNewPlate: true)
+            .frame(maxWidth: 328)
+            .frame(height: 108)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "새 바벨, 총 \(reward.weight)킬로그램, 빨간 \(reward.plateWeight)킬로그램 원판 추가"
+            )
+            .accessibilityIdentifier("workout.completion.stage-up.barbell.updated")
     }
 
     private var weightTransition: some View {
-        HStack(alignment: .center, spacing: 15) {
-            weightValue(reward.previousWeight, label: "BEFORE", muted: true)
-            Image(systemName: "arrow.right")
-                .font(.system(size: 17, weight: .bold))
-                .foregroundStyle(WorkoutCompletionColors.red)
-                .accessibilityHidden(true)
-            weightValue(reward.weight, label: "NOW", muted: false)
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 8) {
+                previousWeight
+                arrow
+                currentWeight
+            }
+
+            VStack(spacing: 0) {
+                previousWeight
+                arrow
+                currentWeight
+            }
+        }
+        .font(Font.custom("BarlowCondensed-ExtraBold", size: 34, relativeTo: .largeTitle))
+        .frame(maxWidth: .infinity)
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(
+            "총 중량 \(reward.previousWeight)킬로그램에서 \(reward.weight)킬로그램으로 증가"
+        )
+        .accessibilityIdentifier("workout.completion.stage-up.weight-transition")
+    }
+
+    private var previousWeight: some View {
+        Text(reward.previousWeight.formatted())
+            .monospacedDigit()
+            .foregroundStyle(WorkoutCompletionColors.secondaryText)
+    }
+
+    private var arrow: some View {
+        Text("→")
+            .font(Font.custom("BarlowCondensed-Bold", size: 26, relativeTo: .title2))
+            .foregroundStyle(WorkoutCompletionColors.secondaryText)
+            .accessibilityHidden(true)
+    }
+
+    private var currentWeight: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Text(reward.weight.formatted())
+                .monospacedDigit()
+                .foregroundStyle(WorkoutCompletionColors.primaryText)
+
+            Text("KG")
+                .font(Font.custom("Archivo-SemiBold", size: 13, relativeTo: .subheadline))
+                .tracking(0.5)
+                .foregroundStyle(WorkoutCompletionColors.primaryText)
+        }
+    }
+
+    private var stageDescription: some View {
+        Text("STAGE \(reward.stage) · HEAVY · \(reward.plateWeight)kg 레드 원판 해금")
+            .font(Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption))
+            .foregroundStyle(WorkoutCompletionColors.secondaryText)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel(
+                "스테이지 \(reward.stage), 헤비, \(reward.plateWeight)킬로그램 빨간 원판 해금"
+            )
+            .accessibilityIdentifier("workout.completion.stage-up.description")
+    }
+}
+
+private struct StageBarbellIllustration: View {
+    let highlightsNewPlate: Bool
+
+    var body: some View {
+        HStack(spacing: 0) {
+            plateStack(isLeading: true)
+
+            Capsule()
+                .fill(Color(red: 0.72, green: 0.73, blue: 0.76))
+                .frame(maxWidth: .infinity)
+                .frame(height: highlightsNewPlate ? 7 : 5)
+
+            plateStack(isLeading: false)
         }
         .frame(maxWidth: .infinity)
-        .padding(.vertical, 4)
-        .accessibilityElement(children: .combine)
+        .frame(height: highlightsNewPlate ? 96 : 52)
     }
 
-    private func weightValue(_ value: Int, label: String, muted: Bool) -> some View {
-        VStack(spacing: 4) {
-            Text(label)
-                .font(.system(size: 9, weight: .bold, design: .rounded))
-                .tracking(1.2)
-                .foregroundStyle(WorkoutCompletionColors.secondaryText)
-            HStack(alignment: .firstTextBaseline, spacing: 4) {
-                Text("\(value)")
-                    .font(.system(size: 38, weight: .bold, design: .rounded))
-                    .monospacedDigit()
-                Text("KG")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
-            }
-            .foregroundStyle(muted ? WorkoutCompletionColors.secondaryText : WorkoutCompletionColors.primaryText)
-        }
-    }
-
-    private var stageCard: some View {
-        WorkoutCompletionCard {
-            HStack(spacing: 11) {
-                Image(systemName: "dumbbell.fill")
-                    .font(.system(size: 19, weight: .semibold))
-                    .foregroundStyle(WorkoutCompletionColors.red)
-                    .frame(width: 42, height: 42)
-                    .background(WorkoutCompletionColors.red.opacity(0.12), in: RoundedRectangle(cornerRadius: 12))
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("STAGE \(reward.stage)")
-                        .font(GymupTypography.headline)
-                        .foregroundStyle(.white)
-                    Text("HEAVY · \(reward.plateWeight) KG 레드 원판 적용")
-                        .font(GymupTypography.caption)
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                }
-
-                Spacer(minLength: 0)
-
-                Circle()
-                    .fill(WorkoutCompletionColors.red)
-                    .frame(width: 8, height: 8)
-                    .accessibilityHidden(true)
+    private func plateStack(isLeading: Bool) -> some View {
+        HStack(spacing: 2) {
+            ForEach(plates(isLeading: isLeading)) { plate in
+                RoundedRectangle(cornerRadius: 3)
+                    .fill(plate.color)
+                    .frame(width: plate.width, height: plate.height)
             }
         }
+        .fixedSize(horizontal: true, vertical: false)
     }
+
+    private func plates(isLeading: Bool) -> [StageBarbellPlate] {
+        let existingPlates = [
+            StageBarbellPlate(id: "outer", width: 7, height: 42, color: existingPlateColor),
+            StageBarbellPlate(id: "middle", width: 9, height: 57, color: existingPlateColor),
+            StageBarbellPlate(id: "inner", width: 11, height: 72, color: existingPlateColor)
+        ]
+
+        guard highlightsNewPlate else {
+            return isLeading ? existingPlates : Array(existingPlates.reversed())
+        }
+
+        let newPlate = StageBarbellPlate(
+            id: "new-red-plate",
+            width: 14,
+            height: 88,
+            color: WorkoutCompletionColors.red
+        )
+
+        if isLeading {
+            return existingPlates + [newPlate]
+        }
+        return [newPlate] + Array(existingPlates.reversed())
+    }
+
+    private var existingPlateColor: Color {
+        Color(red: 0.4, green: 0.4, blue: 0.43)
+    }
+}
+
+private struct StageBarbellPlate: Identifiable {
+    let id: String
+    let width: CGFloat
+    let height: CGFloat
+    let color: Color
 }
