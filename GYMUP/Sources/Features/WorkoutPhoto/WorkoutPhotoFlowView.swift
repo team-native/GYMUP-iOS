@@ -1,3 +1,4 @@
+import AVFoundation
 import PhotosUI
 import SwiftUI
 import UIKit
@@ -9,6 +10,7 @@ struct WorkoutPhotoFlowView: View {
     var onCameraPermissionDenied: () -> Void = {}
 
     @Environment(\.openURL) private var openURL
+    @Environment(\.scenePhase) private var scenePhase
     @State private var step: WorkoutPhotoStep = .intro
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
@@ -18,7 +20,6 @@ struct WorkoutPhotoFlowView: View {
     @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
     @State private var isRequestingCameraPermission = false
-    @State private var isShowingCameraPermissionDenied = false
     @State private var selectionError: String?
     @StateObject private var cameraController = WorkoutPhotoCameraController()
 
@@ -33,6 +34,10 @@ struct WorkoutPhotoFlowView: View {
             guard let item else { return }
             selectedItem = nil
             loadImage(from: item)
+        }
+        .onChange(of: scenePhase) { _, phase in
+            guard phase == .active else { return }
+            refreshCameraPermissionAfterForegrounding()
         }
         .sheet(item: $sharePayload) { payload in
             WorkoutPhotoShareSheet(image: payload.image) { didSaveToPhotos, didFail in
@@ -65,6 +70,11 @@ struct WorkoutPhotoFlowView: View {
                 selectedItem: $selectedItem,
                 onClose: onClose,
                 onCapture: handleCameraCapture
+            )
+        case .permissionDenied:
+            WorkoutPhotoPermissionDeniedScreen(
+                onOpenSettings: openCameraSettings,
+                onClose: onClose
             )
         case .filters:
             if let selectedImage {
@@ -117,12 +127,6 @@ struct WorkoutPhotoFlowView: View {
             onAllowCamera: requestCameraPermission,
             onLater: onClose
         )
-        .alert("카메라 접근 권한", isPresented: $isShowingCameraPermissionDenied) {
-            Button("설정 열기", action: openCameraSettings)
-            Button("나중에", role: .cancel) {}
-        } message: {
-            Text("설정에서 카메라 접근을 허용하면 운동 사진을 촬영할 수 있어요.")
-        }
     }
 
     private var isShowingSelectionError: Binding<Bool> {
@@ -204,16 +208,20 @@ struct WorkoutPhotoFlowView: View {
         Task { @MainActor in
             defer { isRequestingCameraPermission = false }
 
-            if await cameraPermissionRequester.requestCameraAccess() {
+            let isAuthorized = await cameraPermissionRequester.requestCameraAccess()
+            if isAuthorized {
                 onCameraAuthorized()
-                if let cameraStep = WorkoutPhotoCameraFlow.cameraStep(afterPermissionGranted: true) {
-                    step = cameraStep
-                }
             } else {
                 onCameraPermissionDenied()
-                isShowingCameraPermissionDenied = true
             }
+            step = WorkoutPhotoCameraFlow.permissionStep(isAuthorized: isAuthorized)
         }
+    }
+
+    private func refreshCameraPermissionAfterForegrounding() {
+        guard step == .camera || step == .permissionDenied else { return }
+        let isAuthorized = AVCaptureDevice.authorizationStatus(for: .video) == .authorized
+        step = WorkoutPhotoCameraFlow.stepAfterSettingsReturn(isAuthorized: isAuthorized)
     }
 
     private func handleCameraCapture(_ image: UIImage?) {
