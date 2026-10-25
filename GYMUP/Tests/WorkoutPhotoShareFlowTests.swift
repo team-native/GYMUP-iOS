@@ -4,8 +4,8 @@ import UIKit
 
 final class WorkoutPhotoShareFlowTests: XCTestCase {
     @MainActor
-    func testShareConfigurationContainsOnlyThePosterImageAndGenericName() {
-        let poster = UIImage(systemName: "figure.strengthtraining.traditional")!
+    func testShareConfigurationContainsOnlyThePosterImageAndGenericName() throws {
+        let poster = try XCTUnwrap(UIImage(systemName: "figure.strengthtraining.traditional"))
         let configuration = WorkoutPhotoShareConfiguration.make(for: poster)
         let providers = configuration.itemProvidersForActivityItemsConfiguration
 
