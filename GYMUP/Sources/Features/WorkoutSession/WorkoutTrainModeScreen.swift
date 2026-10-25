@@ -15,6 +15,7 @@ struct WorkoutTrainModeScreen: View {
     let onToggleGuide: () -> Void
     let onToggleSet: (Int) -> Void
     let onAdjustWeight: (Double) -> Void
+    let onInputWeight: () -> Void
     let onAdjustRepetitions: (Int) -> Void
     let onSetDone: () -> Void
     let onSkipRest: () -> Void
@@ -35,6 +36,7 @@ struct WorkoutTrainModeScreen: View {
                         currentSetIndex: currentSetIndex,
                         onToggleSet: onToggleSet,
                         onAdjustWeight: onAdjustWeight,
+                        onInputWeight: onInputWeight,
                         onAdjustRepetitions: onAdjustRepetitions
                     )
                     if isResting {
@@ -280,6 +282,7 @@ private struct WorkoutSessionSetTable: View {
     let currentSetIndex: Int?
     let onToggleSet: (Int) -> Void
     let onAdjustWeight: (Double) -> Void
+    let onInputWeight: () -> Void
     let onAdjustRepetitions: (Int) -> Void
 
     var body: some View {
@@ -294,7 +297,8 @@ private struct WorkoutSessionSetTable: View {
                         title: "SET \(currentSetIndex + 1) · KG",
                         value: exercise.sets[currentSetIndex].weightKilograms.formatted(.number.precision(.fractionLength(0...1))),
                         onDecrease: { onAdjustWeight(-2.5) },
-                        onIncrease: { onAdjustWeight(2.5) }
+                        onIncrease: { onAdjustWeight(2.5) },
+                        onValueTap: onInputWeight
                     )
                     WorkoutSessionValueAdjuster(
                         title: "SET \(currentSetIndex + 1) · REPS",

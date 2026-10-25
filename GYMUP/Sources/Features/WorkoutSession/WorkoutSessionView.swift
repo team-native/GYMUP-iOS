@@ -15,6 +15,8 @@ struct WorkoutSessionView: View {
     @State private var isShowingFirstExercisePrompt = false
     @State private var promptedExerciseIDs: Set<String> = []
     @State private var isShowingWorkoutProcessing = false
+    @State private var isShowingWeightInput = false
+    @State private var weightInputSetIndex: Int?
     @State private var liveActivitySessionID = UUID().uuidString
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
@@ -76,6 +78,32 @@ struct WorkoutSessionView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(
+            isPresented: $isShowingWeightInput,
+            onDismiss: { weightInputSetIndex = nil },
+            content: {
+                if let setIndex = weightInputSetIndex,
+                   let exercise = viewModel.currentExercise,
+                   exercise.sets.indices.contains(setIndex) {
+                    WorkoutSessionWeightInputSheet(
+                        setNumber: setIndex + 1,
+                        initialWeight: exercise.sets[setIndex].weightKilograms,
+                        onConfirm: { weight in
+                            viewModel.updateWeight(
+                                weight,
+                                exerciseIndex: viewModel.currentExerciseIndex,
+                                setIndex: setIndex
+                            )
+                            isShowingWeightInput = false
+                        }
+                    )
+                    .presentationDetents([.height(506)])
+                    .presentationDragIndicator(.hidden)
+                    .presentationCornerRadius(28)
+                    .presentationBackground(GymupColors.surface)
+                }
+            }
+        )
         .fullScreenCover(isPresented: $isShowingCurrentGuide) {
             if let exercise = viewModel.currentExercise {
                 WorkoutExerciseGuideScreen(
@@ -197,6 +225,10 @@ struct WorkoutSessionView: View {
                         syncRestActivity()
                     },
                     onAdjustWeight: viewModel.adjustCurrentWeight,
+                    onInputWeight: {
+                        weightInputSetIndex = viewModel.currentSetIndex
+                        isShowingWeightInput = weightInputSetIndex != nil
+                    },
                     onAdjustRepetitions: viewModel.adjustCurrentRepetitions,
                     onSetDone: { completeCurrentSet(at: Date()) },
                     onSkipRest: viewModel.skipRest,
