@@ -14,6 +14,7 @@ final class WorkoutSessionViewModel {
     private var pausedAt: Date?
     private var accumulatedPauseSeconds: TimeInterval = 0
     private var restEndsAt: Date?
+    private(set) var activeRestDurationSeconds = 0
 
     init(routineID: String, startedAt: Date = Date(), startsImmediately: Bool = true) {
         plan = .sample(for: routineID)
@@ -63,11 +64,15 @@ final class WorkoutSessionViewModel {
         now = date
     }
 
-    func refreshClock(at date: Date) {
+    @discardableResult
+    func refreshClock(at date: Date) -> Bool {
         now = date
-        if !isPaused, let restEndsAt, date >= restEndsAt {
+        let didRestEnd = !isPaused && restEndsAt.map { date >= $0 } == true
+        if didRestEnd {
             self.restEndsAt = nil
+            activeRestDurationSeconds = 0
         }
+        return didRestEnd
     }
 
     func updateWeight(_ weight: Double, exerciseIndex: Int, setIndex: Int) {
@@ -129,17 +134,21 @@ final class WorkoutSessionViewModel {
 
         guard !wasCompleted else {
             restEndsAt = nil
+            activeRestDurationSeconds = 0
             return
         }
 
         let hasMoreSets = plan.exercises[exerciseIndex].sets.contains { !$0.isCompleted }
         if hasMoreSets, let date {
             now = date
-            restEndsAt = date.addingTimeInterval(TimeInterval(plan.exercises[exerciseIndex].restDurationSeconds))
+            activeRestDurationSeconds = min(max(plan.exercises[exerciseIndex].restDurationSeconds, 0), 600)
+            restEndsAt = date.addingTimeInterval(TimeInterval(activeRestDurationSeconds))
         } else if hasMoreSets {
-            restEndsAt = now.addingTimeInterval(TimeInterval(plan.exercises[exerciseIndex].restDurationSeconds))
+            activeRestDurationSeconds = min(max(plan.exercises[exerciseIndex].restDurationSeconds, 0), 600)
+            restEndsAt = now.addingTimeInterval(TimeInterval(activeRestDurationSeconds))
         } else {
             restEndsAt = nil
+            activeRestDurationSeconds = 0
         }
     }
 
@@ -155,17 +164,23 @@ final class WorkoutSessionViewModel {
 
         currentExerciseIndex += 1
         restEndsAt = nil
+        activeRestDurationSeconds = 0
         notice = nil
         return true
     }
 
     func skipRest() {
         restEndsAt = nil
+        activeRestDurationSeconds = 0
     }
 
     func extendRest(by seconds: Int) {
         guard seconds > 0, isResting, let restEndsAt else { return }
-        self.restEndsAt = restEndsAt.addingTimeInterval(TimeInterval(seconds))
+        let updatedDuration = min(activeRestDurationSeconds + seconds, 600)
+        let addedDuration = updatedDuration - activeRestDurationSeconds
+        guard addedDuration > 0 else { return }
+        activeRestDurationSeconds = updatedDuration
+        self.restEndsAt = restEndsAt.addingTimeInterval(TimeInterval(addedDuration))
     }
 
     func togglePause(at date: Date) {
@@ -193,6 +208,7 @@ final class WorkoutSessionViewModel {
         }
         finishedAt = date
         restEndsAt = nil
+        activeRestDurationSeconds = 0
         notice = nil
     }
 }

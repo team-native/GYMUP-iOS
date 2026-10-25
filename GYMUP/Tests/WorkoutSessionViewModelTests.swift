@@ -82,6 +82,30 @@ final class WorkoutSessionViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testRestCanExtendToTenMinuteLimitAndFinishesOnce() {
+        let start = Date(timeIntervalSince1970: 1_800_000_000)
+        let viewModel = WorkoutSessionViewModel(routineID: "upper-a", startedAt: start)
+
+        viewModel.toggleSetCompletion(exerciseIndex: 0, setIndex: 0, at: start)
+        XCTAssertEqual(viewModel.activeRestDurationSeconds, 90)
+
+        viewModel.extendRest(by: 15)
+        XCTAssertEqual(viewModel.activeRestDurationSeconds, 105)
+        XCTAssertEqual(viewModel.restSecondsRemaining, 105)
+
+        viewModel.extendRest(by: 600)
+        XCTAssertEqual(viewModel.activeRestDurationSeconds, 600)
+        XCTAssertEqual(viewModel.restSecondsRemaining, 600)
+        viewModel.extendRest(by: 15)
+        XCTAssertEqual(viewModel.activeRestDurationSeconds, 600)
+
+        XCTAssertTrue(viewModel.refreshClock(at: start.addingTimeInterval(600)))
+        XCTAssertFalse(viewModel.isResting)
+        XCTAssertEqual(viewModel.activeRestDurationSeconds, 0)
+        XCTAssertFalse(viewModel.refreshClock(at: start.addingTimeInterval(601)))
+    }
+
+    @MainActor
     func testSessionCanAdvanceThroughFinalExerciseAndFinishWithRecordedSets() throws {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
         let viewModel = WorkoutSessionViewModel(routineID: "upper-a", startedAt: start)
