@@ -6,143 +6,190 @@ struct WorkoutLevelUpView: View {
     let onContinue: () -> Void
 
     private var progress: Double {
-        Double(reward.currentXP) / Double(max(reward.nextLevelXP, 1))
+        guard reward.nextLevelXP > 0 else { return 0 }
+        return min(max(Double(reward.currentXP) / Double(reward.nextLevelXP), 0), 1)
+    }
+
+    private var nextLevel: Int {
+        reward.level + 1
     }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 24) {
-                header
-                levelEmblem
-                progressCard
-                rewardCard
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 0) {
+                    levelHeading
+
+                    Spacer(minLength: 48)
+
+                    VStack(alignment: .leading, spacing: 18) {
+                        progressSection
+                        rewardCard
+                    }
+                    .padding(.bottom, 24)
+                }
+                .padding(.horizontal, 24)
+                .padding(.top, 20)
+                .frame(minHeight: geometry.size.height, alignment: .topLeading)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 28)
-            .padding(.bottom, 24)
-            .frame(maxWidth: .infinity)
+            .scrollIndicators(.hidden)
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            WorkoutCompletionActionBar(
-                primary: WorkoutCompletionPrimaryButton(title: "계속", action: onContinue),
-                secondary: WorkoutCompletionSecondaryButton(title: "아이템 보기", action: onViewItems)
-            )
+            actionArea
         }
         .background(WorkoutCompletionColors.canvas)
     }
 
-    private var header: some View {
-        VStack(spacing: 7) {
+    private var levelHeading: some View {
+        VStack(alignment: .leading, spacing: 0) {
             Text("LEVEL UP")
-                .font(.system(size: 12, weight: .bold, design: .rounded))
-                .tracking(2.2)
+                .font(Font.custom("Archivo-SemiBold", size: 11, relativeTo: .caption))
+                .tracking(1.5)
                 .foregroundStyle(WorkoutCompletionColors.red)
-            Text("새로운 레벨에 도달했어요")
-                .font(GymupTypography.body)
-                .foregroundStyle(WorkoutCompletionColors.secondaryText)
-        }
-        .multilineTextAlignment(.center)
-        .accessibilityElement(children: .combine)
-    }
+                .padding(.bottom, 10)
 
-    private var levelEmblem: some View {
-        ZStack {
-            Circle()
-                .fill(
-                    RadialGradient(
-                        colors: [WorkoutCompletionColors.red.opacity(0.24), WorkoutCompletionColors.red.opacity(0.02)],
-                        center: .center,
-                        startRadius: 10,
-                        endRadius: 120
-                    )
-                )
-                .frame(width: 220, height: 220)
+            Text("\(reward.level)")
+                .font(Font.custom("BarlowCondensed-Black", size: 112, relativeTo: .largeTitle))
+                .foregroundStyle(WorkoutCompletionColors.red)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.bottom, 2)
 
-            Circle()
-                .strokeBorder(WorkoutCompletionColors.red.opacity(0.7), lineWidth: 1.5)
-                .frame(width: 148, height: 148)
-                .overlay {
-                    Circle()
-                        .strokeBorder(.white.opacity(0.08), lineWidth: 8)
-                        .padding(10)
-                }
-
-            VStack(spacing: 1) {
-                Text("LV.")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
-                    .tracking(1.5)
-                    .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                Text("\(reward.level)")
-                    .font(.system(size: 62, weight: .black, design: .rounded))
-                    .monospacedDigit()
-                    .foregroundStyle(.white)
-            }
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("레벨 업, 레벨 \(reward.level)")
-    }
-
-    private var progressCard: some View {
-        WorkoutCompletionCard {
-            VStack(alignment: .leading, spacing: 13) {
-                HStack(alignment: .firstTextBaseline) {
-                    Text("LV.\(reward.previousLevel) → LV.\(reward.level)")
-                        .font(GymupTypography.headline)
-                        .foregroundStyle(.white)
-                    Spacer()
-                    Text("NEXT LEVEL")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .tracking(1.1)
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                }
-
-                WorkoutCompletionProgressBar(value: progress)
-
-                HStack {
-                    Text("\(reward.currentXP.formatted()) XP")
-                    Spacer()
-                    Text("\(reward.nextLevelXP.formatted()) XP")
-                }
-                .font(.system(size: 11, weight: .medium, design: .rounded))
-                .foregroundStyle(WorkoutCompletionColors.secondaryText)
-            }
+            Text("LV.\(reward.previousLevel) → LV.\(reward.level)")
+                .font(Font.custom("Archivo-SemiBold", size: 19, relativeTo: .title2))
+                .foregroundStyle(WorkoutCompletionColors.primaryText)
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+                .accessibilityLabel("레벨 \(reward.previousLevel)에서 레벨 \(reward.level)로 올랐어요")
         }
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("workout.completion.level-up.heading")
+    }
+
+    private var progressSection: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            ViewThatFits(in: .horizontal) {
+                progressLabels
+
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("LV.\(nextLevel)까지")
+                    Text(experienceLabel)
+                }
+            }
+
+            GeometryReader { geometry in
+                ZStack(alignment: .leading) {
+                    Capsule()
+                        .fill(WorkoutCompletionColors.elevatedSurface)
+
+                    Capsule()
+                        .fill(WorkoutCompletionColors.red)
+                        .frame(width: geometry.size.width * progress)
+                }
+            }
+            .frame(height: 2)
+            .accessibilityHidden(true)
+        }
+        .font(Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption))
+        .foregroundStyle(WorkoutCompletionColors.secondaryText)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel("다음 레벨까지 경험치")
+        .accessibilityValue(experienceLabel)
+        .accessibilityIdentifier("workout.completion.level-up.progress")
+    }
+
+    private var progressLabels: some View {
+        HStack(alignment: .firstTextBaseline, spacing: 8) {
+            Text("LV.\(nextLevel)까지")
+            Spacer(minLength: 4)
+            Text(experienceLabel)
+                .monospacedDigit()
+                .lineLimit(1)
+                .minimumScaleFactor(0.8)
+        }
+    }
+
+    private var experienceLabel: String {
+        "\(reward.currentXP.formatted()) / \(reward.nextLevelXP.formatted()) XP"
     }
 
     private var rewardCard: some View {
         WorkoutCompletionCard {
-            HStack(spacing: 14) {
-                ZStack {
-                    RoundedRectangle(cornerRadius: 14)
-                        .fill(WorkoutCompletionColors.gold.opacity(0.12))
-                        .frame(width: 54, height: 54)
-                    Image(systemName: "circle.hexagongrid.fill")
-                        .font(.system(size: 25, weight: .medium))
-                        .foregroundStyle(WorkoutCompletionColors.gold)
-                }
-                .accessibilityHidden(true)
+            HStack(spacing: 12) {
+                Image(systemName: "star.fill")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(WorkoutCompletionColors.red)
+                    .frame(width: 44, height: 44)
+                    .background(
+                        WorkoutCompletionColors.red.opacity(0.12),
+                        in: RoundedRectangle(cornerRadius: 12)
+                    )
+                    .accessibilityHidden(true)
 
-                VStack(alignment: .leading, spacing: 5) {
-                    Text("LEVEL REWARD")
-                        .font(.system(size: 9, weight: .bold, design: .rounded))
-                        .tracking(1.1)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("레벨 보상")
+                        .font(Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption))
                         .foregroundStyle(WorkoutCompletionColors.secondaryText)
+
                     Text(reward.itemName)
-                        .font(GymupTypography.headline)
-                        .foregroundStyle(.white)
+                        .font(Font.custom("GothicA1-SemiBold", size: 16, relativeTo: .headline))
+                        .foregroundStyle(WorkoutCompletionColors.primaryText)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
-                Spacer(minLength: 8)
+                Spacer(minLength: 4)
 
                 Text("NEW")
-                    .font(.system(size: 10, weight: .heavy, design: .rounded))
+                    .font(Font.custom("Archivo-SemiBold", size: 10, relativeTo: .caption))
                     .tracking(0.8)
-                    .foregroundStyle(WorkoutCompletionColors.gold)
+                    .foregroundStyle(WorkoutCompletionColors.red)
                     .padding(.horizontal, 9)
                     .padding(.vertical, 6)
-                    .overlay(Capsule().strokeBorder(WorkoutCompletionColors.gold.opacity(0.5), lineWidth: 1))
+                    .overlay {
+                        Capsule()
+                            .strokeBorder(WorkoutCompletionColors.red.opacity(0.5), lineWidth: 1)
+                    }
+                    .accessibilityHidden(true)
             }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("레벨 보상, \(reward.itemName), 새 아이템")
+            .accessibilityIdentifier("workout.completion.level-up.reward")
+        }
+    }
+
+    private var actionArea: some View {
+        VStack(spacing: 2) {
+            Button(action: onContinue) {
+                Text("계속")
+                    .font(Font.custom("GothicA1-SemiBold", size: 16, relativeTo: .headline))
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 54)
+                    .background(
+                        WorkoutCompletionColors.red,
+                        in: RoundedRectangle(cornerRadius: 14)
+                    )
+                    .contentShape(RoundedRectangle(cornerRadius: 14))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("workout.completion.level-up.continue")
+
+            Button(action: onViewItems) {
+                Text("아이템 보기")
+                    .font(Font.custom("GothicA1-Medium", size: 12, relativeTo: .caption))
+                    .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                    .frame(maxWidth: .infinity, minHeight: 44)
+                    .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("workout.completion.level-up.items")
+        }
+        .padding(.horizontal, 24)
+        .padding(.top, 12)
+        .padding(.bottom, 4)
+        .background {
+            WorkoutCompletionColors.canvas
+                .ignoresSafeArea(edges: .bottom)
         }
     }
 }
