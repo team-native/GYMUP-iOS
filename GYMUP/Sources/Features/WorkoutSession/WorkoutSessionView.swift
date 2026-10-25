@@ -94,7 +94,18 @@ struct WorkoutSessionView: View {
 
     private var sessionContent: some View {
         Group {
-            if viewModel.isResting,
+            if let exercise = viewModel.currentExercise,
+               exercise.isComplete,
+               viewModel.plan.exercises.indices.contains(viewModel.currentExerciseIndex + 1) {
+                WorkoutExerciseCompleteScreen(
+                    exercise: exercise,
+                    nextExercise: viewModel.plan.exercises[viewModel.currentExerciseIndex + 1],
+                    nextExerciseIndex: viewModel.currentExerciseIndex + 1,
+                    totalExerciseCount: viewModel.plan.exercises.count,
+                    onContinue: { _ = viewModel.moveToNextExercise() },
+                    onFinish: { isConfirmingFinish = true }
+                )
+            } else if viewModel.isResting,
                let exercise = viewModel.currentExercise,
                let nextSetIndex = viewModel.currentSetIndex {
                 WorkoutSessionRestTimerScreen(

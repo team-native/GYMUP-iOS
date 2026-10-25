@@ -51,6 +51,17 @@ final class WorkoutSessionViewModelTests: XCTestCase {
         XCTAssertEqual(exercise.previousPerformanceTitle(for: 3), "이전 · 10월 8일 60kg × 6")
     }
 
+    func testExerciseCompletionSummaryUsesCompletedVolumeAndRecordSets() throws {
+        var exercise = try XCTUnwrap(WorkoutSessionPlan.sample(for: "upper-a").exercises.first)
+        exercise.sets[0] = WorkoutSessionSet(weightKilograms: 60, repetitions: 8, isCompleted: true)
+        exercise.sets[1] = WorkoutSessionSet(weightKilograms: 62.5, repetitions: 8, isCompleted: true)
+
+        XCTAssertEqual(exercise.completedSetCount, 2)
+        XCTAssertEqual(exercise.completedVolumeKilograms, 980)
+        XCTAssertEqual(exercise.personalRecordSet?.weightKilograms, 62.5)
+        XCTAssertEqual(exercise.personalRecordSet?.repetitions, 8)
+    }
+
     @MainActor
     func testSetValuesCanBeEditedAndNewSetCopiesThePreviousTarget() throws {
         let viewModel = WorkoutSessionViewModel(routineID: "upper-a")
