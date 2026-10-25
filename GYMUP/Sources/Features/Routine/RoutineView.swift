@@ -4,6 +4,8 @@ struct RoutineView: View {
     let onDetailRouteChanged: (Bool) -> Void
     @State private var viewModel: RoutineViewModel
     @State private var path: [RoutineRoute] = []
+    @State private var isDuplicateToastVisible = false
+    @State private var duplicateToastVersion = 0
     @Binding private var requestedRoutineID: String?
 
     init(store: RoutineStore, requestedRoutineID: Binding<String?> = .constant(nil),
@@ -53,10 +55,12 @@ struct RoutineView: View {
                         store: viewModel.store,
                         routineID: id,
                         onEdit: { path.append(.edit(id)) },
-                        onDuplicate: { duplicateID in path.append(.detail(duplicateID)) },
-                        onDelete: {
-                            if path.last == .detail(id) { path.removeLast() }
+                        onDuplicate: { _ in
+                            path.removeAll()
+                            duplicateToastVersion += 1
+                            isDuplicateToastVisible = true
                         },
+                        onDelete: { path.append(.deleteConfirm(id)) },
                         onStart: {
                             path.append(viewModel.store.routine(id: id)?.isEmpty == true ? .emptyStart(id) : .workout(id))
                         }
@@ -71,6 +75,22 @@ struct RoutineView: View {
                     RoutinePendingView(route: route)
                 }
             }
+        }
+        .overlay(alignment: .bottom) {
+            if isDuplicateToastVisible {
+                RoutineDuplicateToast()
+                    .padding(.bottom, 34)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .task(id: duplicateToastVersion) {
+            guard duplicateToastVersion > 0 else { return }
+            do {
+                try await Task.sleep(nanoseconds: 2_000_000_000)
+            } catch {
+                return
+            }
+            isDuplicateToastVisible = false
         }
         .onChange(of: path) { _, newPath in onDetailRouteChanged(!newPath.isEmpty) }
         .onAppear {
@@ -117,6 +137,25 @@ struct RoutineView: View {
         }
         .padding(.horizontal, 20)
         .frame(height: 48)
+    }
+}
+
+private struct RoutineDuplicateToast: View {
+    var body: some View {
+        HStack(spacing: 8) {
+            Image(systemName: "checkmark.circle.fill")
+                .font(.system(size: 16, weight: .semibold))
+                .foregroundStyle(GymupColors.brandText)
+            Text("루틴을 복제했어요")
+                .font(GymupTypography.uiMedium)
+                .foregroundStyle(GymupColors.primaryText)
+        }
+        .padding(.horizontal, 16)
+        .frame(height: 48)
+        .background(GymupColors.overlay, in: RoundedRectangle(cornerRadius: 14))
+        .shadow(color: .black.opacity(0.3), radius: 16, y: 8)
+        .accessibilityIdentifier("routine.duplicate.toast")
+        .allowsHitTesting(false)
     }
 }
 

@@ -52,27 +52,7 @@ struct RoutineDetailView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if viewModel.routine != nil { actions }
         }
-        .confirmationDialog(
-            "루틴 더보기",
-            isPresented: $viewModel.isMoreActionsPresented,
-            titleVisibility: .visible
-        ) {
-            Button("편집", action: onEdit)
-                .accessibilityIdentifier("routine.more.edit")
-            Button("복제") {
-                if let duplicateID = viewModel.duplicateRoutine() {
-                    onDuplicate(duplicateID)
-                }
-            }
-            .accessibilityIdentifier("routine.more.duplicate")
-            Button("삭제", role: .destructive) {
-                viewModel.deleteRoutine()
-                onDelete()
-            }
-            .accessibilityIdentifier("routine.more.delete")
-            Button("취소", role: .cancel) {}
-                .accessibilityIdentifier("routine.more.cancel")
-        }
+        .overlay { moreActionsOverlay }
     }
 
     private var navigationBar: some View {
@@ -177,5 +157,41 @@ struct RoutineDetailView: View {
         }
         .padding(.horizontal, 36)
         .background(GymupColors.canvas)
+    }
+
+    @ViewBuilder
+    private var moreActionsOverlay: some View {
+        if viewModel.isMoreActionsPresented, let routine = viewModel.routine {
+            GeometryReader { geometry in
+                ZStack(alignment: .bottom) {
+                    Color.black.opacity(0.6)
+                        .ignoresSafeArea()
+                        .onTapGesture { viewModel.isMoreActionsPresented = false }
+                    RoutineMoreActionsSheet(
+                        routineTitle: routine.title,
+                        onEdit: {
+                            viewModel.isMoreActionsPresented = false
+                            onEdit()
+                        },
+                        onDuplicate: {
+                            guard let duplicateID = viewModel.duplicateRoutine() else { return }
+                            viewModel.isMoreActionsPresented = false
+                            onDuplicate(duplicateID)
+                        },
+                        onDelete: {
+                            viewModel.isMoreActionsPresented = false
+                            onDelete()
+                        },
+                        onCancel: { viewModel.isMoreActionsPresented = false }
+                    )
+                    .padding(.horizontal, 8)
+                    .padding(.bottom, geometry.safeAreaInsets.bottom)
+                    .transition(.move(edge: .bottom))
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .animation(.easeInOut(duration: 0.2), value: viewModel.isMoreActionsPresented)
+            }
+            .ignoresSafeArea()
+        }
     }
 }
