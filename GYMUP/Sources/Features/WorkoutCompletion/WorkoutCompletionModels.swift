@@ -92,8 +92,8 @@ struct WorkoutCompletionData {
         levelReward: LevelReward(
             previousLevel: 17,
             level: 18,
-            currentXP: 3_420,
-            nextLevelXP: 5_000,
+            currentXP: 100,
+            nextLevelXP: 3_200,
             itemName: "골드 칼라"
         ),
         stageReward: StageReward(previousWeight: 80, weight: 130, stage: 5, plateWeight: 25),
