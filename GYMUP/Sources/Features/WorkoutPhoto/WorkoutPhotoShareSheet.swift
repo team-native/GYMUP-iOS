@@ -8,17 +8,20 @@ struct WorkoutPhotoSharePayload: Identifiable {
 
 struct WorkoutPhotoShareSheet: UIViewControllerRepresentable {
     let image: UIImage
-    let onCompletion: (Bool, Bool) -> Void
+    let onCompletion: (WorkoutPhotoActivityResult) -> Void
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
         let configuration = WorkoutPhotoShareConfiguration.make(for: image)
         let controller = UIActivityViewController(activityItemsConfiguration: configuration)
         controller.completionWithItemsHandler = { activityType, completed, _, error in
-            let didSaveToPhotos = completed && activityType == .saveToCameraRoll
-            let didFail = error != nil
+            let result = WorkoutPhotoActivityResult.resolve(
+                isPhotoSaveActivity: activityType == .saveToCameraRoll,
+                completed: completed,
+                hasError: error != nil
+            )
 
             DispatchQueue.main.async {
-                onCompletion(didSaveToPhotos, didFail)
+                onCompletion(result)
             }
         }
         return controller
