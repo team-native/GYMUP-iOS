@@ -3,104 +3,99 @@ import UIKit
 
 struct WorkoutPhotoFilterScreen: View {
     let image: UIImage
-    @Binding var filter: WorkoutPhotoFilter
+    @Binding var editor: WorkoutPhotoEditorState
     let onClose: () -> Void
     let onContinue: () -> Void
 
     var body: some View {
         VStack(spacing: 0) {
-            WorkoutPhotoEditorNavigationBar(title: "사진 보정", onBack: onClose)
+            HStack {
+                Button(action: cancelEditing) {
+                    Image(systemName: "chevron.left")
+                        .font(.system(size: 16, weight: .semibold))
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .accessibilityLabel("사진 편집 취소")
+
+                Spacer()
+
+                Text("보정")
+                    .font(GymupTypography.headline)
+                    .accessibilityAddTraits(.isHeader)
+
+                Spacer()
+
+                Button("다음", action: onContinue)
+                    .font(GymupTypography.callout.weight(.semibold))
+                    .foregroundStyle(WorkoutCompletionColors.red)
+                    .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                    .accessibilityHint("보정한 사진에 운동 스탬프를 추가합니다")
+            }
+            .foregroundStyle(WorkoutCompletionColors.primaryText)
+            .padding(.horizontal, 16)
+            .padding(.top, 4)
 
             ScrollView {
-                VStack(spacing: 20) {
-                    WorkoutPhotoImagePreview(image: image, filter: filter)
-                        .frame(height: 420)
+                VStack(alignment: .leading, spacing: 20) {
+                    WorkoutPhotoImagePreview(
+                        image: image,
+                        filter: editor.filter,
+                        adjustments: editor.adjustments
+                    )
+                        .frame(height: 360)
                         .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .accessibilityLabel("(filter.rawValue) 필터 미리보기")
+                        .accessibilityLabel("\(editor.filter.rawValue) 필터와 보정 미리보기")
+                        .accessibilityIdentifier("workoutPhoto.editor.preview")
 
                     VStack(alignment: .leading, spacing: 12) {
                         Text("필터")
                             .font(GymupTypography.headline)
-                        WorkoutPhotoFilterSelector(selection: $filter)
+                        WorkoutPhotoFilterSelector(selection: $editor.filter)
                             .padding(.horizontal, -20)
                     }
 
-                    Text("운동 사진에 어울리는 분위기를 선택해 보세요.")
-                        .font(GymupTypography.caption)
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding(.horizontal, 20)
-                .padding(.top, 16)
-                .padding(.bottom, 20)
-            }
+                    VStack(alignment: .leading, spacing: 10) {
+                        HStack {
+                            Text("보정")
+                                .font(GymupTypography.headline)
 
-            WorkoutCompletionActionBar(
-                primary: WorkoutCompletionPrimaryButton(title: "사진 보정하기", action: onContinue),
-                secondary: WorkoutCompletionSecondaryButton(title: "취소", action: onClose)
-            )
-        }
-        .background(WorkoutCompletionColors.canvas)
-    }
-}
+                            Spacer()
 
-struct WorkoutPhotoAdjustmentScreen: View {
-    let image: UIImage
-    let filter: WorkoutPhotoFilter
-    @Binding var adjustments: WorkoutPhotoAdjustments
-    let onBack: () -> Void
-    let onContinue: () -> Void
+                            Button("원본") {
+                                editor.resetToOriginal()
+                            }
+                            .font(GymupTypography.caption.weight(.semibold))
+                            .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                            .frame(minWidth: 44, minHeight: 44, alignment: .trailing)
+                            .accessibilityHint("필터와 모든 보정값을 원래 상태로 되돌립니다")
+                            .accessibilityIdentifier("workoutPhoto.editor.reset")
+                        }
 
-    private var previewAccessibilityLabel: String {
-        let contrast = signedValue(adjustments.contrast)
-        let shadow = signedValue(adjustments.shadow)
-        let sharpness = signedValue(adjustments.sharpness)
-        return "대비 (contrast), 그림자 (shadow), 선명도 (sharpness) 보정 미리보기"
-    }
-
-    var body: some View {
-        VStack(spacing: 0) {
-            WorkoutPhotoEditorNavigationBar(title: "사진 보정", onBack: onBack)
-
-            ScrollView {
-                VStack(spacing: 18) {
-                    WorkoutPhotoImagePreview(image: image, filter: filter, adjustments: adjustments)
-                        .frame(height: 340)
-                        .clipShape(RoundedRectangle(cornerRadius: 18))
-                        .accessibilityLabel(previewAccessibilityLabel)
-
-                    VStack(spacing: 14) {
-                        WorkoutPhotoAdjustmentSlider(title: "대비", value: $adjustments.contrast)
-                        WorkoutPhotoAdjustmentSlider(title: "그림자", value: $adjustments.shadow)
-                        WorkoutPhotoAdjustmentSlider(title: "선명도", value: $adjustments.sharpness)
+                        VStack(spacing: 12) {
+                            WorkoutPhotoAdjustmentSlider(title: "대비", value: $editor.adjustments.contrast)
+                            WorkoutPhotoAdjustmentSlider(title: "그림자", value: $editor.adjustments.shadow)
+                            WorkoutPhotoAdjustmentSlider(title: "선명도", value: $editor.adjustments.sharpness)
+                        }
+                        .padding(16)
+                        .background(WorkoutCompletionColors.surface, in: RoundedRectangle(cornerRadius: 16))
                     }
-                    .padding(16)
-                    .background(WorkoutCompletionColors.surface, in: RoundedRectangle(cornerRadius: 16))
 
-                    Text("대비, 그림자, 선명도를 조절해 사진을 다듬어요.")
+                    Text("필터와 밝기·보정은 미리보기에 바로 반영돼요.")
                         .font(GymupTypography.caption)
                         .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 16)
+                .padding(.top, 12)
                 .padding(.bottom, 20)
             }
-
-            WorkoutCompletionActionBar(
-                primary: WorkoutCompletionPrimaryButton(title: "스탬프 추가하기", action: onContinue),
-                secondary: WorkoutCompletionSecondaryButton(title: "이전", action: onBack)
-            )
         }
         .background(WorkoutCompletionColors.canvas)
     }
 
-    private func signedValue(_ value: Double) -> String {
-        value.formatted(
-            .number
-                .sign(strategy: .always(includingZero: false))
-                .precision(.fractionLength(0))
-        )
+    private func cancelEditing() {
+        WorkoutPhotoEditorFlow.cancel(onClose: onClose)
     }
 }
 

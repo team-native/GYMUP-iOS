@@ -14,8 +14,7 @@ struct WorkoutPhotoFlowView: View {
     @State private var step: WorkoutPhotoStep = .intro
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    @State private var selectedFilter: WorkoutPhotoFilter = .natural
-    @State private var adjustments = WorkoutPhotoAdjustments()
+    @State private var editor = WorkoutPhotoEditorState()
     @State private var stampStyle: WorkoutPhotoStampStyle = .card
     @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
@@ -66,7 +65,7 @@ struct WorkoutPhotoFlowView: View {
         case .camera:
             WorkoutPhotoCameraScreen(
                 camera: cameraController,
-                filter: $selectedFilter,
+                filter: $editor.filter,
                 selectedItem: $selectedItem,
                 onClose: onClose,
                 onCapture: handleCameraCapture
@@ -80,22 +79,9 @@ struct WorkoutPhotoFlowView: View {
             if let selectedImage {
                 WorkoutPhotoFilterScreen(
                     image: selectedImage,
-                    filter: $selectedFilter,
-
+                    editor: $editor,
                     onClose: onClose,
-                    onContinue: advanceToAdjustments
-                )
-            } else {
-                permissionGuideScreen
-            }
-        case .adjustments:
-            if let selectedImage {
-                WorkoutPhotoAdjustmentScreen(
-                    image: selectedImage,
-                    filter: selectedFilter,
-                    adjustments: $adjustments,
-                    onBack: { step = .filters },
-                    onContinue: { step = .stamp }
+                    onContinue: continueToStamp
                 )
             } else {
                 permissionGuideScreen
@@ -105,10 +91,10 @@ struct WorkoutPhotoFlowView: View {
                 WorkoutPhotoStampScreen(
                     image: selectedImage,
                     data: data,
-                    filter: selectedFilter,
-                    adjustments: adjustments,
+                    filter: editor.filter,
+                    adjustments: editor.adjustments,
                     stampStyle: $stampStyle,
-                    onBack: { step = .adjustments },
+                    onBack: { step = WorkoutPhotoEditorFlow.stepAfterStampBack },
                     onSave: prepareSharePayload,
                     onShare: prepareSharePayload
                 )
@@ -138,15 +124,19 @@ struct WorkoutPhotoFlowView: View {
         )
     }
 
-    private func advanceToAdjustments() {
+    private func continueToStamp() {
         guard selectedImage != nil else {
             selectionError = "사진을 먼저 선택해 주세요."
             step = .intro
             return
         }
 
-        guard !isLoadingImage else { return }
-        step = .adjustments
+        guard let nextStep = WorkoutPhotoEditorFlow.continueStep(
+            hasSelectedImage: true,
+            isLoadingImage: isLoadingImage
+        ) else { return }
+
+        step = nextStep
     }
 
     private func prepareSharePayload() {
@@ -159,8 +149,8 @@ struct WorkoutPhotoFlowView: View {
         let poster = WorkoutPhotoPosterView(
             image: selectedImage,
             data: data,
-            filter: selectedFilter,
-            adjustments: adjustments,
+            filter: editor.filter,
+            adjustments: editor.adjustments,
             stampStyle: stampStyle
         )
         .frame(width: 393, height: 504)
@@ -191,8 +181,7 @@ struct WorkoutPhotoFlowView: View {
                 }
 
                 selectedImage = image
-                selectedFilter = .natural
-                adjustments = WorkoutPhotoAdjustments()
+                editor = WorkoutPhotoEditorState()
                 stampStyle = .card
                 step = .filters
             } catch {
@@ -229,7 +218,7 @@ struct WorkoutPhotoFlowView: View {
               let image else { return }
 
         selectedImage = image
-        adjustments = WorkoutPhotoAdjustments()
+        editor = WorkoutPhotoEditorState()
         step = editorStep
     }
 
