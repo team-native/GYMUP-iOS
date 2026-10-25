@@ -83,8 +83,26 @@ struct WorkoutTrainModeScreen: View {
                     .padding(.top, 6)
             }
             .padding(.top, topInset)
+
+            if isFinalSet {
+                Text("LAST SET")
+                    .font(GymupTypography.label)
+                    .tracking(0.16)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 4)
+                    .background(GymupColors.accent, in: Capsule())
+                    .padding(.leading, 20)
+                    .padding(.top, 140)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                    .accessibilityIdentifier("workout.train.last-set")
+            }
         }
         .frame(height: 280)
+    }
+
+    private var isFinalSet: Bool {
+        exerciseIndex == totalExerciseCount - 1 && currentSetIndex == exercise.sets.indices.last
     }
 
     private var exerciseProgress: some View {
