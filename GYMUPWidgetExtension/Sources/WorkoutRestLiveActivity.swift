@@ -39,7 +39,7 @@ struct WorkoutRestLiveActivity: Widget {
                     }
                 }
             } compactLeading: {
-                Image(systemName: "dumbbell.fill")
+                Image(systemName: "timer")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(WorkoutLiveColors.brand)
             } compactTrailing: {
@@ -48,7 +48,7 @@ struct WorkoutRestLiveActivity: Widget {
                     .foregroundStyle(WorkoutLiveColors.brandText)
                     .monospacedDigit()
             } minimal: {
-                Image(systemName: "dumbbell.fill")
+                Image(systemName: "timer")
                     .font(.system(size: 11, weight: .semibold))
                     .foregroundStyle(WorkoutLiveColors.brand)
             }
@@ -106,6 +106,7 @@ private struct WorkoutRestLockScreenView: View {
                         .frame(height: 34)
                         .background(WorkoutLiveColors.elevated, in: Capsule())
                 }
+                .disabled(state.restDurationSeconds >= 600)
                 Button(intent: WorkoutRestTimerIntent(activityID: activityID, shouldSkip: true)) {
                     Text("건너뛰기")
                         .font(.custom("GothicA1-Bold", size: 13))
