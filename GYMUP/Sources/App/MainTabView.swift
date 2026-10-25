@@ -12,6 +12,8 @@ struct MainTabView: View {
     @State private var inventory = BarbellCustomizationViewModel()
     @State private var routineStore = RoutineStore()
     @State private var requestedRoutineID: String?
+    @State private var requestedExerciseAddRoutineID: String?
+    @State private var emptyStartRoutineID: String?
     @State private var isDetailPresented = false
 
     var body: some View {
@@ -25,6 +27,8 @@ struct MainTabView: View {
                 )
             case .routine:
                 RoutineView(store: routineStore, requestedRoutineID: $requestedRoutineID,
+                            requestedExerciseAddRoutineID: $requestedExerciseAddRoutineID,
+                            onEmptyStartAttempt: { emptyStartRoutineID = $0 },
                             onDetailRouteChanged: { isDetailPresented = $0 })
             case .history:
                 HistoryView(onOpenRoutines: { selection = .routine })
@@ -35,6 +39,17 @@ struct MainTabView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             if !isDetailPresented {
                 tabBar
+            }
+        }
+        .overlay {
+            if let routineID = emptyStartRoutineID {
+                RoutineEmptyStartAlert(
+                    onClose: { emptyStartRoutineID = nil },
+                    onAddExercise: {
+                        emptyStartRoutineID = nil
+                        requestedExerciseAddRoutineID = routineID
+                    }
+                )
             }
         }
         .background(GymupColors.canvas)
