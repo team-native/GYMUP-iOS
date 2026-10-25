@@ -34,7 +34,7 @@ struct WorkoutTrainModeScreen: View {
                             .padding(.horizontal, 20)
                             .padding(.top, 16)
                     }
-                    WorkoutSessionRecordSummary(exercise: exercise)
+                    WorkoutSessionRecordSummary(exercise: exercise, currentSetIndex: currentSetIndex)
                         .padding(.top, 9)
                     WorkoutSessionSetTable(
                         exercise: exercise,
@@ -227,16 +227,26 @@ struct WorkoutTrainModeScreen: View {
 
 private struct WorkoutSessionRecordSummary: View {
     let exercise: WorkoutSessionExercise
+    let currentSetIndex: Int?
+
+    private var displayedSetIndex: Int? {
+        currentSetIndex ?? (exercise.isComplete ? exercise.sets.indices.last : nil)
+    }
+
+    private var showsPersonalRecord: Bool {
+        guard !exercise.isComplete else { return false }
+        return currentSetIndex != exercise.sets.count - 1
+    }
 
     var body: some View {
         HStack(alignment: .firstTextBaseline) {
-            Text(exercise.previousPerformanceTitle)
+            Text(exercise.previousPerformanceTitle(for: displayedSetIndex))
                 .font(GymupTypography.uiCaption)
                 .foregroundStyle(GymupColors.secondaryText)
                 .lineLimit(1)
                 .minimumScaleFactor(0.8)
             Spacer(minLength: 8)
-            if let personalRecord = exercise.personalRecordKilograms {
+            if showsPersonalRecord, let personalRecord = exercise.personalRecordKilograms {
                 Text("PR 도전 \(personalRecord.formatted(.number.precision(.fractionLength(0...1))))kg")
                     .font(GymupTypography.uiMedium)
                     .foregroundStyle(GymupColors.brandText)

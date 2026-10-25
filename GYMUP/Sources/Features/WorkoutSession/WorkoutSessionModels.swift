@@ -63,8 +63,10 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
         }
     }
 
-    var previousPerformanceTitle: String {
-        id == "bench-press" ? "이전 · 10월 8일 60kg × 8" : "이전 기록 없음"
+    func previousPerformanceTitle(for setIndex: Int?) -> String {
+        guard id == "bench-press" else { return "이전 기록 없음" }
+        let repetitions = setIndex == sets.count - 1 ? 6 : 8
+        return "이전 · 10월 8일 60kg × \(repetitions)"
     }
 
     func previousPerformance(for setIndex: Int) -> String? {
