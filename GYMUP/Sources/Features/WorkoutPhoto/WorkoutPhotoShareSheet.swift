@@ -11,7 +11,8 @@ struct WorkoutPhotoShareSheet: UIViewControllerRepresentable {
     let onCompletion: (Bool, Bool) -> Void
 
     func makeUIViewController(context: Context) -> UIActivityViewController {
-        let controller = UIActivityViewController(activityItems: [image], applicationActivities: nil)
+        let configuration = WorkoutPhotoShareConfiguration.make(for: image)
+        let controller = UIActivityViewController(activityItemsConfiguration: configuration)
         controller.completionWithItemsHandler = { activityType, completed, _, error in
             let didSaveToPhotos = completed && activityType == .saveToCameraRoll
             let didFail = error != nil
