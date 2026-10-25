@@ -12,9 +12,12 @@ struct RoutineEditorView: View {
     @State private var isValidationToastVisible = false
 
     let onSave: (String) -> Void
+    let opensAddExerciseOnAppear: Bool
 
-    init(store: RoutineStore, routineID: String?, onSave: @escaping (String) -> Void) {
+    init(store: RoutineStore, routineID: String?, opensAddExerciseOnAppear: Bool = false,
+         onSave: @escaping (String) -> Void) {
         _viewModel = State(initialValue: RoutineEditorViewModel(store: store, routineID: routineID))
+        self.opensAddExerciseOnAppear = opensAddExerciseOnAppear
         self.onSave = onSave
     }
 
@@ -23,11 +26,8 @@ struct RoutineEditorView: View {
             navigationBar
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 24) {
-                    RoutineEditorNameInput(
-                        title: $viewModel.title,
-                        isFocused: $isNameFocused,
-                        showsError: showsNameError
-                    )
+                    RoutineEditorNameInput(title: $viewModel.title, isFocused: $isNameFocused,
+                                           showsError: showsNameError)
                     exerciseList
                     if !showsEmptyExerciseError {
                         addExerciseButton
@@ -41,6 +41,7 @@ struct RoutineEditorView: View {
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: viewModel.title) { _, newValue in viewModel.limitTitle(newValue) }
+        .onAppear { if opensAddExerciseOnAppear { isAddExercisePresented = true } }
         .onDisappear { viewModel.draggingExerciseID = nil }
         .overlay { addExerciseOverlay }
         .overlay { exerciseSettingsOverlay }
