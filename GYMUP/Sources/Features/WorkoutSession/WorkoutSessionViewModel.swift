@@ -26,6 +26,10 @@ final class WorkoutSessionViewModel {
         return plan.exercises[currentExerciseIndex]
     }
 
+    var currentSetIndex: Int? {
+        currentExercise?.sets.firstIndex(where: { !$0.isCompleted })
+    }
+
     var isPaused: Bool { pausedAt != nil }
     var hasStarted: Bool { startedAt != nil }
     var isFinished: Bool { finishedAt != nil }
@@ -84,6 +88,18 @@ final class WorkoutSessionViewModel {
               plan.exercises[exerciseIndex].sets.indices.contains(setIndex) else { return }
         plan.exercises[exerciseIndex].sets[setIndex].repetitions = min(max(repetitions, 0), 999)
         notice = nil
+    }
+
+    func adjustCurrentWeight(by increment: Double) {
+        guard let currentSetIndex, let currentExercise else { return }
+        let weight = currentExercise.sets[currentSetIndex].weightKilograms + increment
+        updateWeight(weight, exerciseIndex: currentExerciseIndex, setIndex: currentSetIndex)
+    }
+
+    func adjustCurrentRepetitions(by increment: Int) {
+        guard let currentSetIndex, let currentExercise else { return }
+        let repetitions = currentExercise.sets[currentSetIndex].repetitions + increment
+        updateRepetitions(repetitions, exerciseIndex: currentExerciseIndex, setIndex: currentSetIndex)
     }
 
     func addSet(to exerciseIndex: Int) {

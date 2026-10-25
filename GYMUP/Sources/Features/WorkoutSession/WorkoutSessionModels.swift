@@ -30,6 +30,49 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
     var isComplete: Bool { !sets.isEmpty && sets.allSatisfy(\.isCompleted) }
+
+    var displayTitle: String {
+        switch id {
+        case "bench-press": "BENCH PRESS"
+        case "incline-press": "INCLINE DUMBBELL PRESS"
+        case "lat-pulldown": "LAT PULLDOWN"
+        case "shoulder-press": "SHOULDER PRESS"
+        case "cable-fly": "CABLE FLY"
+        case "triceps-pushdown": "TRICEPS PUSHDOWN"
+        case "squat": "BARBELL SQUAT"
+        case "leg-press": "LEG PRESS"
+        case "leg-curl": "LEG CURL"
+        case "leg-extension": "LEG EXTENSION"
+        case "calf-raise": "CALF RAISE"
+        case "deadlift": "DEADLIFT"
+        case "seated-row": "SEATED ROW"
+        case "dumbbell-curl": "DUMBBELL CURL"
+        case "hammer-curl": "HAMMER CURL"
+        case "face-pull": "FACE PULL"
+        default: name.uppercased()
+        }
+    }
+
+    var imageAssetName: String {
+        switch id {
+        case "bench-press": "H1RoutinePhoto"
+        case "incline-press", "dumbbell-curl", "hammer-curl": "ExerciseInclinePhoto"
+        case "shoulder-press", "cable-fly", "face-pull": "ExerciseChalkPhoto"
+        case "squat", "leg-press", "leg-curl", "leg-extension", "calf-raise": "R1RoutineLower"
+        default: "ExerciseHeroPhoto"
+        }
+    }
+
+    var previousPerformanceTitle: String {
+        id == "bench-press" ? "이전 · 10월 8일 60kg × 8" : "이전 기록 없음"
+    }
+
+    func previousPerformance(for setIndex: Int) -> String? {
+        guard id == "bench-press" else { return nil }
+        return setIndex == 3 ? "60 × 6" : "60 × 8"
+    }
+
+    var personalRecordKilograms: Double? { id == "bench-press" ? 62.5 : nil }
 }
 
 struct WorkoutSessionPlan: Identifiable, Equatable {
