@@ -355,24 +355,30 @@ enum WorkoutSessionCompletionDataFactory {
             levelReward: sampleProgress.levelReward,
             stageReward: sampleProgress.stageReward,
             peakReward: sampleProgress.peakReward,
-            exerciseDetails: plan.exercises.compactMap { exercise -> WorkoutCompletionExerciseDetail? in
-                let completed = exercise.sets.enumerated().compactMap { index, set -> WorkoutCompletionSetDetail? in
-                    guard set.isCompleted else { return nil }
-                    return WorkoutCompletionSetDetail(
-                        id: "\(exercise.id)-\(index + 1)",
-                        number: index + 1,
-                        weightKilograms: set.weightKilograms,
-                        repetitions: set.repetitions
-                    )
-                }
-                guard !completed.isEmpty else { return nil }
-                return WorkoutCompletionExerciseDetail(
-                    id: exercise.id,
-                    name: exercise.name,
-                    sets: completed
+            exerciseDetails: exerciseDetails(from: plan.exercises)
+        )
+    }
+
+    private static func exerciseDetails(
+        from exercises: [WorkoutSessionExercise]
+    ) -> [WorkoutCompletionExerciseDetail] {
+        exercises.compactMap { exercise -> WorkoutCompletionExerciseDetail? in
+            let completed = exercise.sets.enumerated().compactMap { index, set -> WorkoutCompletionSetDetail? in
+                guard set.isCompleted else { return nil }
+                return WorkoutCompletionSetDetail(
+                    id: "\(exercise.id)-\(index + 1)",
+                    number: index + 1,
+                    weightKilograms: set.weightKilograms,
+                    repetitions: set.repetitions
                 )
             }
-        )
+            guard !completed.isEmpty else { return nil }
+            return WorkoutCompletionExerciseDetail(
+                id: exercise.id,
+                name: exercise.name,
+                sets: completed
+            )
+        }
     }
 
     private static func dateDescription(_ date: Date, elapsedSeconds: Int) -> String {
