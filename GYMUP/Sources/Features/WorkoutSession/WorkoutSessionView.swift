@@ -190,6 +190,10 @@ struct WorkoutSessionView: View {
             setIndex: currentSetIndex,
             at: date
         )
+        if viewModel.currentExerciseIndex == viewModel.plan.exercises.count - 1,
+           viewModel.currentExercise?.isComplete == true {
+            viewModel.finish(at: date)
+        }
     }
 
     private func showFirstExercisePromptIfNeeded() {
