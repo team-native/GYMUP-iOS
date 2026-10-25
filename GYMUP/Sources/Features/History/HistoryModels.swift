@@ -165,3 +165,187 @@ enum HistorySampleData {
         records.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
     }
 }
+
+enum HistoryListSampleData {
+    private struct SampleWorkout {
+        let day: Int
+        let routineName: String
+        let category: String
+        let durationMinutes: Int
+        let setCount: Int
+        let volumeKilograms: Int
+        let personalRecordCount: Int
+    }
+
+    static let sampleMonth: Date = {
+        var components = DateComponents()
+        components.calendar = Calendar(identifier: .gregorian)
+        components.timeZone = .current
+        components.year = 2025
+        components.month = 10
+        components.day = 1
+        return Calendar(identifier: .gregorian).date(from: components) ?? .now
+    }()
+
+    static let records: [WorkoutRecord] = {
+        let workouts = [
+            SampleWorkout(
+                day: 11,
+                routineName: "상체 A",
+                category: "가슴 · 어깨 · 삼두",
+                durationMinutes: 50,
+                setCount: 18,
+                volumeKilograms: 8_420,
+                personalRecordCount: 2
+            ),
+            SampleWorkout(
+                day: 8,
+                routineName: "하체 B",
+                category: "하체 · 코어",
+                durationMinutes: 62,
+                setCount: 17,
+                volumeKilograms: 11_200,
+                personalRecordCount: 0
+            ),
+            SampleWorkout(
+                day: 6,
+                routineName: "등 · 이두 C",
+                category: "등 · 이두",
+                durationMinutes: 49,
+                setCount: 16,
+                volumeKilograms: 7_050,
+                personalRecordCount: 1
+            ),
+            SampleWorkout(
+                day: 3,
+                routineName: "상체 A",
+                category: "가슴 · 어깨 · 삼두",
+                durationMinutes: 55,
+                setCount: 18,
+                volumeKilograms: 8_100,
+                personalRecordCount: 0
+            ),
+            SampleWorkout(
+                day: 3,
+                routineName: "하체 B",
+                category: "하체 · 코어",
+                durationMinutes: 54,
+                setCount: 16,
+                volumeKilograms: 7_200,
+                personalRecordCount: 1
+            ),
+            SampleWorkout(
+                day: 2,
+                routineName: "등 · 이두 C",
+                category: "등 · 이두",
+                durationMinutes: 52,
+                setCount: 17,
+                volumeKilograms: 6_800,
+                personalRecordCount: 0
+            ),
+            SampleWorkout(
+                day: 2,
+                routineName: "상체 A",
+                category: "가슴 · 어깨 · 삼두",
+                durationMinutes: 56,
+                setCount: 18,
+                volumeKilograms: 7_900,
+                personalRecordCount: 2
+            ),
+            SampleWorkout(
+                day: 1,
+                routineName: "하체 B",
+                category: "하체 · 코어",
+                durationMinutes: 57,
+                setCount: 18,
+                volumeKilograms: 7_600,
+                personalRecordCount: 1
+            ),
+            SampleWorkout(
+                day: 1,
+                routineName: "등 · 이두 C",
+                category: "등 · 이두",
+                durationMinutes: 57,
+                setCount: 17,
+                volumeKilograms: 8_130,
+                personalRecordCount: 0
+            )
+        ]
+
+        return workouts.map { workout in
+            let date = date(day: workout.day)
+            return WorkoutRecord(
+                id: UUID(),
+                date: date,
+                routineName: workout.routineName,
+                category: workout.category,
+                durationMinutes: workout.durationMinutes,
+                setCount: workout.setCount,
+                volumeKilograms: workout.volumeKilograms,
+                growth: workout.personalRecordCount,
+                photoAssetName: photoAsset(for: workout.routineName),
+                exercises: exercises(for: workout.routineName, personalRecordCount: workout.personalRecordCount)
+            )
+        }
+    }()
+
+    static func records(inMonthOf date: Date) -> [WorkoutRecord] {
+        let calendar = Calendar.current
+        guard let month = calendar.dateInterval(of: .month, for: date) else { return [] }
+        return records.filter { $0.date >= month.start && $0.date < month.end }
+    }
+
+    static func records(on date: Date) -> [WorkoutRecord] {
+        records.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+    }
+
+    static func record(with id: UUID) -> WorkoutRecord? {
+        records.first { $0.id == id }
+    }
+
+    static func date(day: Int, inMonthOf date: Date) -> Date {
+        let calendar = Calendar.current
+        let monthStart = calendar.date(from: calendar.dateComponents([.era, .year, .month], from: date)) ?? date
+        return calendar.date(byAdding: .day, value: day - 1, to: monthStart) ?? monthStart
+    }
+
+    private static func date(day: Int) -> Date {
+        date(day: day, inMonthOf: sampleMonth)
+    }
+
+    private static func photoAsset(for routineName: String) -> String {
+        switch routineName {
+        case "하체 B": "R1RoutineLower"
+        case "등 · 이두 C": "R1RoutineBack"
+        default: "H1RoutinePhoto"
+        }
+    }
+
+    private static func exercises(for routineName: String, personalRecordCount: Int) -> [WorkoutExerciseRecord] {
+        let names: [String]
+        switch routineName {
+        case "하체 B":
+            names = ["스쿼트", "레그 프레스", "레그 컬"]
+        case "등 · 이두 C":
+            names = ["랫 풀 다운", "시티드 로우", "덤벨 컬"]
+        default:
+            names = ["벤치프레스", "인클라인 덤벨 프레스", "케이블 플라이"]
+        }
+
+        return names.enumerated().map { exerciseIndex, name in
+            WorkoutExerciseRecord(
+                id: exerciseIndex + 1,
+                name: name,
+                sets: (1...3).map { setIndex in
+                    let flattenedIndex = exerciseIndex * 3 + setIndex - 1
+                    return WorkoutSetRecord(
+                        id: setIndex,
+                        weight: 40 + Double(exerciseIndex * 10 + setIndex * 2),
+                        repetitions: 12 - setIndex,
+                        isPersonalRecord: flattenedIndex < personalRecordCount
+                    )
+                }
+            )
+        }
+    }
+}

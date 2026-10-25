@@ -3,7 +3,8 @@ import SwiftUI
 struct HistoryView: View {
     let onOpenRoutines: () -> Void
     @State private var path: [HistoryRoute] = []
-    @State private var selectedDate = HistorySampleData.records[0].date
+    @State private var selectedMonth = HistoryListSampleData.sampleMonth
+    @State private var selectedDate = HistoryListSampleData.date(day: 11, inMonthOf: HistoryListSampleData.sampleMonth)
 
     init(onOpenRoutines: @escaping () -> Void = {}) {
         self.onOpenRoutines = onOpenRoutines
@@ -21,23 +22,25 @@ struct HistoryView: View {
     }
 
     private var historyList: some View {
-        ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: 24) {
-                header
-                weekSelector
-                weeklySummary
-                if selectedRecords.isEmpty {
-                    HistoryEmptyContent(onOpenRoutines: onOpenRoutines)
-                } else {
-                    workoutSection
+        ScrollViewReader { proxy in
+            ScrollView(showsIndicators: false) {
+                VStack(alignment: .leading, spacing: 8) {
+                    header
+                    weekSelector(using: proxy)
+                    monthlySummary
+                    if monthRecords.isEmpty {
+                        HistoryEmptyContent(onOpenRoutines: onOpenRoutines)
+                    } else {
+                        workoutSection
+                    }
+                    growthLink
                 }
-                growthLink
+                .padding(.horizontal, 20)
+                .padding(.top, 8)
+                .padding(.bottom, 28)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 8)
-            .padding(.bottom, 28)
+            .background(GymupColors.canvas.ignoresSafeArea())
         }
-        .background(GymupColors.canvas.ignoresSafeArea())
     }
 
     private var header: some View {
@@ -64,36 +67,40 @@ struct HistoryView: View {
         .frame(height: 48)
     }
 
-    private var weekSelector: some View {
+    private func weekSelector(using proxy: ScrollViewProxy) -> some View {
         HStack(spacing: 0) {
             ForEach(weekDates, id: \.self) { date in
                 let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                let hasWorkout = HistorySampleData.records.contains {
-                    Calendar.current.isDate($0.date, inSameDayAs: date)
-                }
+                let hasWorkout = monthRecords.contains { Calendar.current.isDate($0.date, inSameDayAs: date) }
                 Button {
-                    selectedDate = date
+                    select(date, using: proxy)
                 } label: {
-                    VStack(spacing: 8) {
-                        Text(date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).weekday(.narrow)))
-                            .font(GymupTypography.uiCaption)
-                            .foregroundStyle(isSelected ? GymupColors.accent : GymupColors.secondaryText)
-                        Text(date.formatted(.dateTime.day()))
-                            .font(GymupTypography.uiStrong)
-                            .foregroundStyle(isSelected ? .white : GymupColors.primaryText)
-                            .frame(width: 36, height: 36)
-                            .background(isSelected ? GymupColors.accent : .clear, in: Circle())
+                    VStack(spacing: 4) {
+                        VStack(spacing: 2) {
+                            Text(date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).weekday(.narrow)))
+                                .font(GymupTypography.uiCaption)
+                                .foregroundStyle(isSelected ? .white : GymupColors.secondaryText)
+                            Text(date.formatted(.dateTime.day()))
+                                .font(GymupTypography.uiStrong)
+                                .foregroundStyle(GymupColors.primaryText)
+                        }
+                        .frame(width: 36, height: 40)
+                        .background(
+                            isSelected ? GymupColors.accent : .clear,
+                            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        )
                         Circle()
                             .fill(hasWorkout ? GymupColors.accent : .clear)
                             .frame(width: 4, height: 4)
                     }
                     .frame(maxWidth: .infinity)
-                    .frame(height: 72)
+                    .frame(height: 52)
                     .contentShape(Rectangle())
                 }
                 .buttonStyle(.plain)
-                .accessibilityLabel(date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month().day().weekday(.wide)))
+                .accessibilityLabel(accessibilityLabel(for: date, hasWorkout: hasWorkout))
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityIdentifier("history.date.\(HistoryDateText.string(date, format: "yyyy-MM-dd"))")
             }
         }
         .padding(.horizontal, 2)
@@ -101,26 +108,52 @@ struct HistoryView: View {
         .accessibilityLabel("주간 날짜 선택")
     }
 
-    private var weeklySummary: some View {
-        HistoryCard {
-            VStack(alignment: .leading, spacing: 16) {
-                HStack(spacing: 6) {
-                    Text("이번 달")
+    private var monthlySummary: some View {
+        HStack(spacing: 8) {
+            Menu {
+                ForEach(monthOptions, id: \.self) { month in
+                    Button(HistoryDateText.string(month, format: "M월")) {
+                        selectMonth(month)
+                    }
+                }
+            } label: {
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(alignment: .firstTextBaseline, spacing: 3) {
+                        Text("\(monthRecords.count)")
+                            .font(GymupTypography.metric)
+                            .foregroundStyle(GymupColors.primaryText)
+                            .minimumScaleFactor(0.8)
+                            .lineLimit(1)
+                        Text("회")
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.secondaryText)
+                        Spacer(minLength: 0)
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 9, weight: .bold))
+                            .foregroundStyle(GymupColors.secondaryText)
+                    }
+                    Text("\(HistoryDateText.string(selectedMonth, format: "M월")) 운동")
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(GymupColors.secondaryText)
-                    Image(systemName: "chevron.down")
-                        .font(.system(size: 9, weight: .bold))
-                        .foregroundStyle(GymupColors.secondaryText)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-                HStack(spacing: 8) {
-                    HistoryMetricCell(value: "9", unit: "회", title: "운동 횟수")
-                    metricDivider
-                    HistoryMetricCell(value: "8H 12M", unit: "", title: "운동 시간")
-                    metricDivider
-                    HistoryMetricCell(value: "72.4", unit: "T", title: "총 볼륨")
-                }
+                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                .contentShape(Rectangle())
             }
+            .accessibilityLabel(
+                "기록 월 선택, \(monthRecords.count)회, \(HistoryDateText.string(selectedMonth, format: "M월")) 운동"
+            )
+            .accessibilityIdentifier("history.selectMonth")
+
+            metricDivider
+            HistoryMetricCell(value: formattedDuration, unit: "", title: "총 시간")
+            metricDivider
+            HistoryMetricCell(value: formattedVolume, unit: "T", title: "총 볼륨")
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 8)
+        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
 
     private var metricDivider: some View {
@@ -131,9 +164,8 @@ struct HistoryView: View {
     }
 
     private var workoutSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HistorySectionTitle(title: "운동 기록", subtitle: "\(selectedRecords.count)회")
-            ForEach(selectedRecords) { record in
+        VStack(spacing: 8) {
+            ForEach(monthRecords) { record in
                 Button {
                     path.append(.detail(record.id))
                 } label: {
@@ -141,6 +173,7 @@ struct HistoryView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("history.record.\(record.id.uuidString)")
+                .id(record.id)
             }
         }
     }
@@ -149,41 +182,60 @@ struct HistoryView: View {
         Button {
             path.append(.growth)
         } label: {
-            HStack(spacing: 12) {
-                Image(systemName: "chart.xyaxis.line")
-                    .font(.system(size: 18, weight: .semibold))
-                    .foregroundStyle(GymupColors.accent)
-                    .frame(width: 40, height: 40)
-                    .background(GymupColors.accent.opacity(0.12), in: Circle())
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("성장 그래프")
-                        .font(GymupTypography.uiStrong)
-                        .foregroundStyle(GymupColors.primaryText)
-                    Text("운동 기록으로 변화를 확인해요")
-                        .font(GymupTypography.uiCaption)
-                        .foregroundStyle(GymupColors.secondaryText)
-                }
-                Spacer()
-                Image(systemName: "chevron.right")
-                    .font(.system(size: 13, weight: .semibold))
-                    .foregroundStyle(GymupColors.secondaryText)
-            }
-            .padding(14)
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16))
-            .contentShape(Rectangle())
+            Text("기록이 있을 때 화면 보기")
+                .font(GymupTypography.uiCaption)
+                .foregroundStyle(GymupColors.accent)
+                .frame(maxWidth: .infinity, minHeight: 44)
+                .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("history.openGrowth")
     }
 
-    private var selectedRecords: [WorkoutRecord] {
-        HistorySampleData.records(on: selectedDate)
+    private var monthRecords: [WorkoutRecord] {
+        HistoryListSampleData.records(inMonthOf: selectedMonth)
+    }
+
+    private var monthOptions: [Date] {
+        let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: HistoryListSampleData.sampleMonth)
+            ?? HistoryListSampleData.sampleMonth
+        return [HistoryListSampleData.sampleMonth, previousMonth]
+    }
+
+    private var formattedDuration: String {
+        let totalMinutes = monthRecords.reduce(0) { $0 + $1.durationMinutes }
+        return "\(totalMinutes / 60)H \(totalMinutes % 60)M"
+    }
+
+    private var formattedVolume: String {
+        let totalKilograms = monthRecords.reduce(0) { $0 + $1.volumeKilograms }
+        return String(format: "%.1f", Double(totalKilograms) / 1_000)
+    }
+
+    private func select(_ date: Date, using proxy: ScrollViewProxy) {
+        selectedDate = date
+        guard let record = monthRecords.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            proxy.scrollTo(record.id, anchor: .top)
+        }
+    }
+
+    private func selectMonth(_ month: Date) {
+        selectedMonth = month
+        let preferredDate = HistoryListSampleData.date(day: 11, inMonthOf: month)
+        selectedDate = HistoryListSampleData.records(on: preferredDate).isEmpty ? month : preferredDate
+    }
+
+    private func accessibilityLabel(for date: Date, hasWorkout: Bool) -> String {
+        let day = date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month().day().weekday(.wide))
+        return hasWorkout ? "\(day), 운동 기록 있음" : day
     }
 
     private var weekDates: [Date] {
         let calendar = Calendar.current
         let weekday = calendar.component(.weekday, from: selectedDate)
-        let start = calendar.date(byAdding: .day, value: 1 - weekday, to: selectedDate) ?? selectedDate
+        let daysFromMonday = (weekday + 5) % 7
+        let start = calendar.date(byAdding: .day, value: -daysFromMonday, to: selectedDate) ?? selectedDate
         return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
     }
 
@@ -191,7 +243,7 @@ struct HistoryView: View {
     private func destination(for route: HistoryRoute) -> some View {
         switch route {
         case let .detail(id):
-            if let record = HistorySampleData.record(with: id) {
+            if let record = HistoryListSampleData.record(with: id) ?? HistorySampleData.record(with: id) {
                 HistoryDetailView(record: record, onOpenAlbum: { path.append(.album) })
             }
         case .calendar:
@@ -210,47 +262,50 @@ private struct HistoryWorkoutRow: View {
     let record: WorkoutRecord
 
     var body: some View {
-        HistoryCard {
-            HStack(spacing: 14) {
-                HistoryWorkoutPhoto(assetName: record.photoAssetName)
-                    .frame(width: 76, height: 88)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
-                    .accessibilityHidden(true)
-                VStack(alignment: .leading, spacing: 8) {
-                    HStack(alignment: .top) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text(HistoryDateText.string(record.date, format: "M월 d일 EEEE"))
-                                .font(GymupTypography.uiCaption)
-                                .foregroundStyle(GymupColors.secondaryText)
-                            Text(record.routineName)
-                                .font(GymupTypography.uiStrong)
-                                .foregroundStyle(GymupColors.primaryText)
-                                .lineLimit(1)
-                        }
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.right")
-                            .font(.system(size: 12, weight: .semibold))
-                            .foregroundStyle(GymupColors.secondaryText)
-                    }
-                    Text(record.category)
-                        .font(GymupTypography.uiCaption)
-                        .foregroundStyle(GymupColors.secondaryText)
+        HStack(spacing: 12) {
+            VStack(spacing: 1) {
+                Text(record.date.formatted(.dateTime.day()))
+                    .font(GymupTypography.uiStrong)
+                    .foregroundStyle(GymupColors.primaryText)
+                Text(record.date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).weekday(.narrow)))
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.secondaryText)
+            }
+            .frame(width: 36, height: 36)
+            .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+            .accessibilityHidden(true)
+
+            VStack(alignment: .leading, spacing: 5) {
+                HStack(spacing: 8) {
+                    Text(record.routineName)
+                        .font(GymupTypography.uiStrong)
+                        .foregroundStyle(GymupColors.primaryText)
                         .lineLimit(1)
-                    HStack(spacing: 10) {
-                        Label("\(record.durationMinutes)분", systemImage: "clock")
-                        Label("\(record.setCount)세트", systemImage: "dumbbell")
-                        if record.growth > 0 {
-                            Text("+\(record.growth) Growth")
-                                .foregroundStyle(Color(red: 1, green: 0.43, blue: 0.45))
-                        }
+                    if record.growth > 0 {
+                        Text("PR \(record.growth)")
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.accent)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 2)
+                            .background(GymupColors.accent.opacity(0.12), in: Capsule())
                     }
+                    Spacer(minLength: 0)
+                    Image(systemName: "chevron.right")
+                        .font(.system(size: 11, weight: .semibold))
+                        .foregroundStyle(GymupColors.secondaryText)
+                        .accessibilityHidden(true)
+                }
+                Text("\(record.durationMinutes)분 · \(record.setCount)세트 · \(record.volumeKilograms.formatted())kg")
                     .font(GymupTypography.uiCaption)
                     .foregroundStyle(GymupColors.secondaryText)
                     .lineLimit(1)
                     .minimumScaleFactor(0.8)
-                }
             }
         }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 9)
+        .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(record.accessibilityDescription)
     }
@@ -291,6 +346,7 @@ private struct HistoryEmptyContent: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 28)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
+        .accessibilityIdentifier("history.emptyState")
     }
 }
 
