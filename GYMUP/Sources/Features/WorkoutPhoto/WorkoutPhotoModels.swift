@@ -74,4 +74,48 @@ enum WorkoutPhotoStampStyle: String, CaseIterable, Identifiable {
     case stamp = "스탬프"
 
     var id: Self { self }
+
+    var accessibilityDescription: String {
+        switch self {
+        case .card:
+            "카드형 운동 기록"
+        case .minimal:
+            "간결한 운동 기록"
+        case .bold:
+            "강조된 운동 기록"
+        case .stamp:
+            "스탬프형 운동 기록"
+        }
+    }
+}
+
+struct WorkoutPhotoStampState: Equatable {
+    private(set) var style: WorkoutPhotoStampStyle = .card
+
+    mutating func selectStyle(_ style: WorkoutPhotoStampStyle) {
+        self.style = style
+    }
+
+    func posterModel(editor: WorkoutPhotoEditorState) -> WorkoutPhotoPosterModel {
+        WorkoutPhotoPosterModel(editor: editor, style: style)
+    }
+}
+
+struct WorkoutPhotoPosterModel: Equatable {
+    let filter: WorkoutPhotoFilter
+    let adjustments: WorkoutPhotoAdjustments
+    let style: WorkoutPhotoStampStyle
+
+    init(editor: WorkoutPhotoEditorState, style: WorkoutPhotoStampStyle) {
+        filter = editor.filter
+        adjustments = editor.adjustments
+        self.style = style
+    }
+
+    func accessibilityDescription(for data: WorkoutCompletionData) -> String {
+        let metrics = data.metrics.prefix(3).map { "\($0.value) \($0.unit)" }.joined(separator: ", ")
+        return "\(data.routineName) 운동 사진, \(data.completedAt), \(metrics), " +
+            "성장도 \(data.previousGrowth)에서 \(data.growth), \(data.earnedXP) 경험치, " +
+            "\(style.accessibilityDescription) 스타일"
+    }
 }

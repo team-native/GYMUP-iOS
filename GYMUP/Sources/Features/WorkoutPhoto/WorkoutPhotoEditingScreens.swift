@@ -104,36 +104,54 @@ struct WorkoutPhotoStampScreen: View {
     let data: WorkoutCompletionData
     let filter: WorkoutPhotoFilter
     let adjustments: WorkoutPhotoAdjustments
-    @Binding var stampStyle: WorkoutPhotoStampStyle
+    @Binding var stamp: WorkoutPhotoStampState
     let onBack: () -> Void
     let onSave: () -> Void
     let onShare: () -> Void
 
+    @State private var isShowingStyleHelp = false
+
+    private var posterModel: WorkoutPhotoPosterModel {
+        stamp.posterModel(editor: WorkoutPhotoEditorState(filter: filter, adjustments: adjustments))
+    }
+
+    private var styleSelection: Binding<WorkoutPhotoStampStyle> {
+        Binding(
+            get: { stamp.style },
+            set: { stamp.selectStyle($0) }
+        )
+    }
+
     var body: some View {
         VStack(spacing: 0) {
-            WorkoutPhotoEditorNavigationBar(title: "운동 스탬프", onBack: onBack)
+            WorkoutPhotoEditorNavigationBar(title: "스탬프", onBack: onBack)
 
             ScrollView {
                 VStack(alignment: .leading, spacing: 18) {
                     WorkoutPhotoPosterView(
                         image: image,
                         data: data,
-                        filter: filter,
-                        adjustments: adjustments,
-                        stampStyle: stampStyle
+                        model: posterModel
                     )
-                    .accessibilityLabel("(data.routineName) 운동 기록 스탬프 미리보기")
+                    .accessibilityElement(children: .ignore)
+                    .accessibilityLabel(posterModel.accessibilityDescription(for: data))
+                    .accessibilityIdentifier("workoutPhoto.stamp.posterPreview")
 
                     VStack(alignment: .leading, spacing: 10) {
                         Text("스탬프 스타일")
                             .font(GymupTypography.headline)
-                        WorkoutPhotoStampStyleSelector(selection: $stampStyle)
+                            .accessibilityAddTraits(.isHeader)
+                        WorkoutPhotoStampStyleSelector(selection: styleSelection)
                     }
 
-                    Text("저장 또는 공유를 누르면 사진을 내보낼 방법을 선택할 수 있어요.")
-                        .font(GymupTypography.caption)
-                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
+                    Button("조절 방법 자세히 보기") {
+                        isShowingStyleHelp = true
+                    }
+                    .font(GymupTypography.caption.weight(.semibold))
+                    .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                    .frame(minHeight: 44, alignment: .leading)
+                    .accessibilityHint("운동 기록 스타일과 사진 내보내기 방법을 확인합니다")
+                    .accessibilityIdentifier("workoutPhoto.stamp.styleHelp")
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 12)
@@ -150,27 +168,78 @@ struct WorkoutPhotoStampScreen: View {
             )
         }
         .background(WorkoutCompletionColors.canvas)
+        .sheet(isPresented: $isShowingStyleHelp) {
+            WorkoutPhotoStampStyleHelpSheet()
+                .presentationDetents([.medium])
+                .presentationDragIndicator(.visible)
+        }
     }
 }
 
 struct WorkoutPhotoPosterView: View {
     let image: UIImage
     let data: WorkoutCompletionData
-    let filter: WorkoutPhotoFilter
-    let adjustments: WorkoutPhotoAdjustments
-    let stampStyle: WorkoutPhotoStampStyle
+    let model: WorkoutPhotoPosterModel
 
     var body: some View {
         GeometryReader { geometry in
             ZStack(alignment: .bottom) {
-                WorkoutPhotoImagePreview(image: image, filter: filter, adjustments: adjustments)
+                WorkoutPhotoImagePreview(image: image, filter: model.filter, adjustments: model.adjustments)
                     .frame(width: geometry.size.width, height: geometry.size.height)
 
-                WorkoutPhotoStampOverlay(data: data, style: stampStyle)
+                WorkoutPhotoStampOverlay(data: data, style: model.style)
             }
             .clipShape(RoundedRectangle(cornerRadius: 18))
         }
         .aspectRatio(0.78, contentMode: .fit)
+    }
+}
+
+private struct WorkoutPhotoStampStyleHelpSheet: View {
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        NavigationStack {
+            VStack(alignment: .leading, spacing: 14) {
+                Text("스타일을 선택하면 사진 미리보기와 저장 결과에 바로 반영돼요.")
+                    .font(GymupTypography.callout)
+                    .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+
+                styleDescription("카드", detail: "운동 기록을 어두운 카드에 담아요.")
+                styleDescription("미니멀", detail: "사진을 더 많이 보이게 간결하게 표시해요.")
+                styleDescription("볼드", detail: "붉은 그라데이션으로 기록을 강조해요.")
+                styleDescription("스탬프", detail: "운동 결과를 선명한 붉은 배경에 담아요.")
+
+                Spacer(minLength: 0)
+            }
+            .padding(20)
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+            .background(WorkoutCompletionColors.canvas)
+            .navigationTitle("조절 방법")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button("닫기") {
+                        dismiss()
+                    }
+                        .font(GymupTypography.callout.weight(.semibold))
+                }
+            }
+        }
+        .preferredColorScheme(.dark)
+    }
+
+    private func styleDescription(_ title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(title)
+                .font(GymupTypography.callout.weight(.semibold))
+                .foregroundStyle(WorkoutCompletionColors.primaryText)
+            Text(detail)
+                .font(GymupTypography.caption)
+                .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }
 
