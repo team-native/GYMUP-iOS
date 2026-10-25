@@ -139,7 +139,7 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
         title: "상체 A",
         estimatedDurationMinutes: 55,
         exercises: [
-            exercise(.init(id: "bench-press", name: "벤치 프레스", target: "가슴 · 삼두", sets: 4, weight: 40, repetitions: 10)),
+            exercise(.init(id: "bench-press", name: "벤치 프레스", target: "가슴 · 삼두", sets: 4, weight: 62.5, repetitions: 8)),
             exercise(.init(
                 id: "incline-press", name: "인클라인 덤벨 프레스", target: "윗가슴", sets: 3, weight: 16, repetitions: 12
             )),
