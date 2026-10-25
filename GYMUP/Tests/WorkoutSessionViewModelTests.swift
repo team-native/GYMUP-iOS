@@ -62,6 +62,15 @@ final class WorkoutSessionViewModelTests: XCTestCase {
         XCTAssertEqual(exercise.personalRecordSet?.repetitions, 8)
     }
 
+    func testInclineGuideMatchesFigmaTargetMusclesStepsAndMistakes() throws {
+        let inclinePress = try XCTUnwrap(WorkoutSessionPlan.sample(for: "upper-a").exercises.dropFirst().first)
+
+        XCTAssertEqual(inclinePress.guideDisplayTitle, "INCLINE DB PRESS")
+        XCTAssertEqual(inclinePress.guideMuscleGroups, ["윗가슴", "전면 삼각근", "삼두"])
+        XCTAssertEqual(inclinePress.formSteps.first, "견갑을 모으고 가슴을 든 상태 유지")
+        XCTAssertEqual(inclinePress.commonMistakes, ["허리를 과하게 띄우기", "반동으로 튕겨 올리기"])
+    }
+
     @MainActor
     func testSetValuesCanBeEditedAndNewSetCopiesThePreviousTarget() throws {
         let viewModel = WorkoutSessionViewModel(routineID: "upper-a")

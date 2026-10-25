@@ -56,6 +56,34 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
         }
     }
 
+    var guideDisplayTitle: String {
+        id == "incline-press" ? "INCLINE DB PRESS" : displayTitle
+    }
+
+    var guideMuscleGroups: [String] {
+        switch id {
+        case "incline-press": ["윗가슴", "전면 삼각근", "삼두"]
+        case "bench-press": ["가슴", "전면 삼각근", "삼두"]
+        case "lat-pulldown", "seated-row": ["등", "광배근", "이두"]
+        case "shoulder-press", "face-pull": ["어깨", "전면 삼각근", "삼두"]
+        case "squat", "leg-press", "leg-extension": ["대퇴사두근", "둔근", "햄스트링"]
+        case "leg-curl": ["햄스트링", "둔근"]
+        case "calf-raise": ["종아리"]
+        case "dumbbell-curl", "hammer-curl": ["이두", "전완"]
+        case "triceps-pushdown": ["삼두"]
+        default: [target]
+        }
+    }
+
+    var commonMistakes: [String] {
+        switch id {
+        case "incline-press": ["허리를 과하게 띄우기", "반동으로 튕겨 올리기"]
+        case "bench-press": ["엉덩이를 벤치에서 들기", "바를 튕겨 올리기"]
+        case "squat": ["무릎이 안쪽으로 모이기", "발뒤꿈치가 뜨기"]
+        default: ["반동으로 동작하기", "관절을 과하게 잠그기"]
+        }
+    }
+
     var imageAssetName: String {
         switch id {
         case "bench-press": "H1RoutinePhoto"
@@ -212,9 +240,9 @@ private enum WorkoutSessionGuidanceLibrary {
         ),
         "incline-press": .init(
             steps: [
-                "벤치를 낮은 경사로 맞추고 등을 기대요.",
-                "덤벨을 가슴 옆에서 시작합니다.",
-                "손목을 곧게 유지하며 위로 밀고 천천히 내립니다."
+                "견갑을 모으고 가슴을 든 상태 유지",
+                "덤벨은 윗가슴 라인으로 천천히 내리기",
+                "팔꿈치는 몸통과 45–60°"
             ],
             beginnerTip: "허리가 과하게 뜨지 않도록 가벼운 덤벨부터 시작하세요."
         ),
