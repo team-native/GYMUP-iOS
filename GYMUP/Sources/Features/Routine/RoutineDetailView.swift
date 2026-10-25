@@ -53,6 +53,7 @@ struct RoutineDetailView: View {
             if viewModel.routine != nil { actions }
         }
         .overlay { moreActionsOverlay }
+        .overlay { deleteConfirmationOverlay }
     }
 
     private var navigationBar: some View {
@@ -180,7 +181,7 @@ struct RoutineDetailView: View {
                         },
                         onDelete: {
                             viewModel.isMoreActionsPresented = false
-                            onDelete()
+                            viewModel.presentDeleteConfirmation()
                         },
                         onCancel: { viewModel.isMoreActionsPresented = false }
                     )
@@ -192,6 +193,29 @@ struct RoutineDetailView: View {
                 .animation(.easeInOut(duration: 0.2), value: viewModel.isMoreActionsPresented)
             }
             .ignoresSafeArea()
+        }
+    }
+
+    @ViewBuilder
+    private var deleteConfirmationOverlay: some View {
+        if viewModel.isDeleteConfirmationPresented, let routine = viewModel.routine {
+            ZStack {
+                Color.black.opacity(0.7)
+                    .ignoresSafeArea()
+                RoutineDeleteConfirmationDialog(
+                    routineTitle: routine.title,
+                    onCancel: { viewModel.cancelDeleteConfirmation() },
+                    onDelete: {
+                        guard viewModel.confirmDeleteRoutine() else { return }
+                        onDelete()
+                    }
+                )
+                .frame(width: 270)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea()
+            .transition(.opacity)
+            .animation(.easeInOut(duration: 0.16), value: viewModel.isDeleteConfirmationPresented)
         }
     }
 }
