@@ -2,17 +2,23 @@ import SwiftUI
 
 struct RoutineView: View {
     let onDetailRouteChanged: (Bool) -> Void
+    let onEmptyStartAttempt: (String) -> Void
     @State private var viewModel: RoutineViewModel
     @State private var path: [RoutineRoute] = []
     @State private var isDuplicateToastVisible = false
     @State private var duplicateToastVersion = 0
     @Binding private var requestedRoutineID: String?
+    @Binding private var requestedExerciseAddRoutineID: String?
 
     init(store: RoutineStore, requestedRoutineID: Binding<String?> = .constant(nil),
+         requestedExerciseAddRoutineID: Binding<String?> = .constant(nil),
+         onEmptyStartAttempt: @escaping (String) -> Void = { _ in },
          onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
         _viewModel = State(initialValue: RoutineViewModel(store: store))
         self.onDetailRouteChanged = onDetailRouteChanged
+        self.onEmptyStartAttempt = onEmptyStartAttempt
         self._requestedRoutineID = requestedRoutineID
+        self._requestedExerciseAddRoutineID = requestedExerciseAddRoutineID
     }
 
     var body: some View {
@@ -30,7 +36,7 @@ struct RoutineView: View {
                             if routine.isEmpty {
                                 EmptyRoutineCard(
                                     onOpen: { path.append(.edit(routine.id)) },
-                                    onStart: { path.append(.emptyStart(routine.id)) }
+                                    onStart: { onEmptyStartAttempt(routine.id) }
                                 )
                             } else {
                                 RoutineCard(
@@ -71,6 +77,8 @@ struct RoutineView: View {
                     routineEditor(routineID: nil)
                 case .edit(let id):
                     routineEditor(routineID: id)
+                case .editAndAddExercise(let id):
+                    routineEditor(routineID: id, opensAddExerciseOnAppear: true)
                 case .workout(let routineID):
                     WorkoutSessionView(routineID: routineID)
                 default:
@@ -97,9 +105,11 @@ struct RoutineView: View {
         .onChange(of: path) { _, newPath in onDetailRouteChanged(!newPath.isEmpty) }
         .onAppear {
             openRequestedRoutine()
+            openRequestedExerciseAdd()
             onDetailRouteChanged(!path.isEmpty)
         }
         .onChange(of: requestedRoutineID) { _, _ in openRequestedRoutine() }
+        .onChange(of: requestedExerciseAddRoutineID) { _, _ in openRequestedExerciseAdd() }
     }
 
     private func openRequestedRoutine() {
@@ -108,10 +118,18 @@ struct RoutineView: View {
         if viewModel.store.routine(id: id) != nil { path.append(.detail(id)) }
     }
 
-    private func routineEditor(routineID: String?) -> some View {
+    private func openRequestedExerciseAdd() {
+        guard let id = requestedExerciseAddRoutineID else { return }
+        requestedExerciseAddRoutineID = nil
+        guard viewModel.store.routine(id: id) != nil else { return }
+        path = [.editAndAddExercise(id)]
+    }
+
+    private func routineEditor(routineID: String?, opensAddExerciseOnAppear: Bool = false) -> some View {
         RoutineEditorView(
             store: viewModel.store,
             routineID: routineID,
+            opensAddExerciseOnAppear: opensAddExerciseOnAppear,
             onSave: { savedID in
                 if !path.isEmpty { path.removeLast() }
                 if path.isEmpty { path.append(.detail(savedID)) }
