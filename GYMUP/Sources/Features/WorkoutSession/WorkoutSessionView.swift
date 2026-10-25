@@ -58,6 +58,14 @@ struct WorkoutSessionView: View {
                 .presentationDetents([.medium])
                 .presentationDragIndicator(.visible)
         }
+        .fullScreenCover(isPresented: $isShowingCurrentGuide) {
+            if let exercise = viewModel.currentExercise {
+                WorkoutExerciseGuideScreen(
+                    exercise: exercise,
+                    onClose: { isShowingCurrentGuide = false }
+                )
+            }
+        }
         .onReceive(clock) { date in
             guard viewModel.refreshClock(at: date) else { return }
             isShowingRestFinishedAlert = true
@@ -125,7 +133,6 @@ struct WorkoutSessionView: View {
                     exerciseIndex: viewModel.currentExerciseIndex,
                     totalExerciseCount: viewModel.plan.exercises.count,
                     currentSetIndex: viewModel.currentSetIndex,
-                    isShowingGuide: isShowingCurrentGuide,
                     isResting: viewModel.isResting || viewModel.isPaused,
                     isPaused: viewModel.isPaused,
                     restSecondsRemaining: viewModel.restSecondsRemaining,

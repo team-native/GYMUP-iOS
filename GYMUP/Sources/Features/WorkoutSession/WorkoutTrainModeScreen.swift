@@ -7,7 +7,6 @@ struct WorkoutTrainModeScreen: View {
     let exerciseIndex: Int
     let totalExerciseCount: Int
     let currentSetIndex: Int?
-    let isShowingGuide: Bool
     let isResting: Bool
     let isPaused: Bool
     let restSecondsRemaining: Int
@@ -29,11 +28,6 @@ struct WorkoutTrainModeScreen: View {
                     exerciseHero(topInset: max(geometry.safeAreaInsets.top, 54))
                     exerciseProgress
                         .padding(.top, 6)
-                    if isShowingGuide {
-                        WorkoutSessionFormGuideView(exercise: exercise)
-                            .padding(.horizontal, 20)
-                            .padding(.top, 16)
-                    }
                     WorkoutSessionRecordSummary(exercise: exercise, currentSetIndex: currentSetIndex)
                         .padding(.top, 9)
                     WorkoutSessionSetTable(
@@ -160,7 +154,7 @@ struct WorkoutTrainModeScreen: View {
         HStack {
             Spacer()
             Button(action: onToggleGuide) {
-                Text(isShowingGuide ? "자세 닫기" : "자세 보기")
+                Text("자세 보기")
                     .font(GymupTypography.uiMedium)
                     .foregroundStyle(GymupColors.primaryText)
                     .padding(.horizontal, 14)
