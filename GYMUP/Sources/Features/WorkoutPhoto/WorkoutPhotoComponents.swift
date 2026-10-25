@@ -241,7 +241,11 @@ struct WorkoutPhotoStampStyleSelector: View {
                         }
                 }
                 .buttonStyle(.plain)
+                .accessibilityLabel("\(style.rawValue) 운동 기록 스타일")
+                .accessibilityValue(selection == style ? "선택됨" : "선택 안 됨")
                 .accessibilityAddTraits(selection == style ? .isSelected : [])
+                .accessibilityHint("사진 미리보기와 저장되는 결과에 반영됩니다")
+                .accessibilityIdentifier("workoutPhoto.stamp.style.\(style.rawValue)")
             }
         }
     }

@@ -15,7 +15,7 @@ struct WorkoutPhotoFlowView: View {
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
     @State private var editor = WorkoutPhotoEditorState()
-    @State private var stampStyle: WorkoutPhotoStampStyle = .card
+    @State private var stamp = WorkoutPhotoStampState()
     @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
     @State private var isRequestingCameraPermission = false
@@ -93,7 +93,7 @@ struct WorkoutPhotoFlowView: View {
                     data: data,
                     filter: editor.filter,
                     adjustments: editor.adjustments,
-                    stampStyle: $stampStyle,
+                    stamp: $stamp,
                     onBack: { step = WorkoutPhotoEditorFlow.stepAfterStampBack },
                     onSave: prepareSharePayload,
                     onShare: prepareSharePayload
@@ -146,12 +146,11 @@ struct WorkoutPhotoFlowView: View {
             return
         }
 
+        let posterModel = stamp.posterModel(editor: editor)
         let poster = WorkoutPhotoPosterView(
             image: selectedImage,
             data: data,
-            filter: editor.filter,
-            adjustments: editor.adjustments,
-            stampStyle: stampStyle
+            model: posterModel
         )
         .frame(width: 393, height: 504)
 
@@ -182,7 +181,7 @@ struct WorkoutPhotoFlowView: View {
 
                 selectedImage = image
                 editor = WorkoutPhotoEditorState()
-                stampStyle = .card
+                stamp = WorkoutPhotoStampState()
                 step = .filters
             } catch {
                 selectionError = "사진을 불러오지 못했어요. 다시 선택해 주세요."
@@ -219,6 +218,7 @@ struct WorkoutPhotoFlowView: View {
 
         selectedImage = image
         editor = WorkoutPhotoEditorState()
+        stamp = WorkoutPhotoStampState()
         step = editorStep
     }
 
