@@ -249,7 +249,7 @@ struct HistoryView: View {
                 HistoryDetailView(record: record, onOpenAlbum: { path.append(.album) })
             }
         case .calendar:
-            HistoryCalendarView(onOpenDetail: { path.append(.detail($0)) })
+            HistoryCalendarView(store: store, onOpenDetail: { path.append(.detail($0)) })
         case .growth:
             HistoryGrowthView()
         case .album:
