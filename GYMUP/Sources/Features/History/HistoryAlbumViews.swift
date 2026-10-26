@@ -95,7 +95,7 @@ struct HistoryAlbumView: View {
 
     private var emptyContent: some View {
         let noRecords = !albumData.hasRecords
-        VStack(spacing: 12) {
+        return VStack(spacing: 12) {
             Image(systemName: noRecords ? "photo.on.rectangle.angled" : "line.3.horizontal.decrease.circle")
                 .font(.system(size: 34, weight: .regular))
                 .foregroundStyle(GymupColors.secondaryText)
