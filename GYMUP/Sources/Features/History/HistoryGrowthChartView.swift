@@ -165,10 +165,10 @@ struct HistoryGrowthChartView: View {
 
     private func pointPosition(at index: Int, in size: CGSize) -> CGPoint {
         let point = points[index]
-        let x = points.count == 1 ? size.width / 2 : size.width * CGFloat(index) / CGFloat(points.count - 1)
+        let xPosition = points.count == 1 ? size.width / 2 : size.width * CGFloat(index) / CGFloat(points.count - 1)
         let fraction = (point.value - domain.lowerBound) / (domain.upperBound - domain.lowerBound)
-        let y = size.height * CGFloat(1 - fraction)
-        return CGPoint(x: x, y: y)
+        let yPosition = size.height * CGFloat(1 - fraction)
+        return CGPoint(x: xPosition, y: yPosition)
     }
 
     private func axisValue(_ value: Double) -> String {
