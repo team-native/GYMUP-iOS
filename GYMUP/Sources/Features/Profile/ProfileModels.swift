@@ -128,7 +128,7 @@ enum ProfileAction: Equatable {
 struct ProfileNotificationPreferences {
     var workoutReminderEnabled = true
     var restTimerEnabled = true
-    var weeklySummaryEnabled = false
+    var hapticsEnabled = true
 }
 
 struct ProfileReminderSchedule {
@@ -152,7 +152,9 @@ struct ProfileReminderSchedule {
         let components = Calendar.current.dateComponents([.hour, .minute], from: time)
         let hour = components.hour ?? 0
         let minute = components.minute ?? 0
-        return "\(daysSummary) · \(String(format: "%02d:%02d", hour, minute))"
+        let period = hour < 12 ? "오전" : "오후"
+        let displayHour = hour % 12 == 0 ? 12 : hour % 12
+        return "\(daysSummary) \(period) \(displayHour):\(String(format: "%02d", minute))"
     }
 }
 
