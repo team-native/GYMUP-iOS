@@ -259,8 +259,8 @@ struct HistoryView: View {
                 onOpenDetail: { path.append(.detail($0)) },
                 onCompare: { path.append(.comparison($0)) }
             )
-        case let .comparison(assetName):
-            HistoryComparisonView(assetName: assetName)
+        case let .comparison(recordID):
+            HistoryComparisonView(store: store, initialRecordID: recordID)
         }
     }
 }
