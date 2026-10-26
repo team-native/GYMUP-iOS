@@ -6,7 +6,7 @@ enum HistoryRoute: Hashable {
     case calendar
     case growth
     case album
-    case comparison(String)
+    case comparison(UUID)
 }
 
 struct WorkoutSetRecord: Identifiable, Hashable {
