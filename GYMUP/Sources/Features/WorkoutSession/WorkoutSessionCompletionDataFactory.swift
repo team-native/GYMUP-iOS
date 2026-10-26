@@ -46,6 +46,46 @@ enum WorkoutSessionCompletionDataFactory {
         )
     }
 
+    static func makeHistoryRecord(
+        plan: WorkoutSessionPlan,
+        elapsedSeconds: Int,
+        completedAt: Date
+    ) -> WorkoutRecord {
+        let completedSets = plan.exercises.flatMap(\.sets).filter(\.isCompleted)
+        let volume = completedSets.reduce(0.0) { $0 + ($1.weightKilograms * Double($1.repetitions)) }
+        let exercises = plan.exercises.enumerated().compactMap { exerciseIndex, exercise -> WorkoutExerciseRecord? in
+            let personalRecordSetID = exercise.personalRecordSet?.id
+            let sets = exercise.sets.enumerated().compactMap { setIndex, set -> WorkoutSetRecord? in
+                guard set.isCompleted else { return nil }
+                return WorkoutSetRecord(
+                    id: setIndex + 1,
+                    weight: set.weightKilograms,
+                    repetitions: set.repetitions,
+                    isPersonalRecord: set.id == personalRecordSetID
+                )
+            }
+            guard !sets.isEmpty else { return nil }
+            return WorkoutExerciseRecord(id: exerciseIndex + 1, name: exercise.name, sets: sets)
+        }
+        var seenCategories = Set<String>()
+        let category = plan.exercises.compactMap { exercise -> String? in
+            seenCategories.insert(exercise.target).inserted ? exercise.target : nil
+        }.joined(separator: " · ")
+
+        return WorkoutRecord(
+            id: UUID(),
+            date: completedAt,
+            routineName: plan.title,
+            category: category,
+            durationMinutes: max(0, Int(ceil(Double(max(0, elapsedSeconds)) / 60))),
+            setCount: completedSets.count,
+            volumeKilograms: Int(volume.rounded()),
+            growth: plan.exercises.filter { $0.personalRecordSet != nil }.count,
+            photoAssetName: plan.exercises.first?.imageAssetName ?? "H1RoutinePhoto",
+            exercises: exercises
+        )
+    }
+
     private static func exerciseDetails(
         from exercises: [WorkoutSessionExercise]
     ) -> [WorkoutCompletionExerciseDetail] {

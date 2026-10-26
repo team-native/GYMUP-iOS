@@ -3,6 +3,7 @@ import SwiftUI
 struct RoutineView: View {
     let onDetailRouteChanged: (Bool) -> Void
     let onEmptyStartAttempt: (String) -> Void
+    private let historyStore: HistoryStore
     @State private var viewModel: RoutineViewModel
     @State private var path: [RoutineRoute] = []
     @State private var isDuplicateToastVisible = false
@@ -10,11 +11,13 @@ struct RoutineView: View {
     @Binding private var requestedRoutineID: String?
     @Binding private var requestedExerciseAddRoutineID: String?
 
-    init(store: RoutineStore, requestedRoutineID: Binding<String?> = .constant(nil),
+    @MainActor
+    init(store: RoutineStore, historyStore: HistoryStore, requestedRoutineID: Binding<String?> = .constant(nil),
          requestedExerciseAddRoutineID: Binding<String?> = .constant(nil),
          onEmptyStartAttempt: @escaping (String) -> Void = { _ in },
          onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
         _viewModel = State(initialValue: RoutineViewModel(store: store))
+        self.historyStore = historyStore
         self.onDetailRouteChanged = onDetailRouteChanged
         self.onEmptyStartAttempt = onEmptyStartAttempt
         self._requestedRoutineID = requestedRoutineID
@@ -80,7 +83,7 @@ struct RoutineView: View {
                 case .editAndAddExercise(let id):
                     routineEditor(routineID: id, opensAddExerciseOnAppear: true)
                 case .workout(let routineID):
-                    WorkoutSessionView(routineID: routineID)
+                    WorkoutSessionView(routineID: routineID, historyStore: historyStore)
                 default:
                     RoutinePendingView(route: route)
                 }
@@ -180,6 +183,6 @@ private struct RoutineDuplicateToast: View {
 }
 
 #Preview {
-    RoutineView(store: RoutineStore())
+    RoutineView(store: RoutineStore(), historyStore: HistoryStore())
         .preferredColorScheme(.dark)
 }

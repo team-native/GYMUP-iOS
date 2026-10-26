@@ -1,14 +1,23 @@
 import SwiftUI
 
 struct HistoryView: View {
+    let store: HistoryStore
     let onOpenRoutines: () -> Void
     @State private var path: [HistoryRoute] = []
-    @State private var selectedMonth = HistoryListSampleData.sampleMonth
-    @State private var selectedDate = HistoryListSampleData.date(day: 11, inMonthOf: HistoryListSampleData.sampleMonth)
+    @State private var selectedMonth: Date
+    @State private var selectedDate: Date
     @State private var visibleWorkoutID: UUID?
 
-    init(onOpenRoutines: @escaping () -> Void = {}) {
+    @MainActor
+    init(store: HistoryStore, onOpenRoutines: @escaping () -> Void = {}) {
+        self.store = store
         self.onOpenRoutines = onOpenRoutines
+        let initialRecord = store.records.first
+        let initialDate = initialRecord?.date ?? .now
+        let initialMonth = Calendar.current.dateInterval(of: .month, for: initialDate)?.start ?? initialDate
+        _selectedMonth = State(initialValue: initialMonth)
+        _selectedDate = State(initialValue: initialDate)
+        _visibleWorkoutID = State(initialValue: initialRecord?.id)
     }
 
     var body: some View {
@@ -23,48 +32,79 @@ struct HistoryView: View {
     }
 
     private var historyList: some View {
-        ScrollViewReader { proxy in
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 8) {
-                    header
-                    weekSelector(using: proxy)
-                    monthlySummary
-                    if monthRecords.isEmpty {
-                        HistoryEmptyContent(onOpenRoutines: onOpenRoutines)
+        GeometryReader { geometry in
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    if store.records.isEmpty {
+                        emptyHistoryContent
+                            .frame(minHeight: max(geometry.size.height - 36, 0))
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            .padding(.bottom, 28)
                     } else {
-                        workoutSection
+                        populatedHistoryContent(using: proxy)
+                            .padding(.horizontal, 20)
+                            .padding(.top, 8)
+                            .padding(.bottom, 28)
                     }
-                    growthLink
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 8)
-                .padding(.bottom, 28)
+                .scrollPosition(id: $visibleWorkoutID, anchor: .top)
+                .background(GymupColors.canvas.ignoresSafeArea())
+                .onChange(of: store.records.map(\.id)) { _, _ in
+                    guard let latestRecord = store.records.first else { return }
+                    selectedMonth = Calendar.current.dateInterval(of: .month, for: latestRecord.date)?.start
+                        ?? latestRecord.date
+                    selectedDate = latestRecord.date
+                    visibleWorkoutID = latestRecord.id
+                }
             }
-            .scrollPosition(id: $visibleWorkoutID, anchor: .top)
-            .background(GymupColors.canvas.ignoresSafeArea())
         }
     }
 
-    private var header: some View {
+    private var emptyHistoryContent: some View {
+        VStack(spacing: 0) {
+            header(showsCalendarButton: false)
+            Spacer(minLength: 24)
+            HistoryEmptyContent(onOpenRoutines: onOpenRoutines)
+            Spacer(minLength: 24)
+        }
+        .frame(maxWidth: .infinity)
+    }
+
+    private func populatedHistoryContent(using proxy: ScrollViewProxy) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            header(showsCalendarButton: true)
+            weekSelector(using: proxy)
+            monthlySummary
+            if !monthRecords.isEmpty {
+                workoutSection
+            }
+            growthLink
+        }
+    }
+
+    private func header(showsCalendarButton: Bool) -> some View {
         HStack(alignment: .center) {
             Text("기록")
                 .font(GymupTypography.homeTitle)
                 .tracking(-0.43)
                 .foregroundStyle(GymupColors.primaryText)
             Spacer()
-            Button {
-                path.append(.calendar)
-            } label: {
-                Image("H1IconCalendar")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 24, height: 24)
-                    .frame(width: 44, height: 44)
-                    .contentShape(Rectangle())
+            if showsCalendarButton {
+                Button {
+                    path.append(.calendar)
+                } label: {
+                    Image("H1IconCalendar")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("월간 캘린더")
+                .accessibilityIdentifier("history.openCalendar")
             }
-            .buttonStyle(.plain)
-            .accessibilityLabel("월간 캘린더")
-            .accessibilityIdentifier("history.openCalendar")
         }
         .frame(height: 48)
     }
@@ -196,13 +236,12 @@ struct HistoryView: View {
     }
 
     private var monthRecords: [WorkoutRecord] {
-        HistoryListSampleData.records(inMonthOf: selectedMonth)
+        store.records(inMonthOf: selectedMonth)
     }
 
     private var monthOptions: [Date] {
-        let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: HistoryListSampleData.sampleMonth)
-            ?? HistoryListSampleData.sampleMonth
-        return [HistoryListSampleData.sampleMonth, previousMonth]
+        let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
+        return [selectedMonth, previousMonth]
     }
 
     private var formattedDuration: String {
@@ -226,9 +265,9 @@ struct HistoryView: View {
 
     private func selectMonth(_ month: Date) {
         selectedMonth = month
-        let preferredDate = HistoryListSampleData.date(day: 11, inMonthOf: month)
-        selectedDate = HistoryListSampleData.records(on: preferredDate).isEmpty ? month : preferredDate
-        visibleWorkoutID = HistoryListSampleData.records(inMonthOf: month).first?.id
+        let monthRecords = store.records(inMonthOf: month)
+        selectedDate = monthRecords.first?.date ?? month
+        visibleWorkoutID = monthRecords.first?.id
     }
 
     private func accessibilityLabel(for date: Date, hasWorkout: Bool) -> String {
@@ -248,7 +287,9 @@ struct HistoryView: View {
     private func destination(for route: HistoryRoute) -> some View {
         switch route {
         case let .detail(id):
-            if let record = HistoryListSampleData.record(with: id) ?? HistorySampleData.record(with: id) {
+            if let record = store.record(with: id)
+                ?? HistoryListSampleData.record(with: id)
+                ?? HistorySampleData.record(with: id) {
                 HistoryDetailView(record: record, onOpenAlbum: { path.append(.album) })
             }
         case .calendar:
@@ -330,7 +371,7 @@ private struct HistoryEmptyContent: View {
                 Text("아직 운동 기록이 없어요")
                     .font(GymupTypography.headline)
                     .foregroundStyle(GymupColors.primaryText)
-                Text("운동을 완료하면 이곳에서\n기록과 성장을 확인할 수 있어요.")
+                Text("첫 운동을 마치면 날짜별 운동 기록과\n세트 · 볼륨 · PR이 여기에 쌓여요.")
                     .font(GymupTypography.callout)
                     .foregroundStyle(GymupColors.secondaryText)
                     .multilineTextAlignment(.center)
@@ -340,22 +381,28 @@ private struct HistoryEmptyContent: View {
                 Text("루틴 시작하기")
                     .font(GymupTypography.uiStrong)
                     .foregroundStyle(.white)
-                    .frame(maxWidth: .infinity)
-                    .frame(minHeight: 52)
-                    .background(GymupColors.accent, in: RoundedRectangle(cornerRadius: 14))
+                    .padding(.horizontal, 18)
+                    .frame(minHeight: 44)
+                    .background(GymupColors.accent, in: Capsule())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("history.startRoutine")
+            .accessibilityLabel("루틴 시작하기")
+            .frame(minWidth: 44, minHeight: 44)
         }
         .frame(maxWidth: .infinity)
         .padding(.horizontal, 16)
-        .padding(.vertical, 28)
-        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
+        .padding(.vertical, 12)
         .accessibilityIdentifier("history.emptyState")
     }
 }
 
 #Preview {
-    HistoryView()
+    HistoryView(store: HistoryStore())
+        .preferredColorScheme(.dark)
+}
+
+#Preview("G1 기록 목록") {
+    HistoryView(store: HistoryStore(records: HistoryListSampleData.records))
         .preferredColorScheme(.dark)
 }

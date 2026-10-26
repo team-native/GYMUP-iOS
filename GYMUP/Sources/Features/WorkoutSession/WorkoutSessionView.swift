@@ -5,6 +5,8 @@ import UIKit
 struct WorkoutSessionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: WorkoutSessionViewModel
+    @State private var didSaveHistoryRecord = false
+    private let historyStore: HistoryStore
     @State private var isConfirmingFinish = false
     @State private var isShowingWorkoutPhoto = false
     @State private var photoCompletionData: WorkoutCompletionData?
@@ -21,8 +23,10 @@ struct WorkoutSessionView: View {
 
     private let clock = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
 
-    init(routineID: String) {
+    @MainActor
+    init(routineID: String, historyStore: HistoryStore) {
         _viewModel = State(initialValue: WorkoutSessionViewModel(routineID: routineID))
+        self.historyStore = historyStore
     }
 
     var body: some View {
@@ -36,7 +40,7 @@ struct WorkoutSessionView: View {
                         photoCompletionData = data
                         isShowingWorkoutPhoto = true
                     },
-                    onFinish: dismiss.callAsFunction,
+                    onFinish: finishWorkout,
                     showsPhotoAction: true,
                     showsPeakGoalActions: false
                 )
@@ -259,6 +263,24 @@ struct WorkoutSessionView: View {
         String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 
+    private func finishWorkout() {
+        guard !didSaveHistoryRecord else {
+            dismiss()
+            return
+        }
+
+        if let completedAt = viewModel.finishedAt {
+            let record = WorkoutSessionCompletionDataFactory.makeHistoryRecord(
+                plan: viewModel.plan,
+                elapsedSeconds: viewModel.elapsedSeconds(at: completedAt),
+                completedAt: completedAt
+            )
+            historyStore.add(record)
+            didSaveHistoryRecord = true
+        }
+        dismiss()
+    }
+
 }
 
 private extension WorkoutSessionView {
@@ -316,7 +338,7 @@ private extension WorkoutSessionView {
 
 #Preview {
     NavigationStack {
-        WorkoutSessionView(routineID: "upper-a")
+        WorkoutSessionView(routineID: "upper-a", historyStore: HistoryStore())
     }
     .preferredColorScheme(.dark)
 }
