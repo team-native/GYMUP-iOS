@@ -23,8 +23,11 @@ struct MyProfileView: View {
 
     private var notificationSummary: String {
         var items: [String] = []
-        if notificationPreferences.restTimerEnabled { items.append("휴식 종료") }
-        if notificationPreferences.workoutReminderEnabled { items.append("운동 리마인더") }
+        if notificationPreferences.restTimerEnabled {
+            items.append("휴식 종료")
+            items.append("햅틱")
+        }
+        if notificationPreferences.workoutReminderEnabled { items.append("리마인더") }
         if notificationPreferences.weeklySummaryEnabled { items.append("주간 요약") }
         return items.isEmpty ? "모든 알림 꺼짐" : items.joined(separator: " · ")
     }
@@ -34,7 +37,7 @@ struct MyProfileView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
                     Text("마이")
-                        .font(GymupTypography.homeTitle)
+                        .font(ProfileTypography.pageTitle)
                         .foregroundStyle(GymupColors.primaryText)
                         .accessibilityAddTraits(.isHeader)
 
@@ -117,52 +120,34 @@ struct MyProfileView: View {
     }
 }
 
-struct ProfileLevelCard: View {
-    let profile: ProfileSummary
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: GymupSpacing.medium) {
-                Image("H2EquipmentHeavy")
-                    .resizable()
-                    .scaledToFit()
-                    .frame(width: 80, height: 40)
-                    .accessibilityHidden(true)
-
-                VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
-                    HStack(alignment: .firstTextBaseline, spacing: GymupSpacing.small) {
-                        Text("LV.\(profile.level)")
-                            .font(GymupTypography.metric)
-                            .foregroundStyle(GymupColors.primaryText)
-                        Text(profile.stage)
-                            .font(GymupTypography.label)
-                            .foregroundStyle(GymupColors.brandText)
-                    }
-                    Text("\(profile.focus) · 주 \(profile.workoutsPerWeek)회")
-                        .font(GymupTypography.caption)
-                        .foregroundStyle(GymupColors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                ProfileChevron()
-            }
-            .padding(.horizontal, GymupSpacing.large)
-            .frame(maxWidth: .infinity, minHeight: 72)
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("레벨 \(profile.level), \(profile.stage), 레벨 상세 보기")
-        .accessibilityHint("레벨 정보를 확인합니다")
-    }
-}
-
 struct ProfileNotificationPermissionBanner: View {
     let onEnable: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
+        Group {
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                    message
+                    enableButton
+                        .frame(maxWidth: .infinity, alignment: .trailing)
+                }
+            } else {
+                HStack(spacing: GymupSpacing.medium) {
+                    message
+                    enableButton
+                }
+            }
+        }
+        .padding(GymupSpacing.medium)
+        .background(GymupColors.canvas, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+        .overlay {
+            RoundedRectangle(cornerRadius: GymupRadius.medium)
+                .strokeBorder(GymupColors.accent, lineWidth: 1)
+        }
+    }
+
+    private var message: some View {
         HStack(spacing: GymupSpacing.medium) {
             Image(systemName: "bell.badge")
                 .font(.system(size: 18, weight: .medium))
@@ -171,28 +156,26 @@ struct ProfileNotificationPermissionBanner: View {
 
             VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
                 Text("알림 권한이 꺼져 있어요")
-                    .font(GymupTypography.uiStrong)
+                    .font(ProfileTypography.rowTitle)
                     .foregroundStyle(GymupColors.primaryText)
                 Text("휴식 종료 알림을 받을 수 없어요")
-                    .font(GymupTypography.caption)
+                    .font(ProfileTypography.caption)
                     .foregroundStyle(GymupColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
 
-            Button("켜기", action: onEnable)
-                .font(GymupTypography.uiBold)
-                .foregroundStyle(.white)
-                .frame(minWidth: 56, minHeight: 44)
-                .background(GymupColors.accent, in: Capsule())
-                .buttonStyle(.plain)
-                .accessibilityHint("알림 설정 화면을 엽니다")
-        }
-        .padding(GymupSpacing.medium)
-        .background(GymupColors.canvas, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
-        .overlay {
-            RoundedRectangle(cornerRadius: GymupRadius.medium)
-                .strokeBorder(GymupColors.accent, lineWidth: 1)
-        }
+    private var enableButton: some View {
+        Button("켜기", action: onEnable)
+            .font(ProfileTypography.action)
+            .foregroundStyle(.white)
+            .frame(minWidth: 56, minHeight: 44)
+            .background(GymupColors.accent, in: Capsule())
+            .buttonStyle(.plain)
+            .accessibilityLabel("알림 설정 열기")
+            .accessibilityHint("앱의 알림 설정 화면을 엽니다")
     }
 }
 
@@ -280,6 +263,7 @@ private struct ProfileSettingRow: View {
     let subtitle: String
     let value: String?
     let action: () -> Void
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     init(
         icon: String,
@@ -297,42 +281,78 @@ private struct ProfileSettingRow: View {
 
     var body: some View {
         Button(action: action) {
-            HStack(spacing: GymupSpacing.medium) {
-                Image(systemName: icon)
-                    .font(.system(size: 17, weight: .medium))
-                    .foregroundStyle(GymupColors.primaryText)
-                    .frame(width: 36, height: 36)
-                    .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
-                    .accessibilityHidden(true)
+            Group {
+                if dynamicTypeSize.isAccessibilitySize {
+                    VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                        HStack(spacing: GymupSpacing.medium) {
+                            iconView
+                            Text(title)
+                                .font(ProfileTypography.rowTitle)
+                                .foregroundStyle(GymupColors.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
 
-                VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
-                    Text(title)
-                        .font(GymupTypography.uiStrong)
-                        .foregroundStyle(GymupColors.primaryText)
-                    Text(subtitle)
-                        .font(GymupTypography.caption)
-                        .foregroundStyle(GymupColors.secondaryText)
-                        .fixedSize(horizontal: false, vertical: true)
+                        Text(subtitle)
+                            .font(ProfileTypography.caption)
+                            .foregroundStyle(GymupColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .padding(.leading, 48)
+
+                        HStack(spacing: GymupSpacing.small) {
+                            Spacer(minLength: 0)
+                            valueLabel
+                            ProfileChevron()
+                        }
+                    }
+                } else {
+                    HStack(spacing: GymupSpacing.medium) {
+                        iconView
+                        VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
+                            Text(title)
+                                .font(ProfileTypography.rowTitle)
+                                .foregroundStyle(GymupColors.primaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(subtitle)
+                                .font(ProfileTypography.caption)
+                                .foregroundStyle(GymupColors.secondaryText)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        valueLabel
+                        ProfileChevron()
+                    }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
-
-                if let value {
-                    Text(value)
-                        .font(GymupTypography.metric)
-                        .foregroundStyle(GymupColors.brandText)
-                        .lineLimit(1)
-                }
-
-                ProfileChevron()
             }
             .padding(.horizontal, GymupSpacing.medium)
             .padding(.vertical, GymupSpacing.small)
-            .frame(minHeight: 64)
+            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
         .accessibilityLabel("\(title), \(subtitle)\(value.map { ", \($0)" } ?? "")")
         .accessibilityHint("설정을 엽니다")
+    }
+
+    private var iconView: some View {
+        Image(systemName: icon)
+            .font(.system(size: 17, weight: .medium))
+            .foregroundStyle(GymupColors.primaryText)
+            .frame(width: 36, height: 36)
+            .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
+            .accessibilityHidden(true)
+    }
+
+    @ViewBuilder
+    private var valueLabel: some View {
+        if let value {
+            Text(value)
+                .font(ProfileTypography.level)
+                .foregroundStyle(GymupColors.brandText)
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
+        }
     }
 }
 
@@ -345,7 +365,7 @@ private struct ProfileSectionTitle: View {
 
     var body: some View {
         Text(title)
-            .font(GymupTypography.label)
+            .font(ProfileTypography.section)
             .foregroundStyle(GymupColors.secondaryText)
             .frame(minHeight: 20, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
@@ -358,16 +378,6 @@ private struct ProfileRowSeparator: View {
             .fill(GymupColors.border)
             .frame(height: 1)
             .padding(.leading, 56)
-    }
-}
-
-private struct ProfileChevron: View {
-    var body: some View {
-        Image("H1IconChevronRight")
-            .resizable()
-            .scaledToFit()
-            .frame(width: 16, height: 16)
-            .accessibilityHidden(true)
     }
 }
 
