@@ -118,7 +118,7 @@ struct HistoryCalendarView: View {
 
     private var monthlySummary: some View {
         let summary = HistoryCalendarSummary(records: monthRecords)
-        HistoryCard {
+        return HistoryCard {
             HStack(spacing: 10) {
                 HistoryMetricCell(value: "\(summary.workoutDays)", unit: "일", title: "운동한 날")
                 calendarDivider
