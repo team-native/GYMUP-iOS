@@ -10,6 +10,7 @@ struct MyProfileView: View {
     @State private var notificationPreferences = ProfileNotificationPreferences()
     @State private var reminderSchedule = ProfileReminderSchedule()
     @State private var presentedSheet: ProfileSheetDestination?
+    @State private var isPlaylistPresented = false
 
     private let profile = ProfileSampleData.summary
 
@@ -79,6 +80,9 @@ struct MyProfileView: View {
             .navigationDestination(isPresented: $isPhotoPermissionsPresented) {
                 ProfilePhotoPermissionView()
             }
+            .navigationDestination(isPresented: $isPlaylistPresented) {
+                ProfilePlaylistView()
+            }
             .sheet(item: $presentedSheet) { destination in
                 sheet(for: destination)
                     .presentationDetents([.medium, .large])
@@ -96,8 +100,6 @@ struct MyProfileView: View {
         switch destination {
         case .restTime:
             ProfileRestTimeSheetView(selection: $restTimeSeconds)
-        case .playlist:
-            ProfilePlaylistSheetView()
         }
     }
 
@@ -112,7 +114,7 @@ struct MyProfileView: View {
         case .photoAccess:
             isPhotoPermissionsPresented = true
         case .playlist:
-            presentedSheet = .playlist
+            isPlaylistPresented = true
         }
     }
 }
