@@ -93,6 +93,14 @@ enum HistoryGrowthMetric: String, CaseIterable, Identifiable {
         "KG"
     }
 
+    var progressionSeedValues: [Double] {
+        switch self {
+        case .maxWeight: [0.18, 0.24, 0.20, 0.34, 0.42, 0.39, 0.58, 0.55, 0.72, 0.68, 0.86]
+        case .estimatedOneRepMax: [0.16, 0.23, 0.22, 0.31, 0.40, 0.45, 0.56, 0.61, 0.70, 0.76, 0.90]
+        case .volume: [0.12, 0.21, 0.18, 0.38, 0.34, 0.51, 0.48, 0.67, 0.62, 0.78, 0.92]
+        }
+    }
+
     var change: String {
         self == .volume ? "+1,240kg" : "+12.5kg"
     }
