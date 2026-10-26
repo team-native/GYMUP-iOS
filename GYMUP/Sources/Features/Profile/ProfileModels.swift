@@ -131,30 +131,45 @@ struct ProfileNotificationPreferences {
     var hapticsEnabled = true
 }
 
-struct ProfileReminderSchedule {
+struct ProfileReminderSchedule: Equatable {
+    static let weekdayOrder = [2, 3, 4, 5, 6, 7, 1]
+    static let recommendedWeekdays: Set<Int> = [2, 4, 6]
+
+    static let weekdayNames = [1: "일", 2: "월", 3: "화", 4: "수", 5: "목", 6: "금", 7: "토"]
+
     var weekdays: Set<Int> = [2, 4, 6]
     var time = Calendar.current.date(from: DateComponents(hour: 19, minute: 0)) ?? .now
 
+    var isEnabled: Bool {
+        !weekdays.isEmpty
+    }
+
+    var selectedWeekdaySummary: String {
+        let selectedNames = Self.weekdayOrder
+            .filter(weekdays.contains)
+            .compactMap { Self.weekdayNames[$0] }
+        return selectedNames.count == Self.weekdayOrder.count ? "매일" : selectedNames.joined(separator: " · ")
+    }
+
     var summary: String {
-        let names = ["일", "월", "화", "수", "목", "금", "토"]
-        let selectedDays = weekdays.sorted().compactMap { index in
-            names.indices.contains(index - 1) ? names[index - 1] : nil
-        }
-        let daysSummary: String
-        if selectedDays.count == 7 {
-            daysSummary = "매일"
-        } else if selectedDays.isEmpty {
-            daysSummary = "요일 미선택"
-        } else {
-            daysSummary = selectedDays.joined(separator: " · ")
-        }
+        guard isEnabled else { return "일정 없음" }
 
         let components = Calendar.current.dateComponents([.hour, .minute], from: time)
         let hour = components.hour ?? 0
         let minute = components.minute ?? 0
         let period = hour < 12 ? "오전" : "오후"
         let displayHour = hour % 12 == 0 ? 12 : hour % 12
-        return "\(daysSummary) \(period) \(displayHour):\(String(format: "%02d", minute))"
+        return "\(selectedWeekdaySummary) \(period) \(displayHour):\(String(format: "%02d", minute))"
+    }
+
+    mutating func toggleWeekday(_ weekday: Int) {
+        guard Self.weekdayOrder.contains(weekday) else { return }
+
+        if weekdays.contains(weekday) {
+            weekdays.remove(weekday)
+        } else {
+            weekdays.insert(weekday)
+        }
     }
 }
 
