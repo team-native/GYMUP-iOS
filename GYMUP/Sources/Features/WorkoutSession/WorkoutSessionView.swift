@@ -245,7 +245,10 @@ struct WorkoutSessionView: View {
         }
     }
 
-    private func completeCurrentSet(at date: Date) {
+}
+
+private extension WorkoutSessionView {
+    func completeCurrentSet(at date: Date) {
         guard let currentSetIndex = viewModel.currentSetIndex else { return }
         viewModel.toggleSetCompletion(
             exerciseIndex: viewModel.currentExerciseIndex,
@@ -259,11 +262,11 @@ struct WorkoutSessionView: View {
         }
     }
 
-    private func formattedDuration(_ seconds: Int) -> String {
+    func formattedDuration(_ seconds: Int) -> String {
         String(format: "%02d:%02d", seconds / 60, seconds % 60)
     }
 
-    private func finishWorkout() {
+    func finishWorkout() {
         guard !didSaveHistoryRecord else {
             dismiss()
             return
@@ -281,9 +284,6 @@ struct WorkoutSessionView: View {
         dismiss()
     }
 
-}
-
-private extension WorkoutSessionView {
     func syncRestActivity() {
         guard viewModel.isResting,
               let exercise = viewModel.currentExercise,

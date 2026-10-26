@@ -83,32 +83,6 @@ struct HistoryView: View {
         }
     }
 
-    private func header(showsCalendarButton: Bool) -> some View {
-        HStack(alignment: .center) {
-            Text("기록")
-                .font(GymupTypography.homeTitle)
-                .tracking(-0.43)
-                .foregroundStyle(GymupColors.primaryText)
-            Spacer()
-            if showsCalendarButton {
-                Button {
-                    path.append(.calendar)
-                } label: {
-                    Image("H1IconCalendar")
-                        .resizable()
-                        .scaledToFit()
-                        .frame(width: 24, height: 24)
-                        .frame(width: 44, height: 44)
-                        .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel("월간 캘린더")
-                .accessibilityIdentifier("history.openCalendar")
-            }
-        }
-        .frame(height: 48)
-    }
-
     private func weekSelector(using proxy: ScrollViewProxy) -> some View {
         HStack(spacing: 0) {
             ForEach(weekDates, id: \.self) { date in
@@ -239,11 +213,6 @@ struct HistoryView: View {
         store.records(inMonthOf: selectedMonth)
     }
 
-    private var monthOptions: [Date] {
-        let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
-        return [selectedMonth, previousMonth]
-    }
-
     private var formattedDuration: String {
         let totalMinutes = monthRecords.reduce(0) { $0 + $1.durationMinutes }
         return "\(totalMinutes / 60)H \(totalMinutes % 60)M"
@@ -270,19 +239,6 @@ struct HistoryView: View {
         visibleWorkoutID = monthRecords.first?.id
     }
 
-    private func accessibilityLabel(for date: Date, hasWorkout: Bool) -> String {
-        let day = date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month().day().weekday(.wide))
-        return hasWorkout ? "\(day), 운동 기록 있음" : day
-    }
-
-    private var weekDates: [Date] {
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: selectedDate)
-        let daysFromMonday = (weekday + 5) % 7
-        let start = calendar.date(byAdding: .day, value: -daysFromMonday, to: selectedDate) ?? selectedDate
-        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
-    }
-
     @ViewBuilder
     private func destination(for route: HistoryRoute) -> some View {
         switch route {
@@ -301,6 +257,52 @@ struct HistoryView: View {
         case let .comparison(assetName):
             HistoryComparisonView(assetName: assetName)
         }
+    }
+}
+
+private extension HistoryView {
+    var monthOptions: [Date] {
+        let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
+        return [selectedMonth, previousMonth]
+    }
+
+    var weekDates: [Date] {
+        let calendar = Calendar.current
+        let weekday = calendar.component(.weekday, from: selectedDate)
+        let daysFromMonday = (weekday + 5) % 7
+        let start = calendar.date(byAdding: .day, value: -daysFromMonday, to: selectedDate) ?? selectedDate
+        return (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: start) }
+    }
+
+    func header(showsCalendarButton: Bool) -> some View {
+        HStack(alignment: .center) {
+            Text("기록")
+                .font(GymupTypography.homeTitle)
+                .tracking(-0.43)
+                .foregroundStyle(GymupColors.primaryText)
+            Spacer()
+            if showsCalendarButton {
+                Button {
+                    path.append(.calendar)
+                } label: {
+                    Image("H1IconCalendar")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 24, height: 24)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("월간 캘린더")
+                .accessibilityIdentifier("history.openCalendar")
+            }
+        }
+        .frame(height: 48)
+    }
+
+    func accessibilityLabel(for date: Date, hasWorkout: Bool) -> String {
+        let day = date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month().day().weekday(.wide))
+        return hasWorkout ? "\(day), 운동 기록 있음" : day
     }
 }
 
@@ -354,46 +356,6 @@ private struct HistoryWorkoutRow: View {
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         .accessibilityElement(children: .combine)
         .accessibilityLabel(record.accessibilityDescription)
-    }
-}
-
-private struct HistoryEmptyContent: View {
-    let onOpenRoutines: () -> Void
-
-    var body: some View {
-        VStack(spacing: 16) {
-            Image("H2EquipmentEmpty")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 148, height: 88)
-                .accessibilityHidden(true)
-            VStack(spacing: 8) {
-                Text("아직 운동 기록이 없어요")
-                    .font(GymupTypography.headline)
-                    .foregroundStyle(GymupColors.primaryText)
-                Text("첫 운동을 마치면 날짜별 운동 기록과\n세트 · 볼륨 · PR이 여기에 쌓여요.")
-                    .font(GymupTypography.callout)
-                    .foregroundStyle(GymupColors.secondaryText)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            Button(action: onOpenRoutines) {
-                Text("루틴 시작하기")
-                    .font(GymupTypography.uiStrong)
-                    .foregroundStyle(.white)
-                    .padding(.horizontal, 18)
-                    .frame(minHeight: 44)
-                    .background(GymupColors.accent, in: Capsule())
-            }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("history.startRoutine")
-            .accessibilityLabel("루틴 시작하기")
-            .frame(minWidth: 44, minHeight: 44)
-        }
-        .frame(maxWidth: .infinity)
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
-        .accessibilityIdentifier("history.emptyState")
     }
 }
 
