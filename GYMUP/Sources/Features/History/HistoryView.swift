@@ -253,7 +253,12 @@ struct HistoryView: View {
         case .growth:
             HistoryGrowthView()
         case .album:
-            HistoryAlbumView(onCompare: { path.append(.comparison($0)) })
+            HistoryAlbumView(
+                store: store,
+                onOpenRoutines: onOpenRoutines,
+                onOpenDetail: { path.append(.detail($0)) },
+                onCompare: { path.append(.comparison($0)) }
+            )
         case let .comparison(assetName):
             HistoryComparisonView(assetName: assetName)
         }
