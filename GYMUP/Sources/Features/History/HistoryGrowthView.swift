@@ -4,9 +4,16 @@ struct HistoryGrowthView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedMetric: HistoryGrowthMetric = .maxWeight
     @State private var selectedExercise = "벤치프레스"
-    @State private var selectedRange = "12주"
-    private let ranges = ["4주", "12주", "6개월", "전체"]
-    private let exercises = ["벤치프레스", "스쿼트", "랫 풀 다운"]
+    @State private var selectedRange: HistoryGrowthRange = .twelveWeeks
+    @State private var selectedPointDate: Date?
+
+    private let anchorDate: Date
+    private let sampleDataOverride: [HistoryGrowthDataPoint]?
+
+    init(anchorDate: Date = .now, sampleDataOverride: [HistoryGrowthDataPoint]? = nil) {
+        self.anchorDate = anchorDate
+        self.sampleDataOverride = sampleDataOverride
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -15,10 +22,11 @@ struct HistoryGrowthView: View {
                 VStack(alignment: .leading, spacing: 20) {
                     exercisePicker
                     metricPicker
-                    featuredMetric
+                    if chartAvailability != .empty {
+                        featuredMetric
+                    }
                     chart
                     rangePicker
-                    insight
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 8)
@@ -52,7 +60,8 @@ struct HistoryGrowthView: View {
             .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 14))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("운동 종목, 벤치프레스")
+        .accessibilityLabel("운동 종목 선택, \(selectedExercise)")
+        .accessibilityIdentifier("history.growth.exercise")
     }
 
     private var metricPicker: some View {
@@ -66,58 +75,91 @@ struct HistoryGrowthView: View {
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(isSelected ? .white : GymupColors.secondaryText)
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: 40)
+                        .frame(minHeight: 44)
                         .background(isSelected ? GymupColors.accent : GymupColors.surface, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityIdentifier("history.growth.metric.\(metric.id)")
+                .accessibilityLabel(metric.rawValue)
             }
         }
+        .accessibilityLabel("성장 지표 선택")
     }
 
     private var featuredMetric: some View {
-        HistoryCard {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(selectedMetric.rawValue)
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
-                HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text(metricValue)
-                        .font(GymupTypography.growthScore)
-                        .foregroundStyle(GymupColors.primaryText)
-                    Text(selectedMetric.unit)
-                        .font(GymupTypography.growthScoreUnit)
-                        .foregroundStyle(GymupColors.secondaryText)
+        Group {
+            if let selectedPoint {
+                HistoryCard {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text("\(selectedMetric.rawValue) · \(HistoryDateText.string(selectedPoint.date, format: "M월 d일"))")
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.secondaryText)
+                        HStack(alignment: .firstTextBaseline, spacing: 6) {
+                            Text(formattedValue(selectedPoint.value))
+                                .font(GymupTypography.growthScore)
+                                .foregroundStyle(GymupColors.primaryText)
+                            Text(selectedMetric.unit)
+                                .font(GymupTypography.growthScoreUnit)
+                                .foregroundStyle(GymupColors.secondaryText)
+                        }
+                        HStack(spacing: 5) {
+                            Image(systemName: changeIndicatorSymbol)
+                                .font(.system(size: 10, weight: .bold))
+                            Text(changeDescription)
+                                .font(GymupTypography.uiCaption)
+                        }
+                        .foregroundStyle(changeIndicatorColor)
+                    }
                 }
-                HStack(spacing: 5) {
-                    Image(systemName: "arrow.up.right")
-                        .font(.system(size: 10, weight: .bold))
-                    Text("이전 기록보다 \(metricChange)")
-                        .font(GymupTypography.uiCaption)
-                }
-                .foregroundStyle(Color(red: 1, green: 0.43, blue: 0.45))
+                .accessibilityElement(children: .combine)
+                .accessibilityLabel(featuredMetricAccessibilityLabel)
             }
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(metricAccessibilityDescription)
     }
 
     private var chart: some View {
         VStack(alignment: .leading, spacing: 12) {
             HistorySectionTitle(title: "기록 변화", subtitle: selectedExercise)
-            HistoryCard {
-                VStack(spacing: 12) {
-                    HistoryGrowthChart(values: displayedChartValues)
-                        .frame(height: 156)
-                    HStack {
-                        ForEach(chartLabels, id: \.self) { month in
-                            Text(month)
+            switch chartAvailability {
+            case .empty:
+                HistoryCard {
+                    VStack(spacing: 8) {
+                        Image(systemName: "chart.xyaxis.line")
+                            .font(.system(size: 22, weight: .medium))
+                            .foregroundStyle(GymupColors.secondaryText)
+                            .accessibilityHidden(true)
+                        Text("이 종목의 기록이 없어요")
+                            .font(GymupTypography.uiStrong)
+                            .foregroundStyle(GymupColors.primaryText)
+                        Text("운동 기록을 추가하면 성장 그래프가 표시됩니다.")
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.secondaryText)
+                    }
+                    .frame(maxWidth: .infinity, minHeight: 156)
+                    .multilineTextAlignment(.center)
+                }
+                .accessibilityIdentifier("history.growth.empty")
+            case .sparse, .ready:
+                HistoryCard {
+                    VStack(spacing: 12) {
+                        HistoryGrowthChartView(
+                            points: visiblePoints,
+                            selectedDate: selectedPoint?.date,
+                            metric: selectedMetric,
+                            exercise: selectedExercise,
+                            range: selectedRange,
+                            onSelect: { selectedPointDate = $0 }
+                        )
+                        if chartAvailability == .sparse {
+                            Text("기록이 더 쌓이면 추이 변화를 비교할 수 있어요.")
                                 .font(GymupTypography.uiCaption)
                                 .foregroundStyle(GymupColors.secondaryText)
-                                .frame(maxWidth: .infinity)
+                                .frame(maxWidth: .infinity, alignment: .leading)
                         }
                     }
                 }
+                .accessibilityIdentifier(chartAvailability == .sparse ? "history.growth.sparse" : "history.growth.chart")
             }
         }
     }
@@ -129,7 +171,7 @@ struct HistoryGrowthView: View {
                 Button {
                     selectedRange = range
                 } label: {
-                    Text(range)
+                    Text(range.rawValue)
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(isSelected ? GymupColors.primaryText : GymupColors.secondaryText)
                         .frame(maxWidth: .infinity)
@@ -138,6 +180,7 @@ struct HistoryGrowthView: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
+                .accessibilityIdentifier("history.growth.range.\(range.id)")
             }
         }
         .padding(4)
@@ -145,115 +188,89 @@ struct HistoryGrowthView: View {
         .accessibilityLabel("그래프 조회 기간")
     }
 
-    private var insight: some View {
-        HStack(alignment: .top, spacing: 10) {
-            Image(systemName: "sparkles")
-                .foregroundStyle(GymupColors.accent)
-                .accessibilityHidden(true)
-            Text("꾸준히 쌓은 기록 덕분에 지난 기간보다 더 무거운 무게를 들고 있어요.")
-                .font(GymupTypography.callout)
-                .foregroundStyle(GymupColors.secondaryText)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .padding(14)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 14))
+    private var ranges: [HistoryGrowthRange] {
+        HistoryGrowthRange.allCases
     }
 
-    private var metricValue: String {
-        switch selectedExercise {
-        case "스쿼트":
-            switch selectedMetric {
-            case .maxWeight: "90"
-            case .estimatedOneRepMax: "108"
-            case .volume: "11,260"
-            }
-        case "랫 풀 다운":
-            switch selectedMetric {
-            case .maxWeight: "50"
-            case .estimatedOneRepMax: "60"
-            case .volume: "7,840"
-            }
-        default:
-            selectedMetric.value
-        }
+    private var exercises: [String] {
+        HistoryGrowthSampleData.exercises
     }
 
-    private var metricAccessibilityDescription: String {
-        "\(selectedMetric.rawValue) \(metricValue) \(selectedMetric.unit), 이전 기록보다 \(metricChange) 증가"
+    private var allSamples: [HistoryGrowthDataPoint] {
+        sampleDataOverride ?? HistoryGrowthSampleData.points(
+            for: selectedMetric,
+            exercise: selectedExercise,
+            anchorDate: anchorDate
+        )
     }
 
-    private var metricChange: String {
+    private var visiblePoints: [HistoryGrowthDataPoint] {
+        selectedRange.points(from: allSamples)
+    }
+
+    private var selectedPoint: HistoryGrowthDataPoint? {
+        guard !visiblePoints.isEmpty else { return nil }
+        return visiblePoints.first { $0.date == selectedPointDate } ?? visiblePoints.last
+    }
+
+    private var chartAvailability: HistoryGrowthChartAvailability {
+        HistoryGrowthChartAvailability(points: visiblePoints)
+    }
+
+    private var changeValue: Double? {
+        guard let selectedPoint,
+              let selectedIndex = allSamples.firstIndex(where: { $0.date == selectedPoint.date }) else { return nil }
+        let comparisonIndex = max(0, selectedIndex - selectedRange.comparisonPointCount)
+        guard comparisonIndex < selectedIndex else { return nil }
+        return selectedPoint.value - allSamples[comparisonIndex].value
+    }
+
+    private var changeDescription: String {
+        guard let value = changeValue else { return "첫 기록이에요" }
+        return "\(selectedRange.rawValue) 전보다 \(value >= 0 ? "+" : "")\(formattedValue(value))\(selectedMetric.unit)"
+    }
+
+    private var changeIndicatorSymbol: String {
+        guard let value = changeValue else { return "minus" }
+        if value > 0 { return "arrow.up.right" }
+        if value < 0 { return "arrow.down.right" }
+        return "minus"
+    }
+
+    private var changeIndicatorColor: Color {
+        guard let value = changeValue, value > 0 else { return GymupColors.secondaryText }
+        return Color(red: 1, green: 0.43, blue: 0.45)
+    }
+
+    private var featuredMetricAccessibilityLabel: String {
+        guard let selectedPoint else { return "\(selectedMetric.rawValue), 기록 없음" }
+        let date = HistoryDateText.string(selectedPoint.date, format: "M월 d일")
+        let value = formattedValue(selectedPoint.value)
+        return "\(date), \(selectedMetric.rawValue) \(value) \(selectedMetric.unit), \(changeDescription)"
+    }
+
+    private func formattedValue(_ value: Double) -> String {
         if selectedMetric == .volume {
-            return selectedExercise == "스쿼트" ? "+1,860kg" : selectedExercise == "랫 풀 다운" ? "+920kg" : selectedMetric.change
+            return Int(value.rounded()).formatted()
         }
-        return selectedExercise == "스쿼트" ? "+15kg" : selectedExercise == "랫 풀 다운" ? "+7.5kg" : selectedMetric.change
+        return value.formatted(.number.precision(.fractionLength(0...1)))
     }
 
-    private var displayedChartValues: [CGFloat] {
-        let count = selectedRange == "4주" ? 5 : selectedRange == "12주" ? 8 : 11
-        return Array(selectedMetric.chartValues.suffix(count))
-    }
-
-    private var chartLabels: [String] {
-        switch selectedRange {
-        case "4주": ["4주 전", "3주 전", "2주 전", "지난주", "이번 주"]
-        case "12주": ["8월", "9월", "10월"]
-        case "6개월": ["5월", "7월", "9월", "10월"]
-        default: ["7월", "8월", "9월", "10월"]
-        }
-    }
 }
 
-private struct HistoryGrowthChart: View {
-    let values: [CGFloat]
-
-    var body: some View {
-        GeometryReader { geometry in
-            let size = geometry.size
-            let points = chartPoints(in: size)
-            ZStack {
-                VStack {
-                    ForEach(0..<4, id: \.self) { _ in
-                        Rectangle()
-                            .fill(GymupColors.separator)
-                            .frame(height: 1)
-                        Spacer(minLength: 0)
-                    }
-                }
-                Path { path in
-                    guard let first = points.first else { return }
-                    path.move(to: first)
-                    for point in points.dropFirst() {
-                        path.addLine(to: point)
-                    }
-                }
-                .stroke(GymupColors.accent, style: StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
-                if let last = points.last {
-                    Circle()
-                        .fill(GymupColors.accent)
-                        .frame(width: 10, height: 10)
-                        .position(last)
-                }
-            }
-            .accessibilityHidden(true)
-        }
-        .accessibilityElement()
-        .accessibilityLabel("7월부터 10월까지 상승하는 운동 기록 그래프")
-    }
-
-    private func chartPoints(in size: CGSize) -> [CGPoint] {
-        guard values.count > 1 else { return [] }
-        return values.enumerated().map { index, value in
-            CGPoint(
-                x: size.width * CGFloat(index) / CGFloat(values.count - 1),
-                y: size.height * (1 - value) * 0.86 + size.height * 0.07
-            )
-        }
-    }
-}
-
-#Preview {
+#Preview("G5 성장 그래프") {
     HistoryGrowthView()
         .preferredColorScheme(.dark)
+}
+
+#Preview("G5 기록 없음") {
+    HistoryGrowthView(sampleDataOverride: [])
+        .preferredColorScheme(.dark)
+}
+
+#Preview("G5 기록 부족") {
+    HistoryGrowthView(sampleDataOverride: [
+        HistoryGrowthDataPoint(date: .now, value: 62.5)
+    ])
+    .preferredColorScheme(.dark)
 }
