@@ -2,10 +2,21 @@ import SwiftUI
 
 struct HistoryCalendarView: View {
 
+    let store: HistoryStore
     let onOpenDetail: (UUID) -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var displayedMonth = Date()
-    @State private var selectedDate = HistorySampleData.records[0].date
+    @State private var displayedMonth: Date
+    @State private var selectedDate: Date
+
+    @MainActor
+    init(store: HistoryStore, onOpenDetail: @escaping (UUID) -> Void) {
+        self.store = store
+        self.onOpenDetail = onOpenDetail
+        let initialDate = store.records.first?.date ?? .now
+        let initialMonth = Calendar.current.dateInterval(of: .month, for: initialDate)?.start ?? initialDate
+        _displayedMonth = State(initialValue: initialMonth)
+        _selectedDate = State(initialValue: initialDate)
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -36,10 +47,12 @@ struct HistoryCalendarView: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("이전 달")
+                    .accessibilityIdentifier("history.calendar.previousMonth")
                     Spacer()
                     Text(HistoryDateText.string(displayedMonth, format: "yyyy년 M월"))
                         .font(GymupTypography.uiStrong)
                         .foregroundStyle(GymupColors.primaryText)
+                        .accessibilityIdentifier("history.calendar.month")
                     Spacer()
                     Button {
                         changeMonth(by: 1)
@@ -48,17 +61,19 @@ struct HistoryCalendarView: View {
                             .frame(width: 44, height: 44)
                     }
                     .accessibilityLabel("다음 달")
+                    .accessibilityIdentifier("history.calendar.nextMonth")
                 }
                 .font(.system(size: 15, weight: .semibold))
                 .foregroundStyle(GymupColors.primaryText)
                 .buttonStyle(.plain)
 
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
+                LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 4), count: 7), spacing: 8) {
                     ForEach(["일", "월", "화", "수", "목", "금", "토"], id: \.self) { weekday in
                         Text(weekday)
                             .font(GymupTypography.uiCaption)
                             .foregroundStyle(GymupColors.secondaryText)
-                            .frame(maxWidth: .infinity)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .accessibilityHidden(true)
                     }
                     ForEach(Array(calendarCells.enumerated()), id: \.offset) { item in
                         if let date = item.element {
@@ -75,10 +90,10 @@ struct HistoryCalendarView: View {
     }
 
     private func calendarDay(_ date: Date) -> some View {
-        let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-        let hasWorkout = HistorySampleData.records.contains {
-            Calendar.current.isDate($0.date, inSameDayAs: date)
-        }
+        let calendar = Calendar.current
+        let isSelected = calendar.isDate(date, inSameDayAs: selectedDate)
+        let workouts = store.records(on: date)
+        let hasWorkout = !workouts.isEmpty
         return Button {
             selectedDate = date
         } label: {
@@ -87,24 +102,27 @@ struct HistoryCalendarView: View {
                     .font(GymupTypography.uiCaption)
                     .foregroundStyle(isSelected ? .white : GymupColors.primaryText)
                 Circle()
-                    .fill(hasWorkout ? GymupColors.accent : .clear)
-                    .frame(width: 4, height: 4)
+                    .fill(hasWorkout ? (isSelected ? .white : GymupColors.accent) : .clear)
+                    .frame(width: 5, height: 5)
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(minHeight: 44)
             .background(isSelected ? GymupColors.accent : .clear, in: Circle())
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month().day()))
+        .accessibilityLabel(calendarDayAccessibilityLabel(date, workoutCount: workouts.count))
         .accessibilityAddTraits(isSelected ? .isSelected : [])
+        .accessibilityIdentifier("history.calendar.date.\(HistoryDateText.string(date, format: "yyyy-MM-dd"))")
     }
 
     private var monthlySummary: some View {
+        let summary = HistoryCalendarSummary(records: monthRecords)
         HistoryCard {
             HStack(spacing: 10) {
-                HistoryMetricCell(value: "5", unit: "일", title: "운동한 날")
+                HistoryMetricCell(value: "\(summary.workoutDays)", unit: "일", title: "운동한 날")
                 calendarDivider
+                // 주간 목표와 연속 운동은 데이터 모델 연결 전까지 Figma 시안 값을 유지합니다.
                 HistoryMetricCell(value: "100", unit: "%", title: "주간 목표")
                 calendarDivider
                 HistoryMetricCell(value: "7", unit: "주", title: "연속 운동")
@@ -121,23 +139,37 @@ struct HistoryCalendarView: View {
 
     private var selectedDaySection: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HistorySectionTitle(title: HistoryDateText.string(selectedDate, format: "M월 d일 EEEE"))
-            if let record = HistorySampleData.records(on: selectedDate).first {
-                Button {
-                    onOpenDetail(record.id)
-                } label: {
-                    HistoryWorkoutCalendarCard(record: record)
-                }
-                .buttonStyle(.plain)
-            } else {
+            HistorySectionTitle(
+                title: HistoryDateText.string(selectedDate, format: "M월 d일 EEEE"),
+                subtitle: selectedDayRecords.isEmpty ? "운동 기록 없음" : "\(selectedDayRecords.count)회 운동"
+            )
+            if selectedDayRecords.isEmpty {
                 HistoryCard {
                     Text("이 날의 운동 기록이 없어요")
                         .font(GymupTypography.callout)
                         .foregroundStyle(GymupColors.secondaryText)
                         .frame(maxWidth: .infinity, minHeight: 52, alignment: .center)
                 }
+            } else {
+                ForEach(selectedDayRecords) { record in
+                    Button {
+                        onOpenDetail(record.id)
+                    } label: {
+                        HistoryWorkoutCalendarCard(record: record)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("history.calendar.record.\(record.id.uuidString)")
+                }
             }
         }
+    }
+
+    private var monthRecords: [WorkoutRecord] {
+        store.records(inMonthOf: displayedMonth)
+    }
+
+    private var selectedDayRecords: [WorkoutRecord] {
+        store.records(on: selectedDate)
     }
 
     private var calendarCells: [Date?] {
@@ -148,15 +180,31 @@ struct HistoryCalendarView: View {
         let dates = dayRange.compactMap { day in
             Calendar.current.date(byAdding: .day, value: day - 1, to: interval.start)
         }
-        return blanks + dates.map(Optional.some)
+        let cells = blanks + dates.map(Optional.some)
+        let trailingDays = (7 - cells.count % 7) % 7
+        return cells + [Date?](repeating: nil, count: trailingDays)
     }
 
     private func changeMonth(by amount: Int) {
         guard let newMonth = Calendar.current.date(byAdding: .month, value: amount, to: displayedMonth) else { return }
         displayedMonth = newMonth
-        if let month = Calendar.current.dateInterval(of: .month, for: newMonth) {
-            selectedDate = month.start
-        }
+        let newMonthRecords = store.records(inMonthOf: newMonth)
+        selectedDate = newMonthRecords.first?.date
+            ?? Calendar.current.dateInterval(of: .month, for: newMonth)?.start
+            ?? newMonth
+    }
+
+    private func calendarDayAccessibilityLabel(_ date: Date, workoutCount: Int) -> String {
+        let dateText = date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month().day().weekday(.wide))
+        return workoutCount == 0 ? "\(dateText), 운동 기록 없음" : "\(dateText), 운동 \(workoutCount)회"
+    }
+}
+
+struct HistoryCalendarSummary: Equatable {
+    let workoutDays: Int
+
+    init(records: [WorkoutRecord], calendar: Calendar = .current) {
+        workoutDays = Set(records.map { calendar.startOfDay(for: $0.date) }).count
     }
 }
 
@@ -189,4 +237,11 @@ private struct HistoryWorkoutCalendarCard: View {
         }
         .accessibilityElement(children: .combine)
     }
+}
+
+#Preview("G4 월간 캘린더") {
+    NavigationStack {
+        HistoryCalendarView(store: HistoryStore(records: HistoryListSampleData.records), onOpenDetail: { _ in })
+    }
+    .preferredColorScheme(.dark)
 }
