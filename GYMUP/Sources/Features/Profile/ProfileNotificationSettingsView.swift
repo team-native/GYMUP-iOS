@@ -156,7 +156,9 @@ struct ProfileNotificationSettingsView: View {
         .padding(.horizontal, GymupSpacing.medium)
         .padding(.vertical, GymupSpacing.small)
         .frame(minHeight: 68)
-        .accessibilityHint("앱 화면의 샘플 알림 설정을 바꿉니다")
+        .accessibilityLabel(title)
+        .accessibilityValue(isOn.wrappedValue ? "켜짐" : "꺼짐")
+        .accessibilityHint("\(subtitle). 앱 화면의 샘플 설정을 바꿉니다")
     }
 
     private var separator: some View {
@@ -168,7 +170,7 @@ struct ProfileNotificationSettingsView: View {
 
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
-            .font(GymupTypography.label)
+            .font(.custom("Archivo-SemiBold", size: 10, relativeTo: .caption2))
             .foregroundStyle(GymupColors.secondaryText)
             .frame(minHeight: 20, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
