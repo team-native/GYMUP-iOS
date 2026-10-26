@@ -4,6 +4,7 @@ struct HistoryDetailView: View {
     let record: WorkoutRecord
     let onOpenAlbum: () -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isShowingAllExercises = false
 
     var body: some View {
@@ -28,35 +29,55 @@ struct HistoryDetailView: View {
     private var workoutHeading: some View {
         VStack(alignment: .leading, spacing: 6) {
             Text(HistoryDateText.string(record.date, format: "yyyy년 M월 d일 EEEE"))
-                .font(GymupTypography.uiCaption)
-                .foregroundStyle(GymupColors.secondaryText)
-            Text(record.routineName)
-                .font(GymupTypography.title)
-                .foregroundStyle(GymupColors.primaryText)
-            Text(record.category)
-                .font(GymupTypography.callout)
-                .foregroundStyle(GymupColors.secondaryText)
+                .font(HistoryDetailTypography.caption).foregroundStyle(GymupColors.secondaryText)
+            Text(record.routineName).font(GymupTypography.title).foregroundStyle(GymupColors.primaryText)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(record.category).font(GymupTypography.callout).foregroundStyle(GymupColors.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var metrics: some View {
         HistoryCard {
-            HStack(spacing: 10) {
-                HistoryMetricCell(value: "\(record.durationMinutes)", unit: "분", title: "운동 시간")
-                metricDivider
-                HistoryMetricCell(value: "\(record.setCount)", unit: "세트", title: "총 세트")
-                metricDivider
-                HistoryMetricCell(value: record.volumeKilograms.formatted(), unit: "KG", title: "총 볼륨")
+            if dynamicTypeSize.isAccessibilitySize {
+                VStack(spacing: 0) {
+                    accessibilityMetricRow(title: "운동 시간", value: "\(record.durationMinutes)", unit: "분")
+                    horizontalMetricDivider
+                    accessibilityMetricRow(title: "총 세트", value: "\(record.setCount)", unit: "세트")
+                    horizontalMetricDivider
+                    accessibilityMetricRow(title: "총 볼륨", value: record.volumeKilograms.formatted(), unit: "KG")
+                }
+            } else {
+                HStack(spacing: 10) {
+                    HistoryMetricCell(value: "\(record.durationMinutes)", unit: "분", title: "운동 시간")
+                    metricDivider
+                    HistoryMetricCell(value: "\(record.setCount)", unit: "세트", title: "총 세트")
+                    metricDivider
+                    HistoryMetricCell(value: record.volumeKilograms.formatted(), unit: "KG", title: "총 볼륨")
+                }
             }
         }
     }
 
+    private func accessibilityMetricRow(title: String, value: String, unit: String) -> some View {
+        HStack(spacing: 8) {
+            Text(title).font(HistoryDetailTypography.caption).foregroundStyle(GymupColors.secondaryText)
+            Spacer(minLength: 8)
+            Text(value).font(HistoryDetailTypography.metric).foregroundStyle(GymupColors.primaryText).lineLimit(1).minimumScaleFactor(0.7)
+            Text(unit).font(HistoryDetailTypography.caption).foregroundStyle(GymupColors.secondaryText)
+                .fixedSize(horizontal: true, vertical: false)
+        }
+        .frame(minHeight: 52)
+        .accessibilityElement(children: .combine)
+    }
+
+    private var horizontalMetricDivider: some View {
+        Rectangle().fill(GymupColors.separator).frame(height: 1).accessibilityHidden(true)
+    }
+
     private var metricDivider: some View {
-        Rectangle()
-            .fill(GymupColors.separator)
-            .frame(width: 1, height: 36)
-            .accessibilityHidden(true)
+        Rectangle().fill(GymupColors.separator).frame(width: 1, height: 36).accessibilityHidden(true)
     }
 
     private var photoBanner: some View {
@@ -72,12 +93,9 @@ struct HistoryDetailView: View {
                         )
                     }
                 VStack(alignment: .leading, spacing: 6) {
-                    Text("오운완 사진 1장")
-                        .font(GymupTypography.uiStrong)
-                        .foregroundStyle(.white)
+                    Text("오운완 사진 1장").font(GymupTypography.uiStrong).foregroundStyle(.white)
                     HStack(spacing: 6) {
-                        Text("Progress Album에서 보기")
-                            .font(GymupTypography.uiCaption)
+                        Text("Progress Album에서 보기").font(GymupTypography.uiCaption)
                         Image(systemName: "arrow.right")
                             .font(.system(size: 10, weight: .semibold))
                     }
@@ -96,9 +114,7 @@ struct HistoryDetailView: View {
     private var exerciseList: some View {
         VStack(alignment: .leading, spacing: 12) {
             HistorySectionTitle(title: "운동 상세", subtitle: "\(record.exercises.count)종목")
-            ForEach(displayedExercises) { exercise in
-                HistoryExerciseCard(exercise: exercise)
-            }
+            ForEach(displayedExercises) { HistoryExerciseCard(exercise: $0) }
             if record.exercises.count > 2 {
                 Button {
                     withAnimation(.easeInOut(duration: 0.2)) {
@@ -126,46 +142,71 @@ struct HistoryDetailView: View {
 
 private struct HistoryExerciseCard: View {
     let exercise: WorkoutExerciseRecord
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
     var body: some View {
         HistoryCard {
             VStack(alignment: .leading, spacing: 14) {
-                HStack {
-                    Text(exercise.name)
-                        .font(GymupTypography.uiStrong)
-                        .foregroundStyle(GymupColors.primaryText)
-                    Spacer()
-                    Text("\(exercise.sets.count)세트")
-                        .font(GymupTypography.uiCaption)
+                HStack(alignment: .firstTextBaseline, spacing: 8) {
+                    Text(exercise.name).font(HistoryDetailTypography.body).foregroundStyle(GymupColors.primaryText)
+                        .fixedSize(horizontal: false, vertical: true).layoutPriority(1)
+                    Spacer(minLength: 0)
+                    Text("\(exercise.sets.count)세트").font(HistoryDetailTypography.caption)
                         .foregroundStyle(GymupColors.secondaryText)
+                        .lineLimit(1).minimumScaleFactor(0.7)
                 }
                 VStack(spacing: 10) {
                     ForEach(exercise.sets) { set in
-                        HStack {
-                            Text("\(set.id)세트")
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                            Text("\(set.weight.formatted()) kg")
-                                .frame(maxWidth: .infinity, alignment: .center)
-                            Text("\(set.repetitions)회")
-                                .frame(maxWidth: .infinity, alignment: .trailing)
-                            if set.isPersonalRecord {
-                                Text("PR")
-                                    .font(GymupTypography.uiCaption)
-                                    .foregroundStyle(.white)
-                                    .padding(.horizontal, 7)
-                                    .padding(.vertical, 4)
-                                    .background(GymupColors.accent, in: Capsule())
+                        Group {
+                            if dynamicTypeSize.isAccessibilitySize {
+                                VStack(alignment: .leading, spacing: 6) {
+                                    HStack {
+                                        Text("\(set.id)세트")
+                                        Spacer(minLength: 8)
+                                        if set.isPersonalRecord { personalRecordBadge }
+                                    }
+                                    HStack {
+                                        Text("\(set.weight.formatted()) kg")
+                                            .fixedSize(horizontal: false, vertical: true)
+                                        Spacer(minLength: 8)
+                                        Text("\(set.repetitions)회")
+                                            .fixedSize(horizontal: false, vertical: true)
+                                    }
+                                }
+                            } else {
+                                HStack {
+                                    Text("\(set.id)세트")
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                    Text("\(set.weight.formatted()) kg")
+                                        .lineLimit(1).minimumScaleFactor(0.75)
+                                        .frame(maxWidth: .infinity, alignment: .center)
+                                    Text("\(set.repetitions)회")
+                                        .lineLimit(1).minimumScaleFactor(0.75)
+                                        .frame(maxWidth: .infinity, alignment: .trailing)
+                                    if set.isPersonalRecord { personalRecordBadge }
+                                }
                             }
                         }
-                        .font(GymupTypography.uiCaption)
+                        .font(HistoryDetailTypography.caption)
                         .foregroundStyle(set.isPersonalRecord ? GymupColors.primaryText : GymupColors.secondaryText)
-                        .accessibilityElement(children: .combine)
-                        .accessibilityLabel(set.accessibilityDescription)
+                        .accessibilityElement(children: .combine).accessibilityLabel(set.accessibilityDescription)
                     }
                 }
             }
         }
     }
+
+    private var personalRecordBadge: some View {
+        Text("PR").font(HistoryDetailTypography.badge).foregroundStyle(.white)
+            .padding(.horizontal, 7).padding(.vertical, 4).background(GymupColors.accent, in: Capsule()).fixedSize()
+    }
+}
+
+private enum HistoryDetailTypography {
+    static let caption = Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption)
+    static let body = Font.custom("GothicA1-SemiBold", size: 14, relativeTo: .subheadline)
+    static let metric = Font.custom("BarlowCondensed-ExtraBold", size: 18, relativeTo: .title3)
+    static let badge = Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption)
 }
 
 struct HistoryCalendarView: View {
