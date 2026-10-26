@@ -160,7 +160,6 @@ struct ProfileReminderSchedule {
 
 enum ProfileSheetDestination: String, Identifiable {
     case restTime
-    case playlist
 
     var id: String { rawValue }
 }
