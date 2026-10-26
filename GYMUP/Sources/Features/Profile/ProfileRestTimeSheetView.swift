@@ -34,6 +34,7 @@ struct ProfileRestTimeSheetView: View {
                 .background(GymupColors.canvas)
         }
         .background(GymupColors.canvas)
+        .onAppear { draftSelection = selection }
     }
 
     private var titleRow: some View {
