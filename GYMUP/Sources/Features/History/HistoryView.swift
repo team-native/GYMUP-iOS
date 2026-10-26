@@ -5,6 +5,7 @@ struct HistoryView: View {
     @State private var path: [HistoryRoute] = []
     @State private var selectedMonth = HistoryListSampleData.sampleMonth
     @State private var selectedDate = HistoryListSampleData.date(day: 11, inMonthOf: HistoryListSampleData.sampleMonth)
+    @State private var visibleWorkoutID: UUID?
 
     init(onOpenRoutines: @escaping () -> Void = {}) {
         self.onOpenRoutines = onOpenRoutines
@@ -39,6 +40,7 @@ struct HistoryView: View {
                 .padding(.top, 8)
                 .padding(.bottom, 28)
             }
+            .scrollPosition(id: $visibleWorkoutID, anchor: .top)
             .background(GymupColors.canvas.ignoresSafeArea())
         }
     }
@@ -176,6 +178,7 @@ struct HistoryView: View {
                 .id(record.id)
             }
         }
+        .scrollTargetLayout()
     }
 
     private var growthLink: some View {
@@ -216,6 +219,7 @@ struct HistoryView: View {
         selectedDate = date
         guard let record = monthRecords.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) else { return }
         withAnimation(.easeInOut(duration: 0.25)) {
+            visibleWorkoutID = record.id
             proxy.scrollTo(record.id, anchor: .top)
         }
     }
@@ -224,6 +228,7 @@ struct HistoryView: View {
         selectedMonth = month
         let preferredDate = HistoryListSampleData.date(day: 11, inMonthOf: month)
         selectedDate = HistoryListSampleData.records(on: preferredDate).isEmpty ? month : preferredDate
+        visibleWorkoutID = HistoryListSampleData.records(inMonthOf: month).first?.id
     }
 
     private func accessibilityLabel(for date: Date, hasWorkout: Bool) -> String {

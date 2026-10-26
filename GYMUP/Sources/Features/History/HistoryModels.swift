@@ -284,7 +284,11 @@ enum HistoryListSampleData {
                 volumeKilograms: workout.volumeKilograms,
                 growth: workout.personalRecordCount,
                 photoAssetName: photoAsset(for: workout.routineName),
-                exercises: exercises(for: workout.routineName, personalRecordCount: workout.personalRecordCount)
+                exercises: exercises(
+                    for: workout.routineName,
+                    setCount: workout.setCount,
+                    personalRecordCount: workout.personalRecordCount
+                )
             )
         }
     }()
@@ -321,7 +325,11 @@ enum HistoryListSampleData {
         }
     }
 
-    private static func exercises(for routineName: String, personalRecordCount: Int) -> [WorkoutExerciseRecord] {
+    private static func exercises(
+        for routineName: String,
+        setCount: Int,
+        personalRecordCount: Int
+    ) -> [WorkoutExerciseRecord] {
         let names: [String]
         switch routineName {
         case "하체 B":
@@ -332,17 +340,23 @@ enum HistoryListSampleData {
             names = ["벤치프레스", "인클라인 덤벨 프레스", "케이블 플라이"]
         }
 
+        let baseSetCount = setCount / names.count
+        let remainingSets = setCount % names.count
+        var flattenedSetIndex = 0
+
         return names.enumerated().map { exerciseIndex, name in
-            WorkoutExerciseRecord(
+            let exerciseSetCount = baseSetCount + (exerciseIndex < remainingSets ? 1 : 0)
+            return WorkoutExerciseRecord(
                 id: exerciseIndex + 1,
                 name: name,
-                sets: (1...3).map { setIndex in
-                    let flattenedIndex = exerciseIndex * 3 + setIndex - 1
+                sets: (1...exerciseSetCount).map { setIndex in
+                    let isPersonalRecord = flattenedSetIndex < personalRecordCount
+                    flattenedSetIndex += 1
                     return WorkoutSetRecord(
                         id: setIndex,
                         weight: 40 + Double(exerciseIndex * 10 + setIndex * 2),
                         repetitions: 12 - setIndex,
-                        isPersonalRecord: flattenedIndex < personalRecordCount
+                        isPersonalRecord: isPersonalRecord
                     )
                 }
             )
