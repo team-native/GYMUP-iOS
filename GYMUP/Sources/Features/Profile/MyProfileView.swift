@@ -163,7 +163,9 @@ struct ProfileLevelCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("레벨 \(profile.level), \(profile.stage), 레벨 상세 보기")
+        .accessibilityLabel(
+            "레벨 \(profile.level), \(profile.stage), \(profile.focus), 주 \(profile.workoutsPerWeek)회, 레벨 상세 보기"
+        )
         .accessibilityHint("레벨 정보를 확인합니다")
     }
 
