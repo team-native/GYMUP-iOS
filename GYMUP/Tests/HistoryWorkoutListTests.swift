@@ -2,6 +2,58 @@ import XCTest
 @testable import GYMUP
 
 final class HistoryWorkoutListTests: XCTestCase {
+    @MainActor
+    func testFirstRunHistoryStoreStartsEmpty() {
+        XCTAssertTrue(HistoryStore().records.isEmpty)
+    }
+
+    @MainActor
+    func testCompletedWorkoutAddsRecordAndClearsEmptyStateCondition() {
+        let store = HistoryStore()
+        let completedAt = Date(timeIntervalSince1970: 1_800_000_000)
+        let exercise = WorkoutSessionExercise(
+            id: "bench-press",
+            name: "벤치 프레스",
+            target: "가슴",
+            restDurationSeconds: 90,
+            formSteps: [],
+            beginnerTip: "",
+            sets: [
+                WorkoutSessionSet(weightKilograms: 50, repetitions: 10, isCompleted: true),
+                WorkoutSessionSet(weightKilograms: 62.5, repetitions: 8, isCompleted: true)
+            ]
+        )
+        let plan = WorkoutSessionPlan(
+            id: "upper-a",
+            name: "UPPER A",
+            title: "상체 A",
+            estimatedDurationMinutes: 55,
+            exercises: [exercise]
+        )
+
+        XCTAssertTrue(store.records.isEmpty)
+
+        let record = WorkoutSessionCompletionDataFactory.makeHistoryRecord(
+            plan: plan,
+            elapsedSeconds: 65,
+            completedAt: completedAt
+        )
+        store.add(record)
+
+        XCTAssertFalse(store.records.isEmpty)
+        XCTAssertEqual(store.records, [record])
+        XCTAssertEqual(store.records(inMonthOf: completedAt), [record])
+        XCTAssertEqual(record.routineName, "상체 A")
+        XCTAssertEqual(record.durationMinutes, 2)
+        XCTAssertEqual(record.setCount, 2)
+        XCTAssertEqual(record.volumeKilograms, 1_000)
+        XCTAssertEqual(record.growth, 1)
+        XCTAssertEqual(record.exercises.first?.sets.filter(\.isPersonalRecord).count, 1)
+
+        store.add(record)
+        XCTAssertEqual(store.records.count, 1)
+    }
+
     func testG1SampleDataMatchesMonthlySummaryAndVisibleDateOrder() {
         let monthRecords = HistoryListSampleData.records(inMonthOf: HistoryListSampleData.sampleMonth)
         let calendar = Calendar.current

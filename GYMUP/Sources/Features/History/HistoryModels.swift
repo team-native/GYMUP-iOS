@@ -1,4 +1,5 @@
 import Foundation
+import Observation
 
 enum HistoryRoute: Hashable {
     case detail(UUID)
@@ -41,6 +42,35 @@ struct WorkoutRecord: Identifiable, Hashable {
     var accessibilityDescription: String {
         let date = HistoryDateText.string(self.date, format: "M월 d일 EEEE")
         return "\(date), \(routineName), \(durationMinutes)분, \(setCount)세트, 개인 기록 \(growth)개"
+    }
+}
+
+@Observable
+@MainActor
+final class HistoryStore {
+    private(set) var records: [WorkoutRecord]
+
+    init(records: [WorkoutRecord] = []) {
+        self.records = records.sorted { $0.date > $1.date }
+    }
+
+    func add(_ record: WorkoutRecord) {
+        guard !records.contains(where: { $0.id == record.id }) else { return }
+        records.append(record)
+        records.sort { $0.date > $1.date }
+    }
+
+    func records(inMonthOf date: Date) -> [WorkoutRecord] {
+        guard let month = Calendar.current.dateInterval(of: .month, for: date) else { return [] }
+        return records.filter { $0.date >= month.start && $0.date < month.end }
+    }
+
+    func records(on date: Date) -> [WorkoutRecord] {
+        records.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+    }
+
+    func record(with id: UUID) -> WorkoutRecord? {
+        records.first { $0.id == id }
     }
 }
 

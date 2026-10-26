@@ -11,6 +11,7 @@ struct MainTabView: View {
     @State private var selection: GymupTab = .home
     @State private var inventory = BarbellCustomizationViewModel()
     @State private var routineStore = RoutineStore()
+    @State private var historyStore = HistoryStore()
     @State private var requestedRoutineID: String?
     @State private var requestedExerciseAddRoutineID: String?
     @State private var emptyStartRoutineID: String?
@@ -26,12 +27,12 @@ struct MainTabView: View {
                     onDetailRouteChanged: { isDetailPresented = $0 }
                 )
             case .routine:
-                RoutineView(store: routineStore, requestedRoutineID: $requestedRoutineID,
+                RoutineView(store: routineStore, historyStore: historyStore, requestedRoutineID: $requestedRoutineID,
                             requestedExerciseAddRoutineID: $requestedExerciseAddRoutineID,
                             onEmptyStartAttempt: { emptyStartRoutineID = $0 },
                             onDetailRouteChanged: { isDetailPresented = $0 })
             case .history:
-                HistoryView(onOpenRoutines: { selection = .routine })
+                HistoryView(store: historyStore, onOpenRoutines: { selection = .routine })
             case .profile:
                 MyProfileView()
             }
