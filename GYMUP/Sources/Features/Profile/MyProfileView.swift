@@ -23,8 +23,11 @@ struct MyProfileView: View {
 
     private var notificationSummary: String {
         var items: [String] = []
-        if notificationPreferences.restTimerEnabled { items.append("휴식 종료") }
-        if notificationPreferences.workoutReminderEnabled { items.append("운동 리마인더") }
+        if notificationPreferences.restTimerEnabled {
+            items.append("휴식 종료")
+            items.append("햅틱")
+        }
+        if notificationPreferences.workoutReminderEnabled { items.append("리마인더") }
         if notificationPreferences.weeklySummaryEnabled { items.append("주간 요약") }
         return items.isEmpty ? "모든 알림 꺼짐" : items.joined(separator: " · ")
     }
