@@ -3,15 +3,21 @@ import SwiftUI
 struct HistoryView: View {
     let store: HistoryStore
     let onOpenRoutines: () -> Void
+    let onComparisonPresented: (Bool) -> Void
     @State private var path: [HistoryRoute] = []
     @State private var selectedMonth: Date
     @State private var selectedDate: Date
     @State private var visibleWorkoutID: UUID?
 
     @MainActor
-    init(store: HistoryStore, onOpenRoutines: @escaping () -> Void = {}) {
+    init(
+        store: HistoryStore,
+        onOpenRoutines: @escaping () -> Void = {},
+        onComparisonPresented: @escaping (Bool) -> Void = { _ in }
+    ) {
         self.store = store
         self.onOpenRoutines = onOpenRoutines
+        self.onComparisonPresented = onComparisonPresented
         let initialRecord = store.records.first
         let initialDate = initialRecord?.date ?? .now
         let initialMonth = Calendar.current.dateInterval(of: .month, for: initialDate)?.start ?? initialDate
@@ -29,6 +35,12 @@ struct HistoryView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .background(GymupColors.canvas.ignoresSafeArea())
+        .onAppear {
+            onComparisonPresented(isComparisonPresented)
+        }
+        .onChange(of: path) { _, _ in
+            onComparisonPresented(isComparisonPresented)
+        }
     }
 
     private var historyList: some View {
@@ -262,6 +274,14 @@ struct HistoryView: View {
         case let .comparison(recordID):
             HistoryComparisonView(store: store, initialRecordID: recordID)
         }
+    }
+}
+
+private extension HistoryView {
+    var isComparisonPresented: Bool {
+        guard let route = path.last else { return false }
+        if case .comparison = route { return true }
+        return false
     }
 }
 
