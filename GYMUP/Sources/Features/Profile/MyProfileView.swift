@@ -71,7 +71,7 @@ struct MyProfileView: View {
                 .padding(.top, GymupSpacing.large)
                 .padding(.bottom, GymupSpacing.xxLarge)
             }
-            .background(GymupColors.canvas)
+            .background(ProfileOverviewColors.canvas)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isLevelPresented) {
                 LevelView(onNavigationStateChanged: { _ in })
@@ -169,7 +169,7 @@ struct ProfileGoalWorkoutSection: View {
                     action: onRestTime
                 )
             }
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
         }
     }
 }
@@ -198,7 +198,7 @@ struct ProfilePermissionSection: View {
                     action: onPhotoAccess
                 )
             }
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
         }
     }
 }
@@ -260,7 +260,7 @@ private struct ProfileSettingRow: View {
 
                         Text(subtitle)
                             .font(ProfileTypography.caption)
-                            .foregroundStyle(GymupColors.secondaryText)
+                            .foregroundStyle(ProfileOverviewColors.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.leading, 48)
 
@@ -280,7 +280,7 @@ private struct ProfileSettingRow: View {
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(subtitle)
                                 .font(ProfileTypography.caption)
-                                .foregroundStyle(GymupColors.secondaryText)
+                                .foregroundStyle(ProfileOverviewColors.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
@@ -314,7 +314,7 @@ private struct ProfileSettingRow: View {
         if let value {
             Text(value)
                 .font(ProfileTypography.level)
-                .foregroundStyle(GymupColors.brandText)
+                .foregroundStyle(ProfileOverviewColors.brandPrimary)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
@@ -331,7 +331,7 @@ private struct ProfileSectionTitle: View {
     var body: some View {
         Text(title)
             .font(ProfileTypography.section)
-            .foregroundStyle(GymupColors.secondaryText)
+            .foregroundStyle(ProfileOverviewColors.secondaryText)
             .frame(minHeight: 20, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
     }
