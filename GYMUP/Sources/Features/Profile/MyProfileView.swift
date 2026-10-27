@@ -1,6 +1,8 @@
 import SwiftUI
+import UserNotifications
 
 struct MyProfileView: View {
+    @Environment(\.scenePhase) private var scenePhase
     @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
     @State private var goals = ProfileSampleData.goalHistory
@@ -8,6 +10,8 @@ struct MyProfileView: View {
     @State private var isPhotoPermissionsPresented = false
     @State private var restTimeSeconds = 90
     @State private var notificationPreferences = ProfileNotificationPreferences()
+    @State private var notificationPermissionSnapshot: ProfileNotificationPermissionSnapshot?
+    @State private var isNotificationPermissionPresented = false
     @State private var reminderSchedule = ProfileReminderSchedule()
     @State private var presentedSheet: ProfileSheetDestination?
     @State private var isPlaylistPresented = false
@@ -41,8 +45,12 @@ struct MyProfileView: View {
 
                     ProfileLevelCard(profile: profile) { isLevelPresented = true }
 
-                    if !profile.notificationPermissionEnabled {
-                        ProfileNotificationPermissionBanner { perform(.notifications) }
+                    if let notificationPermissionSnapshot,
+                       notificationPermissionSnapshot.shouldShowPermissionBanner {
+                        ProfileNotificationPermissionBanner(
+                            authorization: notificationPermissionSnapshot.authorization,
+                            onEnable: { isNotificationPermissionPresented = true }
+                        )
                     }
 
                     ProfileGoalWorkoutSection(
@@ -74,8 +82,12 @@ struct MyProfileView: View {
             .navigationDestination(isPresented: $isNotificationSettingsPresented) {
                 ProfileNotificationSettingsView(
                     preferences: $notificationPreferences,
-                    schedule: $reminderSchedule
+                    schedule: $reminderSchedule,
+                    permissionSnapshot: $notificationPermissionSnapshot
                 )
+            }
+            .navigationDestination(isPresented: $isNotificationPermissionPresented) {
+                ProfileNotificationPermissionView(permissionSnapshot: $notificationPermissionSnapshot)
             }
             .navigationDestination(isPresented: $isPhotoPermissionsPresented) {
                 ProfilePhotoPermissionView()
@@ -87,6 +99,13 @@ struct MyProfileView: View {
                 sheet(for: destination)
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
+            }
+            .task {
+                await refreshNotificationPermissionStatus()
+            }
+            .onChange(of: scenePhase) { _, newPhase in
+                guard newPhase == .active else { return }
+                Task { await refreshNotificationPermissionStatus() }
             }
         }
     }
@@ -117,64 +136,11 @@ struct MyProfileView: View {
             isPlaylistPresented = true
         }
     }
-}
 
-struct ProfileNotificationPermissionBanner: View {
-    let onEnable: () -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    var body: some View {
-        Group {
-            if dynamicTypeSize.isAccessibilitySize {
-                VStack(alignment: .leading, spacing: GymupSpacing.small) {
-                    message
-                    enableButton
-                        .frame(maxWidth: .infinity, alignment: .trailing)
-                }
-            } else {
-                HStack(spacing: GymupSpacing.medium) {
-                    message
-                    enableButton
-                }
-            }
-        }
-        .padding(GymupSpacing.medium)
-        .background(GymupColors.canvas, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
-        .overlay {
-            RoundedRectangle(cornerRadius: GymupRadius.medium)
-                .strokeBorder(GymupColors.accent, lineWidth: 1)
-        }
-    }
-
-    private var message: some View {
-        HStack(spacing: GymupSpacing.medium) {
-            Image(systemName: "bell.badge")
-                .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(GymupColors.accent)
-                .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
-                Text("알림 권한이 꺼져 있어요")
-                    .font(ProfileTypography.rowTitle)
-                    .foregroundStyle(GymupColors.primaryText)
-                Text("휴식 종료 알림을 받을 수 없어요")
-                    .font(ProfileTypography.caption)
-                    .foregroundStyle(GymupColors.secondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    private var enableButton: some View {
-        Button("켜기", action: onEnable)
-            .font(ProfileTypography.action)
-            .foregroundStyle(.white)
-            .frame(minWidth: 56, minHeight: 44)
-            .background(GymupColors.accent, in: Capsule())
-            .buttonStyle(.plain)
-            .accessibilityLabel("알림 설정 열기")
-            .accessibilityHint("앱의 알림 설정 화면을 엽니다")
+    @MainActor
+    private func refreshNotificationPermissionStatus() async {
+        let settings = await UNUserNotificationCenter.current().notificationSettings()
+        notificationPermissionSnapshot = ProfileNotificationPermissionSnapshot(settings: settings)
     }
 }
 

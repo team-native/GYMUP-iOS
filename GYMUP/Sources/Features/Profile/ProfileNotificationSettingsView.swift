@@ -3,9 +3,10 @@ import SwiftUI
 struct ProfileNotificationSettingsView: View {
     @Binding var preferences: ProfileNotificationPreferences
     @Binding var schedule: ProfileReminderSchedule
+    @Binding var permissionSnapshot: ProfileNotificationPermissionSnapshot?
     @Environment(\.dismiss) private var dismiss
     @State private var isReminderSchedulePresented = false
-    @State private var isPermissionGuidePresented = false
+    @State private var isPermissionViewPresented = false
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -53,13 +54,8 @@ struct ProfileNotificationSettingsView: View {
         .navigationDestination(isPresented: $isReminderSchedulePresented) {
             ProfileReminderScheduleView(schedule: $schedule)
         }
-        .alert("알림 권한 안내", isPresented: $isPermissionGuidePresented) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(
-                "현재 화면은 앱 안의 알림 설정을 보여주는 샘플입니다. "
-                    + "기기 알림 권한이나 iPhone 설정은 변경하지 않습니다."
-            )
+        .navigationDestination(isPresented: $isPermissionViewPresented) {
+            ProfileNotificationPermissionView(permissionSnapshot: $permissionSnapshot)
         }
     }
 
@@ -109,12 +105,12 @@ struct ProfileNotificationSettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
             }
             Button("알림 권한 상태 확인  >") {
-                isPermissionGuidePresented = true
+                isPermissionViewPresented = true
             }
             .font(scaledActionTitle)
             .foregroundStyle(GymupColors.accent)
             .frame(minHeight: 44, alignment: .leading)
-            .accessibilityHint("현재 화면에서는 기기 알림 권한을 변경하지 않습니다")
+            .accessibilityHint("iPhone의 시스템 알림 권한 상태를 확인합니다")
         }
         .padding(GymupSpacing.medium)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -181,7 +177,8 @@ struct ProfileNotificationSettingsView: View {
     NavigationStack {
         ProfileNotificationSettingsView(
             preferences: .constant(ProfileNotificationPreferences()),
-            schedule: .constant(ProfileReminderSchedule())
+            schedule: .constant(ProfileReminderSchedule()),
+            permissionSnapshot: .constant(nil)
         )
         .preferredColorScheme(.dark)
     }

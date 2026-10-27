@@ -7,7 +7,6 @@ struct ProfileSummary {
     let workoutsPerWeek: Int
     let currentGoal: String
     let goalDurationWeeks: Int
-    let notificationPermissionEnabled: Bool
     let restTimeSummary: String
     let notificationSummary: String
     let photoPermissionSummary: String
@@ -21,7 +20,6 @@ enum ProfileSampleData {
         workoutsPerWeek: 3,
         currentGoal: "체형",
         goalDurationWeeks: 12,
-        notificationPermissionEnabled: false,
         restTimeSummary: "1:30",
         notificationSummary: "휴식 종료 · 햅틱 · 리마인더",
         photoPermissionSummary: "오운완 사진 촬영 · 저장"
