@@ -15,13 +15,13 @@ struct ProfileNotificationSettingsView: View {
                     VStack(spacing: 0) {
                         preferenceToggle(
                             title: "휴식 종료 알림",
-                            subtitle: "잠금 화면·Live Activity 포함",
+                            subtitle: "잠금화면·Live Activity 포함",
                             isOn: $preferences.restTimerEnabled
                         )
                         separator
                         preferenceToggle(
                             title: "햅틱",
-                            subtitle: "Set 완료 · 휴식 종료 시 진동",
+                            subtitle: "Set 종료·휴식 종료 시 진동",
                             isOn: $preferences.hapticsEnabled
                         )
                     }
@@ -31,7 +31,7 @@ struct ProfileNotificationSettingsView: View {
                     VStack(spacing: 0) {
                         preferenceToggle(
                             title: "운동 리마인더",
-                            subtitle: "운동하는 날 알려드려요",
+                            subtitle: "운동하는 날만 알려드려요",
                             isOn: $preferences.workoutReminderEnabled
                         )
                         separator
@@ -95,34 +95,52 @@ struct ProfileNotificationSettingsView: View {
 
     private var permissionInfoCard: some View {
         VStack(alignment: .leading, spacing: GymupSpacing.small) {
-            HStack(alignment: .top, spacing: GymupSpacing.small) {
+            HStack(alignment: .center, spacing: 10) {
                 Image(systemName: "info.circle")
-                    .foregroundStyle(GymupColors.secondaryText)
+                    .font(.system(size: 18, weight: .regular))
+                    .foregroundStyle(ProfileNotificationSettingsStyle.secondaryText)
+                    .frame(width: 18, height: 18)
                     .accessibilityHidden(true)
-                Text("알림 권한이 꺼져 있으면 앱 설정이 켜져 있어도 알림이 오지 않아요.")
-                    .font(GymupTypography.caption)
-                    .foregroundStyle(GymupColors.secondaryText)
+                Text("알림 권한이 꺼져 있으면 위 설정이 켜져 있어도 알림이 오지 않아요.")
+                    .font(.custom("GothicA1-Medium", size: 11, relativeTo: .caption))
+                    .foregroundStyle(ProfileNotificationSettingsStyle.secondaryText)
+                    .lineSpacing(2)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(minHeight: 30, alignment: .leading)
             }
-            Button("알림 권한 상태 확인  >") {
+            .padding(.horizontal, 14)
+            .padding(.vertical, 12)
+            .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
+            .background(
+                ProfileNotificationSettingsStyle.surface,
+                in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+            )
+
+            Button {
                 isPermissionViewPresented = true
+            } label: {
+                HStack(spacing: 6) {
+                    Text("알림 권한 상태 확인")
+                        .font(.custom("GothicA1-Medium", size: 13, relativeTo: .footnote))
+                        .foregroundStyle(GymupColors.brandText)
+                    Image("H1IconChevronRight")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 16, height: 16)
+                        .accessibilityHidden(true)
+                }
+                .contentShape(Rectangle())
             }
-            .font(scaledActionTitle)
-            .foregroundStyle(GymupColors.accent)
+            .buttonStyle(.plain)
             .frame(minHeight: 44, alignment: .leading)
+            .accessibilityLabel("알림 권한 상태 확인")
             .accessibilityHint("iPhone의 시스템 알림 권한 상태를 확인합니다")
         }
-        .padding(GymupSpacing.medium)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
     }
 
     private var scaledRowTitle: Font {
         .custom("GothicA1-SemiBold", size: 14, relativeTo: .body)
-    }
-
-    private var scaledActionTitle: Font {
-        .custom("GothicA1-Bold", size: 13, relativeTo: .body)
     }
 
     private func notificationSection<Content: View>(
@@ -171,6 +189,11 @@ struct ProfileNotificationSettingsView: View {
             .frame(minHeight: 20, alignment: .leading)
             .accessibilityAddTraits(.isHeader)
     }
+}
+
+private enum ProfileNotificationSettingsStyle {
+    static let surface = Color(red: 22.0 / 255, green: 22.0 / 255, blue: 26.0 / 255)
+    static let secondaryText = Color(red: 161.0 / 255, green: 161.0 / 255, blue: 170.0 / 255)
 }
 
 #Preview {
