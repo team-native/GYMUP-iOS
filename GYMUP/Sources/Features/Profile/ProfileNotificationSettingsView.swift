@@ -15,13 +15,13 @@ struct ProfileNotificationSettingsView: View {
                     VStack(spacing: 0) {
                         preferenceToggle(
                             title: "휴식 종료 알림",
-                            subtitle: "잠금 화면·Live Activity 포함",
+                            subtitle: "잠금화면·Live Activity 포함",
                             isOn: $preferences.restTimerEnabled
                         )
                         separator
                         preferenceToggle(
                             title: "햅틱",
-                            subtitle: "Set 완료 · 휴식 종료 시 진동",
+                            subtitle: "Set 종료·휴식 종료 시 진동",
                             isOn: $preferences.hapticsEnabled
                         )
                     }
@@ -31,7 +31,7 @@ struct ProfileNotificationSettingsView: View {
                     VStack(spacing: 0) {
                         preferenceToggle(
                             title: "운동 리마인더",
-                            subtitle: "운동하는 날 알려드려요",
+                            subtitle: "운동하는 날만 알려드려요",
                             isOn: $preferences.workoutReminderEnabled
                         )
                         separator
