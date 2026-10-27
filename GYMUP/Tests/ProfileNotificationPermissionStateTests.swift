@@ -23,4 +23,27 @@ final class ProfileNotificationPermissionStateTests: XCTestCase {
         XCTAssertEqual(ProfileNotificationSettingState(.disabled).displayValue, "꺼짐")
         XCTAssertEqual(ProfileNotificationSettingState(.notSupported).displayValue, "—")
     }
+
+    func testPermissionSnapshotMapsAlertSettingToBannerRow() {
+        let snapshot = ProfileNotificationPermissionSnapshot(
+            authorizationStatus: .authorized,
+            lockScreenSetting: .enabled,
+            alertSetting: .disabled
+        )
+
+        XCTAssertEqual(snapshot.authorization, .allowed)
+        XCTAssertEqual(snapshot.lockScreen, .enabled)
+        XCTAssertEqual(snapshot.banner, .disabled)
+    }
+
+    func testDeniedAuthorizationShowsUnavailableCategoryStates() {
+        let snapshot = ProfileNotificationPermissionSnapshot(
+            authorizationStatus: .denied,
+            lockScreenSetting: .enabled,
+            alertSetting: .enabled
+        )
+
+        XCTAssertEqual(snapshot.lockScreen, .unavailable)
+        XCTAssertEqual(snapshot.banner, .unavailable)
+    }
 }
