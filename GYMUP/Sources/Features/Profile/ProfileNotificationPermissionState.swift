@@ -66,7 +66,19 @@ struct ProfileNotificationPermissionSnapshot: Equatable {
     let banner: ProfileNotificationSettingState
 
     init(settings: UNNotificationSettings) {
-        let authorization = ProfileNotificationAuthorizationState(settings.authorizationStatus)
+        self.init(
+            authorizationStatus: settings.authorizationStatus,
+            lockScreenSetting: settings.lockScreenSetting,
+            alertSetting: settings.alertSetting
+        )
+    }
+
+    init(
+        authorizationStatus: UNAuthorizationStatus,
+        lockScreenSetting: UNNotificationSetting,
+        alertSetting: UNNotificationSetting
+    ) {
+        let authorization = ProfileNotificationAuthorizationState(authorizationStatus)
         self.authorization = authorization
 
         guard authorization == .allowed else {
@@ -75,8 +87,8 @@ struct ProfileNotificationPermissionSnapshot: Equatable {
             return
         }
 
-        lockScreen = ProfileNotificationSettingState(settings.lockScreenSetting)
-        banner = ProfileNotificationSettingState(settings.bannerSetting)
+        lockScreen = ProfileNotificationSettingState(lockScreenSetting)
+        banner = ProfileNotificationSettingState(alertSetting)
     }
 
     init(

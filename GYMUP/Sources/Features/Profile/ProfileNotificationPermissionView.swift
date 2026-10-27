@@ -105,14 +105,21 @@ struct ProfileNotificationPermissionView: View {
     private var permissionStatusCard: some View {
         VStack(spacing: 0) {
             permissionStatusRow(title: "알림 허용", value: authorizationDisplayValue)
-            ProfileRowSeparator()
+            permissionStatusSeparator
             permissionStatusRow(title: "잠금화면", value: permissionSnapshot?.lockScreen.displayValue ?? "—")
-            ProfileRowSeparator()
+            permissionStatusSeparator
             permissionStatusRow(title: "배너", value: permissionSnapshot?.banner.displayValue ?? "—")
         }
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("notificationPermission.statusCard")
+    }
+
+    private var permissionStatusSeparator: some View {
+        Rectangle()
+            .fill(GymupColors.border)
+            .frame(height: 1)
+            .padding(.horizontal, GymupSpacing.large)
     }
 
     private var title: String {
