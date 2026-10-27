@@ -53,7 +53,7 @@ struct MainTabView: View {
                 )
             }
         }
-        .background(GymupColors.canvas)
+        .background(selection == .profile ? ProfileOverviewColors.canvas : GymupColors.canvas)
         .preferredColorScheme(.dark)
     }
 
@@ -68,10 +68,10 @@ struct MainTabView: View {
         .padding(.top, 8)
         .frame(height: 58, alignment: .top)
         .background {
-            GymupColors.canvas
+            (selection == .profile ? ProfileOverviewColors.canvas : GymupColors.canvas)
                 .overlay(alignment: .top) {
                     Rectangle()
-                        .fill(Color(red: 0.15, green: 0.15, blue: 0.17))
+                        .fill(selection == .profile ? GymupColors.border : Color(red: 0.15, green: 0.15, blue: 0.17))
                         .frame(height: 1)
                 }
                 .ignoresSafeArea(edges: .bottom)
@@ -89,7 +89,13 @@ struct MainTabView: View {
                     .accessibilityHidden(true)
                 Text(title)
                     .font(GymupTypography.uiCaption)
-                    .foregroundStyle(selection == value ? GymupColors.primaryText : Color(red: 0.42, green: 0.42, blue: 0.46))
+                    .foregroundStyle(
+                        selection == value
+                            ? GymupColors.primaryText
+                            : selection == .profile
+                                ? ProfileOverviewColors.secondaryText
+                                : Color(red: 0.42, green: 0.42, blue: 0.46)
+                    )
             }
             .frame(maxWidth: .infinity)
             .frame(height: 50, alignment: .top)
