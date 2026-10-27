@@ -21,10 +21,10 @@ struct ProfileNotificationPermissionBanner: View {
             }
         }
         .padding(GymupSpacing.medium)
-        .background(GymupColors.canvas, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+        .background(ProfileOverviewColors.canvas, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
         .overlay {
             RoundedRectangle(cornerRadius: GymupRadius.medium)
-                .strokeBorder(GymupColors.accent, lineWidth: 1)
+                .strokeBorder(ProfileOverviewColors.statusCritical, lineWidth: 1)
         }
     }
 
@@ -32,7 +32,7 @@ struct ProfileNotificationPermissionBanner: View {
         HStack(spacing: GymupSpacing.medium) {
             Image(systemName: "bell.badge")
                 .font(.system(size: 18, weight: .medium))
-                .foregroundStyle(GymupColors.accent)
+                .foregroundStyle(ProfileOverviewColors.statusCritical)
                 .accessibilityHidden(true)
 
             VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
@@ -41,7 +41,7 @@ struct ProfileNotificationPermissionBanner: View {
                     .foregroundStyle(GymupColors.primaryText)
                 Text(detail)
                     .font(ProfileTypography.caption)
-                    .foregroundStyle(GymupColors.secondaryText)
+                    .foregroundStyle(ProfileOverviewColors.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -54,7 +54,7 @@ struct ProfileNotificationPermissionBanner: View {
             .font(ProfileTypography.action)
             .foregroundStyle(.white)
             .frame(minWidth: 56, minHeight: 44)
-            .background(GymupColors.accent, in: Capsule())
+            .background(ProfileOverviewColors.brandPrimary, in: Capsule())
             .buttonStyle(.plain)
             .accessibilityLabel("알림 설정 열기")
             .accessibilityHint("시스템 알림 권한 상태와 설정 화면을 엽니다")

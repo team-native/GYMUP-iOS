@@ -1,5 +1,13 @@
 import SwiftUI
 
+enum ProfileOverviewColors {
+    static let canvas = Color(red: 11.0 / 255, green: 11.0 / 255, blue: 13.0 / 255)
+    static let surface = Color(red: 22.0 / 255, green: 22.0 / 255, blue: 26.0 / 255)
+    static let secondaryText = Color(red: 161.0 / 255, green: 161.0 / 255, blue: 170.0 / 255)
+    static let brandPrimary = Color(red: 255.0 / 255, green: 18.0 / 255, blue: 22.0 / 255)
+    static let statusCritical = Color(red: 255.0 / 255, green: 69.0 / 255, blue: 58.0 / 255)
+}
+
 enum ProfileTypography {
     static let pageTitle = Font.custom("GothicA1-ExtraBold", size: 20, relativeTo: .title2)
     static let level = Font.custom("BarlowCondensed-ExtraBold", size: 18, relativeTo: .title3)
@@ -39,7 +47,7 @@ struct ProfileLevelCard: View {
             .padding(.horizontal, GymupSpacing.large)
             .padding(.vertical, GymupSpacing.medium)
             .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -65,11 +73,11 @@ struct ProfileLevelCard: View {
                     .foregroundStyle(GymupColors.primaryText)
                 Text(profile.stage)
                     .font(ProfileTypography.stage)
-                    .foregroundStyle(GymupColors.brandText)
+                    .foregroundStyle(ProfileOverviewColors.brandPrimary)
             }
             Text("\(profile.focus) · 주 \(profile.workoutsPerWeek)회")
                 .font(ProfileTypography.caption)
-                .foregroundStyle(GymupColors.secondaryText)
+                .foregroundStyle(ProfileOverviewColors.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
     }
