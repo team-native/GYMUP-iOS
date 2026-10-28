@@ -19,4 +19,17 @@ final class RoutineSessionFlowUITests: XCTestCase {
         }
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "벤치프레스")).firstMatch.exists)
     }
+    func testRoutineContainingTimedExerciseCanStart() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-onboarding.completed", "YES"]
+        app.launch()
+        let routineTab = app.buttons["루틴"]
+        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
+        routineTab.tap()
+        let start = app.buttons["routine.start.lower-b"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        start.tap()
+        XCTAssertTrue(app.buttons["workout.quit"].waitForExistence(timeout: 10))
+        XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "스쿼트")).firstMatch.exists)
+    }
 }

@@ -21,14 +21,17 @@ final class RoutineSessionPlanTests: XCTestCase {
         XCTAssertNil(selected.previousPerformance(for: 0))
     }
 
-    func testTimeBasedRoutineIsNotMisrepresentedAsRepetitions() {
+    func testTimeBasedRoutinePreservesDuration() throws {
         var exercise = RoutineExercise(id: "plank", name: "플랭크", imageAssetName: "", setCount: 3,
                                        repetitions: 30, weight: 0, restSeconds: 60)
         exercise.measure = .seconds
         let routine = RoutinePlan(id: "timed", name: "TIME", title: "시간 운동", exerciseCount: 1,
                                   durationMinutes: 5, lastPerformed: "", coverAssetName: "",
                                   isRecommended: false, exercises: [exercise])
-        XCTAssertNil(WorkoutSessionPlan.make(from: routine))
+        let plan = try XCTUnwrap(WorkoutSessionPlan.make(from: routine))
+        let timed = try XCTUnwrap(plan.exercises.first)
+        XCTAssertEqual(timed.measure, .seconds)
+        XCTAssertEqual(timed.sets.first?.repetitions, 30)
     }
 }
 
