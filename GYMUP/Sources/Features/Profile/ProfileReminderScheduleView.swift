@@ -14,7 +14,7 @@ struct ProfileReminderScheduleView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: GymupSpacing.large) {
+            VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
                 Text("언제 알려드릴까요?")
                     .font(GymupTypography.headline)
                     .foregroundStyle(GymupColors.primaryText)
@@ -31,7 +31,6 @@ struct ProfileReminderScheduleView: View {
                     .accessibilityIdentifier("reminder.weekdayGuidance")
             }
             .padding(.horizontal, GymupSpacing.large)
-            .padding(.top, GymupSpacing.large)
             .padding(.bottom, GymupSpacing.large)
         }
         .background(GymupColors.canvas)
@@ -44,14 +43,14 @@ struct ProfileReminderScheduleView: View {
             GymupButton(
                 title: "저장",
                 font: GymupTypography.uiStrong,
-                height: 48,
+                height: 50,
                 cornerRadius: 999,
                 action: save
             )
             .accessibilityIdentifier("reminder.save")
             .padding(.horizontal, GymupSpacing.large)
             .padding(.top, GymupSpacing.small)
-            .padding(.bottom, GymupSpacing.medium)
+            .padding(.bottom, GymupSpacing.xLarge)
             .background(GymupColors.canvas)
         }
     }
@@ -87,15 +86,61 @@ struct ProfileReminderScheduleView: View {
     }
 
     private var timePicker: some View {
-        DatePicker("리마인더 시간", selection: $draftSchedule.time, displayedComponents: .hourAndMinute)
-            .datePickerStyle(.wheel)
+        HStack(spacing: 0) {
+            Picker("시", selection: hourSelection) {
+                ForEach(1...12, id: \.self) { hour in
+                    Text("\(hour)").tag(hour)
+                }
+            }
             .labelsHidden()
+            .accessibilityIdentifier("reminder.hourPicker")
+
+            Picker("분", selection: minuteSelection) {
+                ForEach(Array(stride(from: 0, through: 55, by: 5)), id: \.self) { minute in
+                    Text(String(format: "%02d", minute)).tag(minute)
+                }
+            }
+            .labelsHidden()
+            .accessibilityIdentifier("reminder.minutePicker")
+
+            Picker("오전/오후", selection: periodSelection) {
+                ForEach(ReminderPeriod.allCases) { period in
+                    Text(period.rawValue).tag(period)
+                }
+            }
+            .labelsHidden()
+            .accessibilityIdentifier("reminder.periodPicker")
+        }
+        .pickerStyle(.wheel)
             .frame(maxWidth: .infinity)
-            .frame(height: dynamicTypeSize.isAccessibilitySize ? 190 : 150)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 190 : 143)
             .clipped()
             .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
-            .accessibilityLabel("운동 리마인더 시간")
             .accessibilityIdentifier("reminder.timePicker")
+    }
+
+    private var hourSelection: Binding<Int> {
+        Binding(
+            get: {
+                let hour = Calendar.current.component(.hour, from: draftSchedule.time)
+                return hour % 12 == 0 ? 12 : hour % 12
+            },
+            set: { updateTime(hour: $0) }
+        )
+    }
+
+    private var minuteSelection: Binding<Int> {
+        Binding(
+            get: { Calendar.current.component(.minute, from: draftSchedule.time) / 5 * 5 },
+            set: { updateTime(minute: $0) }
+        )
+    }
+
+    private var periodSelection: Binding<ReminderPeriod> {
+        Binding(
+            get: { Calendar.current.component(.hour, from: draftSchedule.time) < 12 ? .morning : .afternoon },
+            set: { updateTime(period: $0) }
+        )
     }
 
     private var weekdayGuidance: String {
@@ -104,7 +149,7 @@ struct ProfileReminderScheduleView: View {
         }
 
         if draftSchedule.weekdays == ProfileReminderSchedule.recommendedWeekdays {
-            return "주 3회 목표에 맞춰 월 · 수 · 금을 추천해요."
+            return "주 3회 목표에 맞춰 월 · 수 · 금을 추천했어요."
         }
 
         if draftSchedule.weekdays.count == 1 {
@@ -143,6 +188,29 @@ struct ProfileReminderScheduleView: View {
         schedule = draftSchedule
         dismiss()
     }
+
+    private func updateTime(hour: Int? = nil, minute: Int? = nil, period: ReminderPeriod? = nil) {
+        let currentHour = Calendar.current.component(.hour, from: draftSchedule.time)
+        let currentMinute = Calendar.current.component(.minute, from: draftSchedule.time)
+        let hour12 = hour ?? (currentHour % 12 == 0 ? 12 : currentHour % 12)
+        let currentPeriod: ReminderPeriod = currentHour < 12 ? .morning : .afternoon
+        let selectedPeriod = period ?? currentPeriod
+        var components = Calendar.current.dateComponents([.year, .month, .day], from: draftSchedule.time)
+        components.hour = hour12 % 12 + (selectedPeriod == .afternoon ? 12 : 0)
+        components.minute = minute ?? (currentMinute / 5 * 5)
+        components.second = 0
+
+        if let updatedTime = Calendar.current.date(from: components) {
+            draftSchedule.time = updatedTime
+        }
+    }
+}
+
+private enum ReminderPeriod: String, CaseIterable, Identifiable {
+    case morning = "오전"
+    case afternoon = "오후"
+
+    var id: Self { self }
 }
 
 #Preview("S5 · 리마인더 일정") {
