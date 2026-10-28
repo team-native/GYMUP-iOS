@@ -50,6 +50,8 @@ final class RoutineSessionFlowUITests: XCTestCase {
         XCTAssertTrue(weeklyGoal.waitForExistence(timeout: 5))
         XCTAssertTrue(weeklyGoal.label.contains("주간 목표 3/3 달성"), weeklyGoal.label)
         XCTAssertFalse(app.staticTexts["LV.17 → 18"].exists)
+        XCTAssertTrue(app.buttons["오운완 사진"].exists)
+        XCTAssertTrue(app.buttons["완료"].exists)
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "E1 completion summary with actual progress"

@@ -37,7 +37,7 @@ struct MainTabView: View {
                 WorkoutCompletionFlowView(
                     data: completionTestData,
                     onFinish: {},
-                    showsPhotoAction: false,
+                    showsPhotoAction: true,
                     showsPeakGoalActions: false
                 )
             } else {
