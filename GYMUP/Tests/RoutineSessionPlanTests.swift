@@ -42,5 +42,6 @@ extension RoutineSessionPlanTests {
             plan: plan, elapsedSeconds: 30, completedAt: Date()
         )
         XCTAssertEqual(record.volumeKilograms, 0)
+        XCTAssertEqual(record.exercises.first?.sets.first?.valueTitle, "8초")
     }
 }
