@@ -88,7 +88,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
 
     var imageAssetName: String {
         if let imageAssetOverride { return imageAssetOverride }
-        switch id {
+        return switch id {
         case "bench-press": "H1RoutinePhoto"
         case "incline-press", "dumbbell-curl", "hammer-curl": "ExerciseInclinePhoto"
         case "shoulder-press", "cable-fly", "face-pull": "ExerciseChalkPhoto"
