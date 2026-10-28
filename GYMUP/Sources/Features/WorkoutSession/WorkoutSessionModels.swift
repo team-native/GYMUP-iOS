@@ -29,11 +29,13 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     var sets: [WorkoutSessionSet]
     var imageAssetOverride: String?
     var usesSampleHistory = true
+    var measure = RoutineExerciseMeasure.repetitions
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
     var isComplete: Bool { !sets.isEmpty && sets.allSatisfy(\.isCompleted) }
     var completedVolumeKilograms: Double {
-        sets.filter(\.isCompleted).reduce(0) { $0 + $1.weightKilograms * Double($1.repetitions) }
+        guard measure == .repetitions else { return 0 }
+        return sets.filter(\.isCompleted).reduce(0) { $0 + $1.weightKilograms * Double($1.repetitions) }
     }
 
     var displayTitle: String {
