@@ -61,7 +61,8 @@ enum WorkoutSessionCompletionDataFactory {
                     id: setIndex + 1,
                     weight: set.weightKilograms,
                     repetitions: set.repetitions,
-                    isPersonalRecord: set.id == personalRecordSetID
+                    isPersonalRecord: set.id == personalRecordSetID,
+                    measure: exercise.measure
                 )
             }
             guard !sets.isEmpty else { return nil }

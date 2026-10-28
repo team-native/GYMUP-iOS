@@ -195,7 +195,7 @@ private struct HistoryExerciseCard: View {
                                         Text("\(set.weight.formatted()) kg")
                                             .fixedSize(horizontal: false, vertical: true)
                                         Text("×")
-                                        Text("\(set.repetitions)회")
+                                        Text(set.valueTitle)
                                             .fixedSize(horizontal: false, vertical: true)
                                         Spacer(minLength: 8)
                                         Text("\(set.id)세트")
@@ -209,7 +209,7 @@ private struct HistoryExerciseCard: View {
                                     HStack(spacing: 4) {
                                         Text("\(set.weight.formatted()) kg")
                                         Text("×")
-                                        Text("\(set.repetitions)회")
+                                        Text(set.valueTitle)
                                     }
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.75)

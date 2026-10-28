@@ -14,10 +14,13 @@ struct WorkoutSetRecord: Identifiable, Hashable {
     let weight: Double
     let repetitions: Int
     var isPersonalRecord = false
+    var measure = RoutineExerciseMeasure.repetitions
+
+    var valueTitle: String { "\(repetitions)\(measure == .seconds ? "초" : "회")" }
 
     var accessibilityDescription: String {
         let personalRecord = isPersonalRecord ? ", 개인 기록" : ""
-        return "\(id)세트, \(weight.formatted())킬로그램, \(repetitions)회\(personalRecord)"
+        return "\(id)세트, \(weight.formatted())킬로그램, \(valueTitle)\(personalRecord)"
     }
 }
 
