@@ -26,40 +26,17 @@ struct HistoryGrowthChartView: View {
         return (minimum - padding)...(maximum + padding)
     }
 
-    private var yAxisValues: [Double] {
-        (0...3).map { index in
-            domain.upperBound - (domain.upperBound - domain.lowerBound) * Double(index) / 3
-        }
-    }
-
     private var axisLabels: [HistoryGrowthAxisLabel] {
         range.axisLabels(for: points)
     }
 
     var body: some View {
         VStack(spacing: 12) {
-            HStack(alignment: .top, spacing: 8) {
-                yAxis
-                    .frame(width: 36, height: 156)
-                plot
-                    .frame(height: 156)
-            }
+            plot
+                .frame(height: 200)
             xAxis
-                .padding(.leading, 44)
-            legend
+                .padding(.horizontal, 0)
         }
-    }
-
-    private var yAxis: some View {
-        VStack(alignment: .trailing, spacing: 0) {
-            ForEach(Array(yAxisValues.enumerated()), id: \.offset) { tick in
-                Text(axisValue(tick.element))
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
-                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topTrailing)
-            }
-        }
-        .accessibilityHidden(true)
     }
 
     private var plot: some View {
@@ -67,11 +44,11 @@ struct HistoryGrowthChartView: View {
             let size = geometry.size
             let positions = points.indices.map { pointPosition(at: $0, in: size) }
             ZStack(alignment: .topLeading) {
-                ForEach(Array(yAxisValues.enumerated()), id: \.offset) { tick in
+                ForEach(0..<4, id: \.self) { index in
                     Rectangle()
                         .fill(GymupColors.separator)
                         .frame(height: 1)
-                        .position(x: size.width / 2, y: size.height * CGFloat(tick.offset) / 3)
+                        .position(x: size.width / 2, y: size.height * CGFloat(index) / 3)
                 }
                 Path { path in
                     guard let first = positions.first else { return }
@@ -142,20 +119,6 @@ struct HistoryGrowthChartView: View {
         }
         .frame(height: 18)
         .accessibilityHidden(true)
-    }
-
-    private var legend: some View {
-        HStack(spacing: 8) {
-            Capsule()
-                .fill(GymupColors.accent)
-                .frame(width: 18, height: 3)
-                .accessibilityHidden(true)
-            Text("\(exercise) · \(metric.rawValue) (\(metric.unit))")
-                .font(GymupTypography.uiCaption)
-                .foregroundStyle(GymupColors.secondaryText)
-            Spacer(minLength: 0)
-        }
-        .accessibilityElement(children: .combine)
     }
 
     private var accessibilityValue: String {
