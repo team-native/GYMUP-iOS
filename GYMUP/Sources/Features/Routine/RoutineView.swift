@@ -96,7 +96,7 @@ struct RoutineView: View {
         .alert("운동을 시작할 수 없어요", isPresented: $isUnsupportedWorkoutPresented) {
             Button("확인", role: .cancel) {}
         } message: {
-            Text("시간 단위 운동은 아직 세션에서 지원하지 않아요. 운동 설정을 확인해 주세요.")
+            Text("운동 세트 설정을 확인해 주세요.")
         }
         .overlay(alignment: .bottom) {
             if isDuplicateToastVisible {

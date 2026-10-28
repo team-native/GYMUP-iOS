@@ -15,6 +15,7 @@ struct WorkoutRestActivityAttributes: ActivityAttributes {
         var nextSetWeightKilograms: Double
         var nextSetRepetitions: Int
         var isSkipped: Bool
+        var nextSetIsTimed: Bool?
     }
 
     var sessionID: String

@@ -131,7 +131,7 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
 
     static func make(from routine: RoutinePlan) -> WorkoutSessionPlan? {
         guard !routine.exercises.isEmpty,
-              routine.exercises.allSatisfy({ $0.measure == .repetitions && $0.setCount > 0 }) else { return nil }
+              routine.exercises.allSatisfy({ $0.setCount > 0 }) else { return nil }
         let aliases = ["bench": "bench-press", "incline": "incline-press", "shoulder": "shoulder-press",
                        "fly": "cable-fly", "pushdown": "triceps-pushdown", "curl": "dumbbell-curl",
                        "hammer": "hammer-curl"]
@@ -144,7 +144,7 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
                 formSteps: guidance.steps, beginnerTip: guidance.beginnerTip,
                 sets: (0..<item.setCount).map { _ in
                     WorkoutSessionSet(weightKilograms: item.weight, repetitions: item.repetitions)
-                }, imageAssetOverride: item.imageAssetName, usesSampleHistory: false
+                }, imageAssetOverride: item.imageAssetName, usesSampleHistory: false, measure: item.measure
             )
         }
         return WorkoutSessionPlan(id: routine.id, name: routine.name, title: routine.title,

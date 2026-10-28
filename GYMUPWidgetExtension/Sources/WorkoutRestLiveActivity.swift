@@ -172,5 +172,7 @@ private enum WorkoutLiveColors {
 }
 
 private func nextSetText(_ state: WorkoutRestActivityAttributes.ContentState) -> String {
-    "\(state.nextSetWeightKilograms.formatted(.number.precision(.fractionLength(0...1)))) KG × \(state.nextSetRepetitions)"
+    let weight = state.nextSetWeightKilograms.formatted(.number.precision(.fractionLength(0...1)))
+    let unit = state.nextSetIsTimed == true ? "초" : ""
+    return "\(weight) KG × \(state.nextSetRepetitions)\(unit)"
 }

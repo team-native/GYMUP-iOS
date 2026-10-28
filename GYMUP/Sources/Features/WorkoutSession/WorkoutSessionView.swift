@@ -313,7 +313,8 @@ private extension WorkoutSessionView {
             nextSetNumber: setIndex + 1,
             nextSetWeightKilograms: nextSet.weightKilograms,
             nextSetRepetitions: nextSet.repetitions,
-            isSkipped: false
+            isSkipped: false,
+            nextSetIsTimed: exercise.measure == .seconds
         )
         Task {
             await WorkoutRestActivityController.shared.startOrUpdate(sessionID: liveActivitySessionID, state: state)
