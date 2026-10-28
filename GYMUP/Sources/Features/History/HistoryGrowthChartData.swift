@@ -68,15 +68,28 @@ enum HistoryGrowthRange: String, CaseIterable, Identifiable, Hashable {
 
     func axisLabels(for points: [HistoryGrowthDataPoint], calendar: Calendar = .current) -> [HistoryGrowthAxisLabel] {
         guard !points.isEmpty else { return [] }
-        let step = self == .sixMonths ? 2 : self == .all ? 3 : 1
-        var indices = Array(stride(from: 0, to: points.count, by: step))
-        if let lastIndex = points.indices.last, indices.last != lastIndex {
-            indices.append(lastIndex)
+        let indices: [Int]
+        if self == .fourWeeks {
+            let labelCount = min(points.count, 4)
+            indices = (0 ..< labelCount).map { labelIndex in
+                guard labelCount > 1 else { return 0 }
+                let fraction = Double(labelIndex) / Double(labelCount - 1)
+                return Int((fraction * Double(points.count - 1)).rounded())
+            }
+        } else {
+            let step = self == .sixMonths ? 2 : self == .all ? 3 : 1
+            var selectedIndices = Array(stride(from: 0, to: points.count, by: step))
+            if let lastIndex = points.indices.last, selectedIndices.last != lastIndex {
+                selectedIndices.append(lastIndex)
+            }
+            indices = selectedIndices
         }
         return indices.map { index in
             let title: String
             if self == .fourWeeks {
-                title = index == points.indices.last ? "이번 주" : "4주 전"
+                title = points[index].date.formatted(
+                    .dateTime.locale(Locale(identifier: "ko_KR")).month(.defaultDigits).day()
+                )
             } else {
                 title = points[index].date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month())
             }
