@@ -229,7 +229,7 @@ struct HistoryGrowthView: View {
 
     private var changeDescription: String {
         guard let value = changeValue else { return "첫 기록이에요" }
-        return "\(selectedRange.rawValue) 전보다 \(value >= 0 ? "+" : "")\(formattedValue(value))\(selectedMetric.unit)"
+        return "기간 내 첫 기록보다 \(value >= 0 ? "+" : "")\(formattedValue(value))\(selectedMetric.unit)"
     }
 
     private var changeIndicatorSymbol: String {

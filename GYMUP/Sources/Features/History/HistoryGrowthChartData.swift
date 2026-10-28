@@ -156,7 +156,9 @@ enum HistoryGrowthRecordData {
             case .maxWeight:
                 value = sets.map(\.weight).max() ?? 0
             case .estimatedOneRepMax:
-                value = sets.map { $0.weight * (1 + Double($0.repetitions) / 30) }.max() ?? 0
+                value = sets.map { set in
+                    set.repetitions == 1 ? set.weight : set.weight * (1 + Double(set.repetitions) / 30)
+                }.max() ?? 0
             case .volume:
                 value = sets.reduce(0) { $0 + $1.weight * Double($1.repetitions) }
             }
