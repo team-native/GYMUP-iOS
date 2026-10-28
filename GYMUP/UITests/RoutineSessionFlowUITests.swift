@@ -47,6 +47,7 @@ final class RoutineSessionFlowUITests: XCTestCase {
 
         let exercisePicker = app.buttons["history.growth.exercise"]
         XCTAssertTrue(exercisePicker.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["홈"].exists)
         exercisePicker.tap()
         app.buttons["벤치프레스"].tap()
         XCTAssertTrue(app.descendants(matching: .any)
@@ -56,6 +57,19 @@ final class RoutineSessionFlowUITests: XCTestCase {
         app.buttons["history.growth.metric.예상 1RM"].tap()
         XCTAssertTrue(app.descendants(matching: .any)
             .matching(NSPredicate(format: "label CONTAINS %@", "예상 1RM 79.2 KG")).firstMatch.exists)
+
+        let fourWeekRange = app.buttons["history.growth.range.4주"]
+        if !fourWeekRange.isHittable { app.swipeUp() }
+        fourWeekRange.tap()
+        XCTAssertTrue(fourWeekRange.isSelected)
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "기간 내 첫 기록보다 +9.5KG")).firstMatch.exists)
+
+        let allTimeRange = app.buttons["history.growth.range.전체"]
+        allTimeRange.tap()
+        XCTAssertTrue(allTimeRange.isSelected)
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "첫 기록보다 +15.8KG")).firstMatch.exists)
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "G5 growth graph with workout records"

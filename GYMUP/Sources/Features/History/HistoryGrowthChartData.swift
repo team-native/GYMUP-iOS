@@ -177,3 +177,31 @@ enum HistoryGrowthRecordData {
         }
     }
 }
+
+extension HistorySampleData {
+    static var growthGraphUITestRecords: [WorkoutRecord] {
+        let calendar = Calendar.current
+        let historicalBenchPressSets = [(-80, 50.0), (-10, 55.0)]
+        let historicalRecords = historicalBenchPressSets.compactMap { sample -> WorkoutRecord? in
+            let (days, weight) = sample
+            guard let date = calendar.date(byAdding: .day, value: days, to: .now) else { return nil }
+            return WorkoutRecord(
+                id: UUID(),
+                date: date,
+                routineName: "상체 A 루틴",
+                category: "가슴 · 어깨 · 삼두",
+                durationMinutes: 58,
+                setCount: 1,
+                volumeKilograms: Int(weight * 8),
+                growth: 0,
+                photoAssetName: "H1RoutinePhoto",
+                exercises: [
+                    WorkoutExerciseRecord(id: 1, name: "벤치프레스", sets: [
+                        WorkoutSetRecord(id: 1, weight: weight, repetitions: 8)
+                    ])
+                ]
+            )
+        }
+        return records + historicalRecords
+    }
+}
