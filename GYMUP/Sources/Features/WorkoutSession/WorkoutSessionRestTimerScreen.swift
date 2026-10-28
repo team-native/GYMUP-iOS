@@ -35,8 +35,33 @@ struct WorkoutSessionRestTimerScreen: View {
                 .padding(.bottom, 24)
                 .frame(minHeight: geometry.size.height, alignment: .top)
             }
+            .opacity(isPlateCalculatorPresented ? 0 : 1)
+            .accessibilityHidden(isPlateCalculatorPresented)
         }
-        .background(GymupColors.canvas.ignoresSafeArea())
+        .background {
+            ZStack(alignment: .top) {
+                GymupColors.canvas
+                if isPlateCalculatorPresented {
+                    GeometryReader { proxy in
+                        Image("W10BackgroundPhoto")
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: proxy.size.width, height: min(proxy.size.height, proxy.size.width * 0.76))
+                            .clipped()
+                            .overlay(alignment: .bottom) {
+                                LinearGradient(
+                                    colors: [.clear, GymupColors.canvas],
+                                    startPoint: .top,
+                                    endPoint: .bottom
+                                )
+                                .frame(height: min(proxy.size.height, proxy.size.width * 0.76))
+                            }
+                            .overlay(GymupColors.canvas.opacity(0.35))
+                    }
+                }
+            }
+            .ignoresSafeArea()
+        }
         .sheet(isPresented: $isPlateCalculatorPresented) {
             WorkoutPlateCalculatorSheet(target: nextSet.weightKilograms)
         }
