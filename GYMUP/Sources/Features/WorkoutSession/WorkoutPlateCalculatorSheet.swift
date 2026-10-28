@@ -42,7 +42,8 @@ struct WorkoutPlateCalculatorSheet: View {
             .padding(.horizontal, 20).padding(.top, 28).padding(.bottom, 24)
         }
         .background(GymupColors.surface.ignoresSafeArea())
-        .presentationDetents([.large])
+        .presentationDetents([.height(555)])
+        .presentationCornerRadius(28)
         .presentationDragIndicator(.visible)
     }
 
