@@ -2,6 +2,7 @@ import SwiftUI
 import UserNotifications
 
 struct MyProfileView: View {
+    let onDetailRouteChanged: (Bool) -> Void
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isLevelPresented = false
@@ -20,7 +21,8 @@ struct MyProfileView: View {
 
     private let profile: ProfileSummary
 
-    init() {
+    init(onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
+        self.onDetailRouteChanged = onDetailRouteChanged
         let sample = ProfileSampleData.summary
         if let settings = OnboardingStoredSettings.load() {
             let experienceTitles = ["처음", "입문", "중급", "숙련"]
@@ -137,7 +139,21 @@ struct MyProfileView: View {
                 guard newPhase == .active else { return }
                 Task { await refreshNotificationPermissionStatus() }
             }
+            .onChange(of: hasPresentedDetail) { _, isPresented in
+                onDetailRouteChanged(isPresented)
+            }
+            .onAppear { onDetailRouteChanged(hasPresentedDetail) }
         }
+    }
+
+    private var hasPresentedDetail: Bool {
+        isLevelPresented
+            || isGoalHistoryPresented
+            || isNotificationSettingsPresented
+            || isPhotoPermissionsPresented
+            || isNotificationPermissionPresented
+            || isPlaylistPresented
+            || presentedSheet != nil
     }
 
     private var currentGoalSummary: String {
