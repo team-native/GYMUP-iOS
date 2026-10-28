@@ -32,5 +32,7 @@ final class OnboardingFlowUITests: XCTestCase {
         XCTAssertTrue(later.waitForExistence(timeout: 5))
         later.tap()
         XCTAssertTrue(app.buttons["홈"].waitForExistence(timeout: 5))
+        app.buttons["마이"].tap()
+        XCTAssertTrue(app.staticTexts["체형 · 12주 · 주 4회"].waitForExistence(timeout: 5))
     }
 }
