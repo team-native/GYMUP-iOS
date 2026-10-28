@@ -107,7 +107,8 @@ struct WorkoutExerciseCompleteScreen: View {
     private var nextExerciseSummary: String {
         guard let set = nextExercise.sets.first else { return nextExercise.target }
         let weight = set.weightKilograms.formatted(.number.precision(.fractionLength(0...1)))
-        return "\(nextExercise.name) · \(nextExercise.sets.count)세트 · \(set.repetitions)회 · \(weight)kg"
+        let unit = nextExercise.measure == .seconds ? "초" : "회"
+        return "\(nextExercise.name) · \(nextExercise.sets.count)세트 · \(set.repetitions)\(unit) · \(weight)kg"
     }
 
     private var footer: some View {

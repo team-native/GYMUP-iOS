@@ -301,7 +301,7 @@ private struct WorkoutSessionSetTable: View {
                         onValueTap: onInputWeight
                     )
                     WorkoutSessionValueAdjuster(
-                        title: "SET \(currentSetIndex + 1) · REPS",
+                        title: "SET \(currentSetIndex + 1) · \(exercise.measure == .seconds ? "SECS" : "REPS")",
                         value: String(exercise.sets[currentSetIndex].repetitions),
                         onDecrease: { onAdjustRepetitions(-1) },
                         onIncrease: { onAdjustRepetitions(1) }
@@ -324,7 +324,7 @@ private struct WorkoutSessionSetTable: View {
             Text("×")
                 .font(GymupTypography.label)
                 .foregroundStyle(GymupColors.tertiaryText)
-            tableLabel("REPS")
+            tableLabel(exercise.measure == .seconds ? "SECS" : "REPS")
                 .frame(width: 36, alignment: .leading)
             Color.clear.frame(width: 28)
         }

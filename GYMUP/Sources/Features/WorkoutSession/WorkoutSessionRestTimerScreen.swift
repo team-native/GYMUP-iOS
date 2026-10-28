@@ -127,7 +127,8 @@ struct WorkoutSessionRestTimerScreen: View {
                         .font(GymupTypography.label)
                         .tracking(0.16)
                         .foregroundStyle(GymupColors.secondaryText)
-                    Text("\(nextSet.weightKilograms.formatted(.number.precision(.fractionLength(0...1)))) KG × \(nextSet.repetitions)")
+                    Text("\(nextSet.weightKilograms.formatted(.number.precision(.fractionLength(0...1)))) KG × "
+                         + "\(nextSet.repetitions)\(exercise.measure == .seconds ? "초" : "")")
                         .font(GymupTypography.display)
                         .foregroundStyle(GymupColors.primaryText)
                         .lineLimit(1)
