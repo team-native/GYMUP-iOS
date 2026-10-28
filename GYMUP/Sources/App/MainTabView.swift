@@ -18,11 +18,14 @@ struct MainTabView: View {
     @State private var emptyStartRoutineID: String?
     @State private var isDetailPresented = false
     @State private var isHistoryComparisonPresented = false
+    @State private var isHistoryGrowthPresented = false
 
     init() {
         let isGrowthUITest = ProcessInfo.processInfo.arguments.contains("--uitest-g5-growth")
         _selection = State(initialValue: isGrowthUITest ? .history : .home)
-        _historyStore = State(initialValue: HistoryStore(records: isGrowthUITest ? HistorySampleData.records : []))
+        _historyStore = State(initialValue: HistoryStore(
+            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : []
+        ))
     }
 
     var body: some View {
@@ -44,14 +47,15 @@ struct MainTabView: View {
                 HistoryView(
                     store: historyStore,
                     onOpenRoutines: { selection = .routine },
-                    onComparisonPresented: { isHistoryComparisonPresented = $0 }
+                    onComparisonPresented: { isHistoryComparisonPresented = $0 },
+                    onGrowthPresented: { isHistoryGrowthPresented = $0 }
                 )
             case .profile:
                 MyProfileView()
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !isDetailPresented && !(selection == .history && isHistoryComparisonPresented) {
+            if !isDetailPresented && !(selection == .history && (isHistoryComparisonPresented || isHistoryGrowthPresented)) {
                 tabBar
             }
         }
