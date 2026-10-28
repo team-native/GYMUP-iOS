@@ -112,7 +112,7 @@ struct WorkoutSessionExerciseCard: View {
             Spacer(minLength: 0)
             Text("중량 (KG)")
                 .frame(width: 82)
-            Text("횟수")
+            Text(exercise.measure == .seconds ? "시간(초)" : "횟수")
                 .frame(width: 60)
             Text("완료")
                 .frame(width: 44)
@@ -170,7 +170,7 @@ struct WorkoutSessionExerciseCard: View {
             .foregroundStyle(GymupColors.primaryText)
             .frame(width: 60, height: 44)
             .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
-            .accessibilityLabel("세트 \(setIndex + 1) 반복 횟수")
+            .accessibilityLabel("세트 \(setIndex + 1) \(exercise.measure == .seconds ? "시간(초)" : "반복 횟수")")
     }
 
     private func setCompletionButton(_ set: WorkoutSessionSet, setIndex: Int) -> some View {

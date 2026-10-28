@@ -7,6 +7,7 @@ struct RoutineView: View {
     @State private var viewModel: RoutineViewModel
     @State private var path: [RoutineRoute] = []
     @State private var isDuplicateToastVisible = false
+    @State private var isUnsupportedWorkoutPresented = false
     @State private var duplicateToastVersion = 0
     @Binding private var requestedRoutineID: String?
     @Binding private var requestedExerciseAddRoutineID: String?
@@ -45,7 +46,7 @@ struct RoutineView: View {
                                 RoutineCard(
                                     routine: routine,
                                     onOpen: { path.append(.detail(routine.id)) },
-                                    onStart: { path.append(.workout(routine.id)) }
+                                    onStart: { startWorkout(routine.id) }
                                 )
                             }
                         }
@@ -72,13 +73,7 @@ struct RoutineView: View {
                         onDelete: {
                             if path.last == .detail(id) { path.removeLast() }
                         },
-                        onStart: {
-                            if viewModel.store.routine(id: id)?.isEmpty == true {
-                                onEmptyStartAttempt(id)
-                            } else {
-                                path.append(.workout(id))
-                            }
-                        }
+                        onStart: { startWorkout(id) }
                     )
                 case .create:
                     routineEditor(routineID: nil)
@@ -87,11 +82,21 @@ struct RoutineView: View {
                 case .editAndAddExercise(let id):
                     routineEditor(routineID: id, opensAddExerciseOnAppear: true)
                 case .workout(let routineID):
-                    WorkoutSessionView(routineID: routineID, historyStore: historyStore)
+                    if let routine = viewModel.store.routine(id: routineID),
+                       let plan = WorkoutSessionPlan.make(from: routine) {
+                        WorkoutSessionView(plan: plan, historyStore: historyStore)
+                    } else {
+                        GymupEmptyState(symbol: "dumbbell", title: "루틴을 열 수 없어요", message: "루틴 내용을 확인해 주세요.")
+                    }
                 default:
                     RoutinePendingView(route: route)
                 }
             }
+        }
+        .alert("운동을 시작할 수 없어요", isPresented: $isUnsupportedWorkoutPresented) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text("운동 세트 설정을 확인해 주세요.")
         }
         .overlay(alignment: .bottom) {
             if isDuplicateToastVisible {
@@ -117,6 +122,17 @@ struct RoutineView: View {
         }
         .onChange(of: requestedRoutineID) { _, _ in openRequestedRoutine() }
         .onChange(of: requestedExerciseAddRoutineID) { _, _ in openRequestedExerciseAdd() }
+    }
+
+    private func startWorkout(_ id: String) {
+        guard let routine = viewModel.store.routine(id: id) else { return }
+        if routine.isEmpty || routine.exercises.isEmpty {
+            onEmptyStartAttempt(id)
+        } else if WorkoutSessionPlan.make(from: routine) == nil {
+            isUnsupportedWorkoutPresented = true
+        } else {
+            path.append(.workout(id))
+        }
     }
 
     private func openRequestedRoutine() {

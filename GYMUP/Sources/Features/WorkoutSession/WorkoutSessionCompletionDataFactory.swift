@@ -7,7 +7,7 @@ enum WorkoutSessionCompletionDataFactory {
         completedAt: Date
     ) -> WorkoutCompletionData {
         let completedSets = plan.exercises.flatMap(\.sets).filter(\.isCompleted)
-        let volume = completedSets.reduce(0.0) { $0 + ($1.weightKilograms * Double($1.repetitions)) }
+        let volume = plan.exercises.reduce(0.0) { $0 + $1.completedVolumeKilograms }
         let minutes = max(0, Int(ceil(Double(max(0, elapsedSeconds)) / 60)))
         let sampleProgress = WorkoutCompletionData.sample
         let personalRecordCount = plan.exercises.filter { $0.personalRecordSet != nil }.count
@@ -52,7 +52,7 @@ enum WorkoutSessionCompletionDataFactory {
         completedAt: Date
     ) -> WorkoutRecord {
         let completedSets = plan.exercises.flatMap(\.sets).filter(\.isCompleted)
-        let volume = completedSets.reduce(0.0) { $0 + ($1.weightKilograms * Double($1.repetitions)) }
+        let volume = plan.exercises.reduce(0.0) { $0 + $1.completedVolumeKilograms }
         let exercises = plan.exercises.enumerated().compactMap { exerciseIndex, exercise -> WorkoutExerciseRecord? in
             let personalRecordSetID = exercise.personalRecordSet?.id
             let sets = exercise.sets.enumerated().compactMap { setIndex, set -> WorkoutSetRecord? in
@@ -61,7 +61,8 @@ enum WorkoutSessionCompletionDataFactory {
                     id: setIndex + 1,
                     weight: set.weightKilograms,
                     repetitions: set.repetitions,
-                    isPersonalRecord: set.id == personalRecordSetID
+                    isPersonalRecord: set.id == personalRecordSetID,
+                    measure: exercise.measure
                 )
             }
             guard !sets.isEmpty else { return nil }

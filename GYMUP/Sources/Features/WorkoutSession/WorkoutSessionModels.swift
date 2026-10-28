@@ -27,11 +27,15 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     let formSteps: [String]
     let beginnerTip: String
     var sets: [WorkoutSessionSet]
+    var imageAssetOverride: String?
+    var usesSampleHistory = true
+    var measure = RoutineExerciseMeasure.repetitions
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
     var isComplete: Bool { !sets.isEmpty && sets.allSatisfy(\.isCompleted) }
     var completedVolumeKilograms: Double {
-        sets.filter(\.isCompleted).reduce(0) { $0 + $1.weightKilograms * Double($1.repetitions) }
+        guard measure == .repetitions else { return 0 }
+        return sets.filter(\.isCompleted).reduce(0) { $0 + $1.weightKilograms * Double($1.repetitions) }
     }
 
     var displayTitle: String {
@@ -85,7 +89,8 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     }
 
     var imageAssetName: String {
-        switch id {
+        if let imageAssetOverride { return imageAssetOverride }
+        return switch id {
         case "bench-press": "H1RoutinePhoto"
         case "incline-press", "dumbbell-curl", "hammer-curl": "ExerciseInclinePhoto"
         case "shoulder-press", "cable-fly", "face-pull": "ExerciseChalkPhoto"
@@ -95,13 +100,13 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     }
 
     func previousPerformanceTitle(for setIndex: Int?) -> String {
-        guard id == "bench-press" else { return "이전 기록 없음" }
+        guard usesSampleHistory, id == "bench-press" else { return "이전 기록 없음" }
         let repetitions = setIndex == sets.count - 1 ? 6 : 8
         return "이전 · 10월 8일 60kg × \(repetitions)"
     }
 
     func previousPerformance(for setIndex: Int) -> String? {
-        guard id == "bench-press" else { return nil }
+        guard usesSampleHistory, id == "bench-press" else { return nil }
         return setIndex == 3 ? "60 × 6" : "60 × 8"
     }
 
@@ -109,7 +114,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
         previousPerformance(for: 0) != nil
     }
 
-    var personalRecordKilograms: Double? { id == "bench-press" ? 62.5 : nil }
+    var personalRecordKilograms: Double? { usesSampleHistory && id == "bench-press" ? 62.5 : nil }
 
     var personalRecordSet: WorkoutSessionSet? {
         guard let personalRecordKilograms else { return nil }
@@ -123,6 +128,28 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
     let title: String
     let estimatedDurationMinutes: Int
     var exercises: [WorkoutSessionExercise]
+
+    static func make(from routine: RoutinePlan) -> WorkoutSessionPlan? {
+        guard !routine.exercises.isEmpty,
+              routine.exercises.allSatisfy({ $0.setCount > 0 }) else { return nil }
+        let aliases = ["bench": "bench-press", "incline": "incline-press", "shoulder": "shoulder-press",
+                       "fly": "cable-fly", "pushdown": "triceps-pushdown", "curl": "dumbbell-curl",
+                       "hammer": "hammer-curl"]
+        let exercises = routine.exercises.map { item in
+            let identifier = aliases[item.id] ?? item.id
+            let guidance = WorkoutSessionGuidanceLibrary.guidance(for: identifier)
+            let target = RoutineExerciseOption.all.first { $0.id == item.id }?.muscleGroup ?? "운동"
+            return WorkoutSessionExercise(
+                id: identifier, name: item.name, target: target, restDurationSeconds: item.restSeconds,
+                formSteps: guidance.steps, beginnerTip: guidance.beginnerTip,
+                sets: (0..<item.setCount).map { _ in
+                    WorkoutSessionSet(weightKilograms: item.weight, repetitions: item.repetitions)
+                }, imageAssetOverride: item.imageAssetName, usesSampleHistory: false, measure: item.measure
+            )
+        }
+        return WorkoutSessionPlan(id: routine.id, name: routine.name, title: routine.title,
+                                  estimatedDurationMinutes: routine.durationMinutes, exercises: exercises)
+    }
 
     static func sample(for routineID: String) -> WorkoutSessionPlan {
         let template: WorkoutSessionPlan

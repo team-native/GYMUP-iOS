@@ -7,6 +7,7 @@ struct RoutineCard: View {
 
     var body: some View {
         GeometryReader { geometry in
+            ZStack(alignment: .bottomTrailing) {
             Button(action: onOpen) {
                 ZStack(alignment: .bottomLeading) {
                     Image(routine.coverAssetName)
@@ -42,12 +43,13 @@ struct RoutineCard: View {
                             .padding(.top, 14)
                     }
                 }
+                .frame(width: geometry.size.width, height: 140)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
+                .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("routine.card.\(routine.id)")
-            .overlay(alignment: .bottomTrailing) {
-                Button(action: onStart) {
+            Button(action: onStart) {
                     Image("R1IconPlay")
                         .resizable()
                         .frame(width: 14.76, height: 14.76)
@@ -60,6 +62,7 @@ struct RoutineCard: View {
                 .padding(.trailing, 24)
                 .padding(.bottom, 24)
             }
+            .frame(width: geometry.size.width, height: 140)
         }
         .frame(height: 140)
     }
