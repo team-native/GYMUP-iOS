@@ -8,6 +8,7 @@ enum GymupTab: Hashable {
 }
 
 struct MainTabView: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selection: GymupTab = .home
     @State private var inventory = BarbellCustomizationViewModel()
     @State private var routineStore = RoutineStore()
@@ -72,7 +73,7 @@ struct MainTabView: View {
         }
         .padding(.horizontal, 12)
         .padding(.top, 8)
-        .frame(height: 58, alignment: .top)
+        .frame(height: dynamicTypeSize.isAccessibilitySize ? 76 : 58, alignment: .top)
         .background {
             (selection == .profile ? ProfileOverviewColors.canvas : GymupColors.canvas)
                 .overlay(alignment: .top) {
@@ -95,6 +96,7 @@ struct MainTabView: View {
                     .accessibilityHidden(true)
                 Text(title)
                     .font(GymupTypography.uiCaption)
+                    .dynamicTypeSize(DynamicTypeSize.xSmall ... DynamicTypeSize.xxxLarge)
                     .foregroundStyle(
                         selection == value
                             ? GymupColors.primaryText
@@ -104,7 +106,7 @@ struct MainTabView: View {
                     )
             }
             .frame(maxWidth: .infinity)
-            .frame(height: 50, alignment: .top)
+            .frame(height: dynamicTypeSize.isAccessibilitySize ? 66 : 50, alignment: .top)
             .padding(.top, 6)
             .contentShape(Rectangle())
         }
