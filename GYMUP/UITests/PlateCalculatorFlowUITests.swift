@@ -7,10 +7,7 @@ final class PlateCalculatorFlowUITests: XCTestCase {
         app.launch()
         XCTAssertTrue(app.buttons["루틴"].waitForExistence(timeout: 15))
         app.buttons["루틴"].tap()
-        let card = app.buttons["routine.card.upper-a"]
-        XCTAssertTrue(card.waitForExistence(timeout: 5))
-        card.tap()
-        let start = app.buttons["운동 시작"]
+        let start = app.buttons["routine.start.upper-a"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
         let prompt = app.buttons["바로 시작"]
@@ -22,12 +19,16 @@ final class PlateCalculatorFlowUITests: XCTestCase {
         XCTAssertTrue(calculator.waitForExistence(timeout: 5))
         calculator.tap()
         XCTAssertTrue(app.staticTexts["원판 계산"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.buttons["workout.plate.close"].exists)
+        let close = app.buttons["workout.plate.close"]
+        if !close.waitForExistence(timeout: 3) {
+            app.scrollViews.firstMatch.swipeUp()
+        }
+        XCTAssertTrue(close.waitForExistence(timeout: 5))
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "W10-plate-calculator"
         screenshot.lifetime = .keepAlways
         add(screenshot)
-        app.buttons["workout.plate.close"].tap()
+        close.tap()
         XCTAssertTrue(app.buttons["workout.rest.skip"].waitForExistence(timeout: 5))
     }
 }

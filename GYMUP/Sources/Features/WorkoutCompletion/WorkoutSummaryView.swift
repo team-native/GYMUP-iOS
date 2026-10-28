@@ -78,6 +78,7 @@ struct WorkoutSummaryView: View {
             }
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("성장도 \(data.previousGrowth)에서 \(data.growth), \(data.growth - data.previousGrowth) 상승")
+            .accessibilityIdentifier("workout.completion.growth")
         }
     }
 
@@ -91,6 +92,7 @@ struct WorkoutSummaryView: View {
 
                     Text("+\(data.earnedXP) XP")
                         .font(Font.custom("GothicA1-Bold", size: 14, relativeTo: .headline))
+                        .accessibilityIdentifier("workout.completion.xp")
 
                     Spacer(minLength: 8)
 
@@ -133,18 +135,26 @@ struct WorkoutSummaryView: View {
         return data.experienceBreakdown
     }
 
+    @ViewBuilder
     private var weeklyGoalBanner: some View {
-        let isGoalComplete = data.weeklyWorkoutCount >= data.weeklyWorkoutGoal
-        let goalText = isGoalComplete ? "주간 목표 \(data.weeklyWorkoutCount)/\(data.weeklyWorkoutGoal) 달성" :
-            "주간 목표 \(data.weeklyWorkoutCount)/\(data.weeklyWorkoutGoal)"
+        if data.weeklyWorkoutGoal > 0 {
+            let isGoalComplete = data.weeklyWorkoutCount >= data.weeklyWorkoutGoal
+            let goalText = isGoalComplete ? "주간 목표 \(data.weeklyWorkoutCount)/\(data.weeklyWorkoutGoal) 달성" :
+                "주간 목표 \(data.weeklyWorkoutCount)/\(data.weeklyWorkoutGoal)"
+            weeklyGoalBannerText("\(goalText) · \(data.streakWeeks)주 연속 Streak")
+        } else {
+            weeklyGoalBannerText("주간 목표를 설정하면 달성 현황을 확인할 수 있어요.")
+        }
+    }
 
-        return HStack(spacing: 8) {
+    private func weeklyGoalBannerText(_ text: String) -> some View {
+        HStack(spacing: 8) {
             Image(systemName: "flame.fill")
                 .font(.system(size: 12, weight: .semibold))
                 .foregroundStyle(WorkoutCompletionColors.red)
                 .accessibilityHidden(true)
 
-            Text("\(goalText) · \(data.streakWeeks)주 연속 Streak")
+            Text(text)
                 .font(Font.custom("GothicA1-SemiBold", size: 11, relativeTo: .caption))
                 .foregroundStyle(WorkoutCompletionColors.primaryText)
                 .fixedSize(horizontal: false, vertical: true)
@@ -155,5 +165,6 @@ struct WorkoutSummaryView: View {
         .padding(.vertical, 10)
         .background(WorkoutCompletionColors.red.opacity(0.16), in: RoundedRectangle(cornerRadius: 14))
         .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("workout.completion.weekly-goal")
     }
 }

@@ -9,6 +9,7 @@ struct HomeView: View {
     let onDetailRouteChanged: (Bool) -> Void
     private let historyStore: HistoryStore?
     @State private var viewModel = HomeViewModel()
+    @State private var growthViewModel: GrowthViewModel
     @AppStorage("onboarding.completed") private var onboardingCompleted = false
     @AppStorage("onboarding.frequency") private var onboardingFrequency = 3
     @Bindable private var inventory: BarbellCustomizationViewModel
@@ -16,6 +17,7 @@ struct HomeView: View {
     @State private var isNewItemPresented = false
     @State private var shouldOpenCustomization = false
 
+    @MainActor
     init(
         onOpenRoutines: @escaping () -> Void,
         inventory: BarbellCustomizationViewModel,
@@ -26,6 +28,7 @@ struct HomeView: View {
         self.inventory = inventory
         self.historyStore = historyStore
         self.onDetailRouteChanged = onDetailRouteChanged
+        _growthViewModel = State(initialValue: GrowthViewModel(historyStore: historyStore))
     }
 
     var body: some View {
@@ -98,63 +101,13 @@ struct HomeView: View {
     }
 
     private var growthCard: some View {
-        VStack(spacing: 12) {
-            HStack {
-                Text(viewModel.stageTitle)
-                    .font(GymupTypography.label)
-                    .tracking(0.17)
-                    .foregroundStyle(GymupColors.brandText)
-                Spacer(minLength: 6)
-                if inventory.hasNewItem {
-                    Button { isNewItemPresented = true } label: { newItemBanner }
-                        .buttonStyle(.plain)
-                }
-            }
-            NavigationLink(value: HomeRoute.growth) {
-                VStack(spacing: 12) {
-                    equipment
-                    HomeGrowthSummaryView(growth: viewModel.growth, nextPlateProgress: viewModel.nextPlateProgress)
-                }
-            }
-            .buttonStyle(.plain)
-        }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 18)
-        .frame(height: 318)
-        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
-    }
-
-    private var newItemBanner: some View {
-        HStack(spacing: 10) {
-            Image("H1IconSparkle")
-                .resizable()
-                .frame(width: 16, height: 16)
-            Text(viewModel.rewardNotice)
-                .font(GymupTypography.uiMedium)
-                .tracking(-0.09)
-                .lineLimit(1)
-            Image("H1IconChevronRight")
-                .resizable()
-                .frame(width: 16, height: 16)
-        }
-        .foregroundStyle(GymupColors.primaryText)
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
-        .background(GymupColors.brandSubtle, in: RoundedRectangle(cornerRadius: 14))
-    }
-
-    private var equipment: some View {
-        VStack(spacing: 0) {
-            Image(inventory.equippedPlateID == .blackPlate ? "H6Equipment" : "H1Equipment")
-                .resizable()
-                .scaledToFit()
-                .frame(width: 300, height: 150)
-            Text("\(viewModel.barbellWeight) KG")
-                .font(GymupTypography.display)
-                .lineSpacing(-1)
-                .foregroundStyle(GymupColors.primaryText)
-        }
-        .frame(maxWidth: .infinity)
+        HomeGrowthCard(
+            inventory: inventory,
+            growthViewModel: growthViewModel,
+            rewardNotice: viewModel.rewardNotice,
+            onOpenGrowth: { path.append(.growth) },
+            onNewItem: { isNewItemPresented = true }
+        )
     }
 
     private var statistics: some View {
@@ -239,7 +192,7 @@ struct HomeView: View {
     private func destination(for route: HomeRoute) -> some View {
         switch route {
         case .growth:
-            GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) })
+            GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) }, historyStore: historyStore)
         case .weeklyGoal:
             WeeklyGoalView(onNavigationStateChanged: { _ in }, goal: weeklyGoal, records: weeklyRecords)
         case .level:

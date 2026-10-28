@@ -45,6 +45,7 @@ extension RoutineSessionPlanTests {
             plan: plan, elapsedSeconds: 30, completedAt: Date()
         )
         XCTAssertEqual(record.volumeKilograms, 0)
+        XCTAssertFalse(record.routineCompleted)
         XCTAssertEqual(record.exercises.first?.sets.first?.valueTitle, "8초")
     }
 }
@@ -70,6 +71,7 @@ extension RoutineSessionPlanTests {
         )
         XCTAssertEqual(history.setCount, 2)
         XCTAssertEqual(history.volumeKilograms, 0)
+        XCTAssertTrue(history.routineCompleted)
         XCTAssertEqual(history.exercises.first?.sets.map(\.valueTitle), ["45초", "45초"])
         XCTAssertNotNil(session.completionData)
     }

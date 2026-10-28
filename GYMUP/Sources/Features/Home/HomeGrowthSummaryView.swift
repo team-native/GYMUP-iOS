@@ -3,6 +3,7 @@ import SwiftUI
 struct HomeGrowthSummaryView: View {
     let growth: Int
     let nextPlateProgress: Int
+    let progress: Double
 
     var body: some View {
         VStack(spacing: 12) {
@@ -28,7 +29,7 @@ struct HomeGrowthSummaryView: View {
                     Capsule().fill(GymupColors.overlay)
                     Capsule()
                         .fill(GymupColors.accent)
-                        .frame(width: geometry.size.width * 0.687)
+                        .frame(width: geometry.size.width * progress)
                 }
             }
             .frame(height: 6)
