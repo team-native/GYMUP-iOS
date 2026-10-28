@@ -73,7 +73,11 @@ struct RoutineView: View {
                             if path.last == .detail(id) { path.removeLast() }
                         },
                         onStart: {
-                            path.append(viewModel.store.routine(id: id)?.isEmpty == true ? .emptyStart(id) : .workout(id))
+                            if viewModel.store.routine(id: id)?.isEmpty == true {
+                                onEmptyStartAttempt(id)
+                            } else {
+                                path.append(.workout(id))
+                            }
                         }
                     )
                 case .create:
