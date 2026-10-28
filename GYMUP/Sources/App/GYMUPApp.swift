@@ -5,6 +5,12 @@ struct GYMUPApp: App {
     @State private var isShowingSplash = true
     @AppStorage("onboarding.completed") private var hasCompletedOnboarding = false
 
+    init() {
+        if ProcessInfo.processInfo.arguments.contains("--uitest-reset-onboarding") {
+            UserDefaults.standard.removeObject(forKey: "onboarding.completed")
+        }
+    }
+
     var body: some Scene {
         WindowGroup {
             Group {

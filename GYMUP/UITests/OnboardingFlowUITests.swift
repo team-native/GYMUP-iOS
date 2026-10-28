@@ -3,7 +3,7 @@ import XCTest
 final class OnboardingFlowUITests: XCTestCase {
     func testOnboardingMovesThroughAllScreensAndEntersHome() {
         let app = XCUIApplication()
-        app.launchArguments += ["-onboarding.completed", "NO"]
+        app.launchArguments += ["--uitest-reset-onboarding"]
         app.launch()
 
         let start = app.buttons["시작하기"]
