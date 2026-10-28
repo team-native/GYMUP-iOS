@@ -23,6 +23,10 @@ final class PlateCalculatorFlowUITests: XCTestCase {
         calculator.tap()
         XCTAssertTrue(app.staticTexts["원판 계산"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.buttons["workout.plate.close"].exists)
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "W10-plate-calculator"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
         app.buttons["workout.plate.close"].tap()
         XCTAssertTrue(app.buttons["workout.rest.skip"].waitForExistence(timeout: 5))
     }
