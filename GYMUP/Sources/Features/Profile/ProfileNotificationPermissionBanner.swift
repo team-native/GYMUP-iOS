@@ -20,8 +20,9 @@ struct ProfileNotificationPermissionBanner: View {
                 }
             }
         }
-        .padding(GymupSpacing.medium)
-        .background(ProfileOverviewColors.canvas, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+        .padding(.horizontal, GymupSpacing.medium)
+        .padding(.vertical, GymupSpacing.small)
+        .background(ProfileOverviewColors.canvas, in: RoundedRectangle(cornerRadius: 14))
         .overlay {
             RoundedRectangle(cornerRadius: GymupRadius.medium)
                 .strokeBorder(ProfileOverviewColors.statusCritical, lineWidth: 1)
@@ -40,7 +41,7 @@ struct ProfileNotificationPermissionBanner: View {
                     .font(ProfileTypography.rowTitle)
                     .foregroundStyle(GymupColors.primaryText)
                 Text(detail)
-                    .font(ProfileTypography.caption)
+                    .font(ProfileTypography.settingsCaption)
                     .foregroundStyle(ProfileOverviewColors.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -53,8 +54,10 @@ struct ProfileNotificationPermissionBanner: View {
         Button("켜기", action: onEnable)
             .font(ProfileTypography.action)
             .foregroundStyle(.white)
-            .frame(minWidth: 56, minHeight: 44)
+            .frame(minWidth: 54, minHeight: 34)
             .background(ProfileOverviewColors.brandPrimary, in: Capsule())
+            .frame(minWidth: 56, minHeight: 44)
+            .contentShape(Rectangle())
             .buttonStyle(.plain)
             .accessibilityLabel("알림 설정 열기")
             .accessibilityHint("시스템 알림 권한 상태와 설정 화면을 엽니다")
