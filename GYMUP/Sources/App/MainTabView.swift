@@ -18,34 +18,55 @@ struct MainTabView: View {
     @State private var emptyStartRoutineID: String?
     @State private var isDetailPresented = false
     @State private var isHistoryComparisonPresented = false
+    private let completionTestData: WorkoutCompletionData?
+
+    @MainActor
+    init() {
+#if DEBUG
+        completionTestData = ProcessInfo.processInfo.arguments.contains("--uitest-e1-completion")
+            ? Self.makeCompletionTestData()
+            : nil
+#else
+        completionTestData = nil
+#endif
+    }
 
     var body: some View {
         Group {
-            switch selection {
-            case .home:
-                HomeView(
-                    onOpenRoutines: { requestedRoutineID = "upper-a"; selection = .routine },
-                    inventory: inventory,
-                    historyStore: historyStore,
-                    onDetailRouteChanged: { isDetailPresented = $0 }
+            if let completionTestData {
+                WorkoutCompletionFlowView(
+                    data: completionTestData,
+                    onFinish: {},
+                    showsPhotoAction: true,
+                    showsPeakGoalActions: false
                 )
-            case .routine:
-                RoutineView(store: routineStore, historyStore: historyStore, requestedRoutineID: $requestedRoutineID,
-                            requestedExerciseAddRoutineID: $requestedExerciseAddRoutineID,
-                            onEmptyStartAttempt: { emptyStartRoutineID = $0 },
-                            onDetailRouteChanged: { isDetailPresented = $0 })
-            case .history:
-                HistoryView(
-                    store: historyStore,
-                    onOpenRoutines: { selection = .routine },
-                    onComparisonPresented: { isHistoryComparisonPresented = $0 }
-                )
-            case .profile:
-                MyProfileView(onDetailRouteChanged: { isDetailPresented = $0 })
+            } else {
+                switch selection {
+                case .home:
+                    HomeView(
+                        onOpenRoutines: { requestedRoutineID = "upper-a"; selection = .routine },
+                        inventory: inventory,
+                        historyStore: historyStore,
+                        onDetailRouteChanged: { isDetailPresented = $0 }
+                    )
+                case .routine:
+                    RoutineView(store: routineStore, historyStore: historyStore, requestedRoutineID: $requestedRoutineID,
+                                requestedExerciseAddRoutineID: $requestedExerciseAddRoutineID,
+                                onEmptyStartAttempt: { emptyStartRoutineID = $0 },
+                                onDetailRouteChanged: { isDetailPresented = $0 })
+                case .history:
+                    HistoryView(
+                        store: historyStore,
+                        onOpenRoutines: { selection = .routine },
+                        onComparisonPresented: { isHistoryComparisonPresented = $0 }
+                    )
+                case .profile:
+                    MyProfileView(onDetailRouteChanged: { isDetailPresented = $0 })
+                }
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !isDetailPresented && !(selection == .history && isHistoryComparisonPresented) {
+            if completionTestData == nil && !isDetailPresented && !(selection == .history && isHistoryComparisonPresented) {
                 tabBar
             }
         }
@@ -63,6 +84,46 @@ struct MainTabView: View {
         .background(selection == .profile ? ProfileOverviewColors.canvas : GymupColors.canvas)
         .preferredColorScheme(.dark)
     }
+
+#if DEBUG
+    @MainActor
+    private static func makeCompletionTestData() -> WorkoutCompletionData {
+        let calendar = Calendar.current
+        let anchor = calendar.date(from: DateComponents(year: 2026, month: 10, day: 28, hour: 12)) ?? .now
+        let weekStart = calendar.dateInterval(of: .weekOfYear, for: anchor)?.start ?? anchor
+        let completedAt = calendar.date(byAdding: .day, value: 5, to: weekStart) ?? anchor
+        let firstWorkout = calendar.date(byAdding: .day, value: 1, to: weekStart) ?? weekStart
+        let secondWorkout = calendar.date(byAdding: .day, value: 2, to: weekStart) ?? weekStart
+        let records = [firstWorkout, secondWorkout].enumerated().map { index, date in
+            WorkoutRecord(
+                id: UUID(), date: date, routineName: "기존 운동 \(index + 1)", category: "가슴",
+                durationMinutes: 40, setCount: 8, volumeKilograms: 1_600, growth: 0,
+                photoAssetName: "H1RoutinePhoto", exercises: []
+            )
+        }
+        let goalStart = calendar.date(byAdding: .weekOfYear, value: -4, to: weekStart) ?? weekStart
+        let settings = OnboardingStoredSettings(
+            experience: 1,
+            purposes: ["근력 향상"],
+            frequency: 3,
+            goal: 1,
+            weeks: 12,
+            goalStartedAt: goalStart
+        )
+        var plan = WorkoutSessionPlan.sample(for: "upper-a")
+        for exerciseIndex in plan.exercises.indices {
+            for setIndex in plan.exercises[exerciseIndex].sets.indices {
+                plan.exercises[exerciseIndex].sets[setIndex].isCompleted = true
+            }
+        }
+        return WorkoutSessionCompletionDataFactory.make(
+            plan: plan,
+            elapsedSeconds: 3_480,
+            completedAt: completedAt,
+            context: WorkoutCompletionProgressContext(historyStore: HistoryStore(records: records), goalSettings: settings)
+        )
+    }
+#endif
 
     private var tabBar: some View {
         HStack(spacing: 0) {
