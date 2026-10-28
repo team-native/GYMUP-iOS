@@ -9,6 +9,8 @@ final class WorkoutSessionViewModel {
     private(set) var now: Date
     private(set) var finishedAt: Date?
     private(set) var notice: String?
+    private let historyStore: HistoryStore
+    private let goalSettings: OnboardingStoredSettings?
 
     private(set) var startedAt: Date?
     private var pausedAt: Date?
@@ -16,16 +18,32 @@ final class WorkoutSessionViewModel {
     private var restEndsAt: Date?
     private(set) var activeRestDurationSeconds = 0
 
-    init(routineID: String, startedAt: Date = Date(), startsImmediately: Bool = true) {
+    init(
+        routineID: String,
+        startedAt: Date = Date(),
+        startsImmediately: Bool = true,
+        historyStore: HistoryStore? = nil,
+        goalSettings: OnboardingStoredSettings? = .load()
+    ) {
         plan = .sample(for: routineID)
         self.startedAt = startsImmediately ? startedAt : nil
         now = startedAt
+        self.historyStore = historyStore ?? HistoryStore()
+        self.goalSettings = goalSettings
     }
 
-    init(plan: WorkoutSessionPlan, startedAt: Date = Date(), startsImmediately: Bool = true) {
+    init(
+        plan: WorkoutSessionPlan,
+        startedAt: Date = Date(),
+        startsImmediately: Bool = true,
+        historyStore: HistoryStore? = nil,
+        goalSettings: OnboardingStoredSettings? = .load()
+    ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
         now = startedAt
+        self.historyStore = historyStore ?? HistoryStore()
+        self.goalSettings = goalSettings
     }
 
     var currentExercise: WorkoutSessionExercise? {
@@ -48,7 +66,8 @@ final class WorkoutSessionViewModel {
         return WorkoutSessionCompletionDataFactory.make(
             plan: plan,
             elapsedSeconds: elapsedSeconds(at: finishedAt),
-            completedAt: finishedAt
+            completedAt: finishedAt,
+            context: WorkoutCompletionProgressContext(historyStore: historyStore, goalSettings: goalSettings)
         )
     }
 

@@ -4,7 +4,19 @@ struct GrowthView: View {
     let onNavigationStateChanged: (Bool) -> Void
     let onOpenHistory: () -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = GrowthViewModel()
+    @State private var viewModel: GrowthViewModel
+
+    @MainActor
+    init(
+        onNavigationStateChanged: @escaping (Bool) -> Void,
+        onOpenHistory: @escaping () -> Void,
+        historyStore: HistoryStore? = nil,
+        goalSettings: OnboardingStoredSettings? = .load()
+    ) {
+        self.onNavigationStateChanged = onNavigationStateChanged
+        self.onOpenHistory = onOpenHistory
+        _viewModel = State(initialValue: GrowthViewModel(historyStore: historyStore, goalSettings: goalSettings))
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -69,6 +81,7 @@ struct GrowthView: View {
         .frame(height: 65, alignment: .leading)
         .accessibilityElement(children: .combine)
         .accessibilityLabel("Growth \(viewModel.growth) / 100")
+        .accessibilityIdentifier("home.growth.score")
     }
 
     private var goalDescription: some View {
@@ -76,6 +89,7 @@ struct GrowthView: View {
             .font(GymupTypography.uiMedium)
             .foregroundStyle(GymupColors.secondaryText)
             .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("home.growth.goal")
     }
 
     private var progressBar: some View {

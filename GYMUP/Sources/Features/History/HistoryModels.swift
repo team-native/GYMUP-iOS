@@ -41,6 +41,7 @@ struct WorkoutRecord: Identifiable, Hashable {
     let growth: Int
     let photoAssetName: String
     let exercises: [WorkoutExerciseRecord]
+    var routineCompleted = false
 
     var accessibilityDescription: String {
         let date = HistoryDateText.string(self.date, format: "M월 d일 EEEE")

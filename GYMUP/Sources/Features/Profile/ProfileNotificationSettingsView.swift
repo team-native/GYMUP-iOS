@@ -10,7 +10,7 @@ struct ProfileNotificationSettingsView: View {
 
     var body: some View {
         ScrollView(showsIndicators: false) {
-            VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
+            VStack(alignment: .leading, spacing: GymupSpacing.large) {
                 notificationSection(title: "운동 중") {
                     VStack(spacing: 0) {
                         preferenceToggle(
@@ -21,7 +21,7 @@ struct ProfileNotificationSettingsView: View {
                         separator
                         preferenceToggle(
                             title: "햅틱",
-                            subtitle: "Set 종료·휴식 종료 시 진동",
+                            subtitle: "Set 완료 · 휴식 종료 시 진동",
                             isOn: $preferences.hapticsEnabled
                         )
                     }
@@ -31,7 +31,7 @@ struct ProfileNotificationSettingsView: View {
                     VStack(spacing: 0) {
                         preferenceToggle(
                             title: "운동 리마인더",
-                            subtitle: "운동하는 날만 알려드려요",
+                            subtitle: "운동하는 날 알려드려요",
                             isOn: $preferences.workoutReminderEnabled
                         )
                         separator
@@ -41,8 +41,8 @@ struct ProfileNotificationSettingsView: View {
 
                 permissionInfoCard
             }
-            .padding(.horizontal, GymupSpacing.large)
-            .padding(.top, GymupSpacing.large)
+            .padding(.horizontal, 20)
+            .padding(.top, GymupSpacing.small)
             .padding(.bottom, GymupSpacing.xxLarge)
         }
         .background(GymupColors.canvas)
@@ -62,11 +62,6 @@ struct ProfileNotificationSettingsView: View {
     private var reminderScheduleRow: some View {
         Button { isReminderSchedulePresented = true } label: {
             HStack(spacing: GymupSpacing.medium) {
-                Image(systemName: "calendar")
-                    .foregroundStyle(GymupColors.primaryText)
-                    .frame(width: 36, height: 36)
-                    .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
-                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
                     Text("일정")
                         .font(scaledRowTitle)
@@ -83,8 +78,9 @@ struct ProfileNotificationSettingsView: View {
                     .frame(width: 16, height: 16)
                     .accessibilityHidden(true)
             }
-            .padding(GymupSpacing.medium)
-            .frame(minHeight: 68)
+            .padding(.horizontal, GymupSpacing.medium)
+            .padding(.vertical, 12)
+            .frame(minHeight: 62)
             .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
             .contentShape(Rectangle())
         }
@@ -150,7 +146,7 @@ struct ProfileNotificationSettingsView: View {
         VStack(alignment: .leading, spacing: GymupSpacing.small) {
             sectionTitle(title)
             content()
-                .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+                .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
         }
     }
 
@@ -168,8 +164,8 @@ struct ProfileNotificationSettingsView: View {
         }
         .tint(GymupColors.accent)
         .padding(.horizontal, GymupSpacing.medium)
-        .padding(.vertical, GymupSpacing.small)
-        .frame(minHeight: 68)
+        .padding(.vertical, 12)
+        .frame(minHeight: 62)
         .accessibilityLabel(title)
         .accessibilityValue(isOn.wrappedValue ? "켜짐" : "꺼짐")
         .accessibilityHint("\(subtitle). 앱 화면의 샘플 설정을 바꿉니다")
