@@ -8,6 +8,7 @@ struct WorkoutSessionRestTimerScreen: View {
     let totalSeconds: Int
     let onExtend: () -> Void
     let onSkip: () -> Void
+    @State private var isPlateCalculatorPresented = false
 
     private var nextSet: WorkoutSessionSet { exercise.sets[nextSetIndex] }
 
@@ -36,6 +37,9 @@ struct WorkoutSessionRestTimerScreen: View {
             }
         }
         .background(GymupColors.canvas.ignoresSafeArea())
+        .sheet(isPresented: $isPlateCalculatorPresented) {
+            WorkoutPlateCalculatorSheet(target: nextSet.weightKilograms)
+        }
     }
 
     private var restHeading: some View {
@@ -140,7 +144,10 @@ struct WorkoutSessionRestTimerScreen: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
 
-            HStack(spacing: 8) {
+            Button {
+                isPlateCalculatorPresented = true
+            } label: {
+                HStack(spacing: 8) {
                 Image("H5IconTarget")
                     .resizable()
                     .frame(width: 16, height: 16)
@@ -148,7 +155,10 @@ struct WorkoutSessionRestTimerScreen: View {
                     .font(GymupTypography.uiCaption)
                     .foregroundStyle(GymupColors.brandText)
             }
-            .frame(maxWidth: .infinity)
+                .frame(maxWidth: .infinity, minHeight: 44)
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("workout.plate.open")
         }
         .padding(16)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
