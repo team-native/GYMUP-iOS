@@ -4,6 +4,7 @@ struct HistoryView: View {
     let store: HistoryStore
     let onOpenRoutines: () -> Void
     let onComparisonPresented: (Bool) -> Void
+    let onGrowthPresented: (Bool) -> Void
     @State private var path: [HistoryRoute] = []
     @State private var selectedMonth: Date
     @State private var selectedDate: Date
@@ -13,11 +14,13 @@ struct HistoryView: View {
     init(
         store: HistoryStore,
         onOpenRoutines: @escaping () -> Void = {},
-        onComparisonPresented: @escaping (Bool) -> Void = { _ in }
+        onComparisonPresented: @escaping (Bool) -> Void = { _ in },
+        onGrowthPresented: @escaping (Bool) -> Void = { _ in }
     ) {
         self.store = store
         self.onOpenRoutines = onOpenRoutines
         self.onComparisonPresented = onComparisonPresented
+        self.onGrowthPresented = onGrowthPresented
         let initialRecord = store.records.first
         let initialDate = initialRecord?.date ?? .now
         let initialMonth = Calendar.current.dateInterval(of: .month, for: initialDate)?.start ?? initialDate
@@ -37,9 +40,11 @@ struct HistoryView: View {
         .background(GymupColors.canvas.ignoresSafeArea())
         .onAppear {
             onComparisonPresented(isComparisonPresented)
+            onGrowthPresented(path.contains(.growth))
         }
         .onChange(of: path) { _, _ in
             onComparisonPresented(isComparisonPresented)
+            onGrowthPresented(path.contains(.growth))
         }
     }
 
@@ -233,7 +238,7 @@ struct HistoryView: View {
         case .calendar:
             HistoryCalendarView(store: store, onOpenDetail: { path.append(.detail($0)) })
         case .growth:
-            HistoryGrowthView()
+            HistoryGrowthView(store: store)
         case .album:
             HistoryAlbumView(
                 store: store,
