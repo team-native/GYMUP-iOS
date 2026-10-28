@@ -190,7 +190,7 @@ struct WorkoutTrainModeScreen: View {
 
     private var exerciseTitle: some View {
         VStack(alignment: .leading, spacing: 0) {
-            Text("EXERCISE \(min(exerciseIndex + 2, totalExerciseCount)) / \(totalExerciseCount)")
+            Text("EXERCISE \(min(exerciseIndex + 1, totalExerciseCount)) / \(totalExerciseCount)")
                 .font(GymupTypography.label)
                 .tracking(0.16)
                 .foregroundStyle(GymupColors.accent)
