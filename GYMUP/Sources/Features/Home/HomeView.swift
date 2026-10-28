@@ -8,6 +8,8 @@ struct HomeView: View {
     let onOpenRoutines: () -> Void
     let onDetailRouteChanged: (Bool) -> Void
     @State private var viewModel = HomeViewModel()
+    @AppStorage("onboarding.completed") private var onboardingCompleted = false
+    @AppStorage("onboarding.frequency") private var onboardingFrequency = 3
     @Bindable private var inventory: BarbellCustomizationViewModel
     @State private var path: [HomeRoute] = []
     @State private var isNewItemPresented = false
@@ -21,6 +23,10 @@ struct HomeView: View {
         self.onOpenRoutines = onOpenRoutines
         self.inventory = inventory
         self.onDetailRouteChanged = onDetailRouteChanged
+    }
+
+    private var weeklyGoal: Int {
+        onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
     }
 
     var body: some View {
@@ -157,7 +163,7 @@ struct HomeView: View {
             NavigationLink(value: HomeRoute.weeklyGoal) {
                 statistic(
                     icon: "H1IconCalendar",
-                    value: "\(viewModel.weeklyWorkoutCount)/\(viewModel.weeklyWorkoutGoal)",
+                    value: "\(viewModel.weeklyWorkoutCount)/\(weeklyGoal)",
                     title: "이번 주 운동"
                 )
             }
@@ -236,7 +242,7 @@ struct HomeView: View {
         case .growth:
             GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) })
         case .weeklyGoal:
-            WeeklyGoalView(onNavigationStateChanged: { _ in })
+            WeeklyGoalView(onNavigationStateChanged: { _ in }, goal: weeklyGoal)
         case .level:
             LevelView(onNavigationStateChanged: { _ in })
         case .goalHistory:

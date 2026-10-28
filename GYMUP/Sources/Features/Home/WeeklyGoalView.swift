@@ -3,6 +3,7 @@ import SwiftUI
 struct WeeklyGoalView: View {
     let onNavigationStateChanged: (Bool) -> Void
     var onChangeGoal: (() -> Void)?
+    var goal: Int = 3
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = WeeklyGoalViewModel()
 
@@ -17,7 +18,7 @@ struct WeeklyGoalView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     weeklyScore
-                    Text("이번 주 목표까지 \(viewModel.remainingWorkouts)회 남았어요")
+                    Text("이번 주 목표까지 \(max(goal - viewModel.completedWorkouts, 0))회 남았어요")
                         .font(GymupTypography.uiMedium)
                         .foregroundStyle(GymupColors.secondaryText)
                         .frame(minHeight: 19)
@@ -47,7 +48,7 @@ struct WeeklyGoalView: View {
                 .font(GymupTypography.score)
                 .tracking(-0.57)
                 .foregroundStyle(GymupColors.primaryText)
-            Text("/ \(viewModel.weeklyGoal) 회")
+            Text("/ \(goal) 회")
                 .font(GymupTypography.metric)
                 .foregroundStyle(GymupColors.tertiaryText)
         }
