@@ -4,6 +4,7 @@ import SwiftUI
 struct GYMUPApp: App {
     @State private var startupStep = StartupStep.splash
     @State private var experience: Int?
+    @State private var purposes: Set<String> = []
 
     var body: some Scene {
         WindowGroup {
@@ -22,6 +23,12 @@ struct GYMUPApp: App {
                     OnboardingExperienceView(
                         selection: $experience,
                         onBack: { startupStep = .welcome },
+                        onNext: { startupStep = .purpose }
+                    )
+                case .purpose:
+                    OnboardingPurposeView(
+                        selection: $purposes,
+                        onBack: { startupStep = .experience },
                         onNext: { startupStep = .home }
                     )
                 case .home:
@@ -37,5 +44,6 @@ private enum StartupStep {
     case splash
     case welcome
     case experience
+    case purpose
     case home
 }
