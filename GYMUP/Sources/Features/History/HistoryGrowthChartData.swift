@@ -45,14 +45,25 @@ enum HistoryGrowthRange: String, CaseIterable, Identifiable, Hashable {
     }
 
     func recordedPoints(from points: [HistoryGrowthDataPoint], now: Date, calendar: Calendar = .current) -> [HistoryGrowthDataPoint] {
-        let start: Date?
-        switch self {
-        case .fourWeeks: start = calendar.date(byAdding: .day, value: -28, to: now)
-        case .twelveWeeks: start = calendar.date(byAdding: .day, value: -84, to: now)
-        case .sixMonths: start = calendar.date(byAdding: .month, value: -6, to: now)
-        case .all: start = nil
-        }
+        let start = startDate(endingAt: now, calendar: calendar)
         return points.filter { point in point.date <= now && (start.map { point.date >= $0 } ?? true) }
+    }
+
+    func comparisonLabel(firstRecordDate: Date?, now: Date, calendar: Calendar = .current) -> String {
+        guard let firstRecordDate else { return "첫 기록" }
+        guard let start = startDate(endingAt: now, calendar: calendar) else { return "첫 기록" }
+        let rangeDuration = now.timeIntervalSince(start)
+        let recordedDuration = now.timeIntervalSince(firstRecordDate)
+        return recordedDuration >= rangeDuration * 0.75 ? "\(rawValue) 전" : "기간 내 첫 기록"
+    }
+
+    private func startDate(endingAt now: Date, calendar: Calendar) -> Date? {
+        switch self {
+        case .fourWeeks: calendar.date(byAdding: .day, value: -28, to: now)
+        case .twelveWeeks: calendar.date(byAdding: .day, value: -84, to: now)
+        case .sixMonths: calendar.date(byAdding: .month, value: -6, to: now)
+        case .all: nil
+        }
     }
 
     func axisLabels(for points: [HistoryGrowthDataPoint], calendar: Calendar = .current) -> [HistoryGrowthAxisLabel] {
