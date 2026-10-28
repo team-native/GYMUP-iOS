@@ -7,6 +7,8 @@ final class HistoryGrowthRecordDataTests: XCTestCase {
         let points = HistoryGrowthRecordData.points(from: [record], exercise: "벤치프레스", metric: .maxWeight)
         XCTAssertEqual(try XCTUnwrap(points.first).value, 62.5, accuracy: 0.001)
         XCTAssertTrue(HistoryGrowthRecordData.points(from: [record], exercise: "없는 운동", metric: .volume).isEmpty)
+        let estimated = HistoryGrowthRecordData.points(from: [record], exercise: "벤치프레스", metric: .estimatedOneRepMax)
+        XCTAssertEqual(try XCTUnwrap(estimated.first).value, 62.5 * (1 + 8.0 / 30), accuracy: 0.001)
     }
 
     func testSelectedDateRangeFiltersByDateNotPointCount() {
