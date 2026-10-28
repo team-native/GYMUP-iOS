@@ -48,3 +48,29 @@ extension RoutineSessionPlanTests {
         XCTAssertEqual(record.exercises.first?.sets.first?.valueTitle, "8초")
     }
 }
+
+@MainActor
+extension RoutineSessionPlanTests {
+    func testTimedExerciseRestAndCompletionPreserveSecondsInHistory() throws {
+        let exercise = RoutineExercise(id: "plank", name: "플랭크", imageAssetName: "", setCount: 2,
+                                       repetitions: 45, weight: 0, restSeconds: 60, measure: .seconds)
+        let routine = RoutinePlan(id: "timed", name: "TIME", title: "시간 운동", exerciseCount: 1,
+                                  durationMinutes: 5, lastPerformed: "", coverAssetName: "",
+                                  isRecommended: false, exercises: [exercise])
+        let plan = try XCTUnwrap(WorkoutSessionPlan.make(from: routine))
+        let start = Date(timeIntervalSince1970: 1_700_000_000)
+        let session = WorkoutSessionViewModel(plan: plan, startedAt: start)
+        session.toggleSetCompletion(exerciseIndex: 0, setIndex: 0, at: start)
+        XCTAssertTrue(session.isResting)
+        session.skipRest()
+        session.toggleSetCompletion(exerciseIndex: 0, setIndex: 1, at: start.addingTimeInterval(45))
+        session.finish(at: start.addingTimeInterval(90))
+        let history = WorkoutSessionCompletionDataFactory.makeHistoryRecord(
+            plan: session.plan, elapsedSeconds: session.elapsedSeconds, completedAt: start
+        )
+        XCTAssertEqual(history.setCount, 2)
+        XCTAssertEqual(history.volumeKilograms, 0)
+        XCTAssertEqual(history.exercises.first?.sets.map(\.valueTitle), ["45초", "45초"])
+        XCTAssertNotNil(session.completionData)
+    }
+}
