@@ -46,8 +46,12 @@ struct GYMUPApp: App {
                         weeks: $goalWeeks,
                         frequency: frequency,
                         onBack: { startupStep = .frequency },
-                        onNext: { startupStep = .home }
+                        onNext: { startupStep = .goalCreated }
                     )
+                case .goalCreated:
+                    OnboardingGoalCreatedView(frequency: frequency, weeks: goalWeeks) {
+                        startupStep = .home
+                    }
                 case .home:
                     MainTabView()
                 }
@@ -64,5 +68,6 @@ private enum StartupStep {
     case purpose
     case frequency
     case goal
+    case goalCreated
     case home
 }
