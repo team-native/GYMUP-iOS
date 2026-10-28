@@ -25,13 +25,13 @@ struct WorkoutSessionView: View {
 
     @MainActor
     init(routineID: String, historyStore: HistoryStore) {
-        _viewModel = State(initialValue: WorkoutSessionViewModel(routineID: routineID))
+        _viewModel = State(initialValue: WorkoutSessionViewModel(routineID: routineID, historyStore: historyStore))
         self.historyStore = historyStore
     }
 
     @MainActor
     init(plan: WorkoutSessionPlan, historyStore: HistoryStore) {
-        _viewModel = State(initialValue: WorkoutSessionViewModel(plan: plan))
+        _viewModel = State(initialValue: WorkoutSessionViewModel(plan: plan, historyStore: historyStore))
         self.historyStore = historyStore
     }
 
@@ -284,7 +284,9 @@ private extension WorkoutSessionView {
                 elapsedSeconds: viewModel.elapsedSeconds(at: completedAt),
                 completedAt: completedAt
             )
-            historyStore.add(record)
+            if record.setCount > 0 {
+                historyStore.add(record)
+            }
             didSaveHistoryRecord = true
         }
         dismiss()

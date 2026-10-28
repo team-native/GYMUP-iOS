@@ -5,7 +5,7 @@ final class WorkoutSessionViewModelTests: XCTestCase {
     @MainActor
     func testCompletionDataIncludesActualDurationCompletedSetsAndVolume() throws {
         let start = Date(timeIntervalSince1970: 1_800_000_000)
-        let viewModel = WorkoutSessionViewModel(routineID: "upper-a", startedAt: start)
+        let viewModel = WorkoutSessionViewModel(routineID: "upper-a", startedAt: start, goalSettings: nil)
 
         viewModel.updateWeight(50, exerciseIndex: 0, setIndex: 0)
         viewModel.updateRepetitions(8, exerciseIndex: 0, setIndex: 0)
@@ -32,9 +32,13 @@ final class WorkoutSessionViewModelTests: XCTestCase {
         XCTAssertEqual(data.exerciseDetails.last?.name, "인클라인 덤벨 프레스")
         XCTAssertEqual(data.exerciseDetails.last?.sets.map(\.weightKilograms), [20])
         XCTAssertEqual(data.exerciseDetails.last?.sets.map(\.repetitions), [10])
-        XCTAssertNotNil(data.levelReward)
-        XCTAssertNotNil(data.stageReward)
-        XCTAssertNotNil(data.peakReward)
+        XCTAssertEqual(data.previousGrowth, 0)
+        XCTAssertEqual(data.growth, 0)
+        XCTAssertEqual(data.weeklyWorkoutCount, 1)
+        XCTAssertEqual(data.weeklyWorkoutGoal, 0)
+        XCTAssertNil(data.levelReward)
+        XCTAssertNil(data.stageReward)
+        XCTAssertNil(data.peakReward)
     }
 
     func testAllSampleExercisesHavePreSessionFormAndBeginnerGuidance() {
