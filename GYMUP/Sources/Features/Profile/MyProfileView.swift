@@ -14,6 +14,7 @@ struct MyProfileView: View {
     @State private var isNotificationPermissionPresented = false
     @State private var reminderSchedule = ProfileReminderSchedule()
     @State private var presentedSheet: ProfileSheetDestination?
+    @State private var restTimeSheetDetent: PresentationDetent = .height(426)
     @State private var isPlaylistPresented = false
 
     private let profile = ProfileSampleData.summary
@@ -97,7 +98,7 @@ struct MyProfileView: View {
             }
             .sheet(item: $presentedSheet) { destination in
                 sheet(for: destination)
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.height(426), .large], selection: $restTimeSheetDetent)
                     .presentationDragIndicator(.visible)
             }
             .task {
