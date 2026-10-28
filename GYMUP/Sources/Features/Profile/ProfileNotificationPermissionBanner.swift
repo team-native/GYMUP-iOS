@@ -40,7 +40,7 @@ struct ProfileNotificationPermissionBanner: View {
                     .font(ProfileTypography.rowTitle)
                     .foregroundStyle(GymupColors.primaryText)
                 Text(detail)
-                    .font(ProfileTypography.caption)
+                    .font(ProfileTypography.settingSubtitle)
                     .foregroundStyle(ProfileOverviewColors.secondaryText)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -54,7 +54,11 @@ struct ProfileNotificationPermissionBanner: View {
             .font(ProfileTypography.action)
             .foregroundStyle(.white)
             .frame(minWidth: 56, minHeight: 44)
-            .background(ProfileOverviewColors.brandPrimary, in: Capsule())
+            .background {
+                Capsule()
+                    .fill(ProfileOverviewColors.brandPrimary)
+                    .padding(.vertical, GymupSpacing.xSmall + 2)
+            }
             .buttonStyle(.plain)
             .accessibilityLabel("알림 설정 열기")
             .accessibilityHint("시스템 알림 권한 상태와 설정 화면을 엽니다")
