@@ -13,7 +13,9 @@ final class RoutineSessionFlowUITests: XCTestCase {
         start.tap()
         let promptStart = app.buttons["workout.first-exercise.start"]
         if promptStart.waitForExistence(timeout: 3) { promptStart.tap() }
-        XCTAssertTrue(app.buttons["workout.quit"].waitForExistence(timeout: 5))
+        if !app.buttons["workout.quit"].waitForExistence(timeout: 5) {
+                XCTFail("운동 화면이 표시되지 않음")
+        }
         XCTAssertTrue(app.staticTexts["벤치프레스"].exists)
     }
 }

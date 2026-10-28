@@ -42,6 +42,7 @@ struct RoutineCard: View {
                             .padding(.top, 14)
                     }
                 }
+                .frame(width: geometry.size.width, height: 140)
                 .clipShape(RoundedRectangle(cornerRadius: 16))
             }
             .buttonStyle(.plain)
