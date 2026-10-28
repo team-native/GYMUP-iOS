@@ -31,3 +31,16 @@ final class RoutineSessionPlanTests: XCTestCase {
         XCTAssertNil(WorkoutSessionPlan.make(from: routine))
     }
 }
+
+extension RoutineSessionPlanTests {
+    func testTimedSetsDoNotContributeToWeightVolume() throws {
+        var plan = WorkoutSessionPlan.sample(for: "upper-a")
+        plan.exercises[0].measure = .seconds
+        plan.exercises[0].sets[0].isCompleted = true
+        XCTAssertEqual(plan.exercises[0].completedVolumeKilograms, 0)
+        let record = WorkoutSessionCompletionDataFactory.makeHistoryRecord(
+            plan: plan, elapsedSeconds: 30, completedAt: Date()
+        )
+        XCTAssertEqual(record.volumeKilograms, 0)
+    }
+}
