@@ -59,7 +59,7 @@ struct MyProfileView: View {
     var body: some View {
         NavigationStack {
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
+                VStack(alignment: .leading, spacing: GymupSpacing.large) {
                     Text("마이")
                         .font(ProfileTypography.pageTitle)
                         .foregroundStyle(GymupColors.primaryText)
@@ -236,6 +236,7 @@ struct ProfilePlaylistSection: View {
                 title: "루틴별 플레이리스트",
                 subtitle: "Apple Music · Spotify 연결",
                 value: "V2",
+                minHeight: 67,
                 action: onPlaylist
             )
             .padding(.horizontal, GymupSpacing.medium)
@@ -249,6 +250,7 @@ private struct ProfileSettingRow: View {
     let title: String
     let subtitle: String
     let value: String?
+    let minHeight: CGFloat
     let action: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -257,12 +259,14 @@ private struct ProfileSettingRow: View {
         title: String,
         subtitle: String,
         value: String? = nil,
+        minHeight: CGFloat = 62,
         action: @escaping () -> Void
     ) {
         self.icon = icon
         self.title = title
         self.subtitle = subtitle
         self.value = value
+        self.minHeight = minHeight
         self.action = action
     }
 
@@ -281,7 +285,7 @@ private struct ProfileSettingRow: View {
                         }
 
                         Text(subtitle)
-                            .font(ProfileTypography.caption)
+                            .font(ProfileTypography.settingsCaption)
                             .foregroundStyle(ProfileOverviewColors.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.leading, 48)
@@ -301,7 +305,7 @@ private struct ProfileSettingRow: View {
                                 .foregroundStyle(GymupColors.primaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(subtitle)
-                                .font(ProfileTypography.caption)
+                                .font(ProfileTypography.settingsCaption)
                                 .foregroundStyle(ProfileOverviewColors.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -314,7 +318,7 @@ private struct ProfileSettingRow: View {
             }
             .padding(.horizontal, GymupSpacing.medium)
             .padding(.vertical, GymupSpacing.small)
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: minHeight, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
