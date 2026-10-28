@@ -27,6 +27,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     let formSteps: [String]
     let beginnerTip: String
     var sets: [WorkoutSessionSet]
+    var imageAssetOverride: String?
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
     var isComplete: Bool { !sets.isEmpty && sets.allSatisfy(\.isCompleted) }
@@ -85,6 +86,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     }
 
     var imageAssetName: String {
+        if let imageAssetOverride { return imageAssetOverride }
         switch id {
         case "bench-press": "H1RoutinePhoto"
         case "incline-press", "dumbbell-curl", "hammer-curl": "ExerciseInclinePhoto"
@@ -123,6 +125,28 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
     let title: String
     let estimatedDurationMinutes: Int
     var exercises: [WorkoutSessionExercise]
+
+    static func make(from routine: RoutinePlan) -> WorkoutSessionPlan? {
+        guard !routine.exercises.isEmpty,
+              routine.exercises.allSatisfy({ $0.measure == .repetitions && $0.setCount > 0 }) else { return nil }
+        let aliases = ["bench": "bench-press", "incline": "incline-press", "shoulder": "shoulder-press",
+                       "fly": "cable-fly", "pushdown": "triceps-pushdown", "curl": "dumbbell-curl",
+                       "hammer": "hammer-curl"]
+        let exercises = routine.exercises.map { item in
+            let identifier = aliases[item.id] ?? item.id
+            let guidance = WorkoutSessionGuidanceLibrary.guidance(for: identifier)
+            let target = RoutineExerciseOption.all.first { $0.id == item.id }?.muscleGroup ?? "운동"
+            return WorkoutSessionExercise(
+                id: identifier, name: item.name, target: target, restDurationSeconds: item.restSeconds,
+                formSteps: guidance.steps, beginnerTip: guidance.beginnerTip,
+                sets: (0..<item.setCount).map { _ in
+                    WorkoutSessionSet(weightKilograms: item.weight, repetitions: item.repetitions)
+                }, imageAssetOverride: item.imageAssetName
+            )
+        }
+        return WorkoutSessionPlan(id: routine.id, name: routine.name, title: routine.title,
+                                  estimatedDurationMinutes: routine.durationMinutes, exercises: exercises)
+    }
 
     static func sample(for routineID: String) -> WorkoutSessionPlan {
         let template: WorkoutSessionPlan

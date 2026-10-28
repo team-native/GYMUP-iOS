@@ -29,6 +29,12 @@ struct WorkoutSessionView: View {
         self.historyStore = historyStore
     }
 
+    @MainActor
+    init(plan: WorkoutSessionPlan, historyStore: HistoryStore) {
+        _viewModel = State(initialValue: WorkoutSessionViewModel(plan: plan))
+        self.historyStore = historyStore
+    }
+
     var body: some View {
         Group {
             if isShowingWorkoutProcessing {

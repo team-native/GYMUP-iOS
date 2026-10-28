@@ -22,6 +22,12 @@ final class WorkoutSessionViewModel {
         now = startedAt
     }
 
+    init(plan: WorkoutSessionPlan, startedAt: Date = Date(), startsImmediately: Bool = true) {
+        self.plan = plan
+        self.startedAt = startsImmediately ? startedAt : nil
+        now = startedAt
+    }
+
     var currentExercise: WorkoutSessionExercise? {
         guard plan.exercises.indices.contains(currentExerciseIndex) else { return nil }
         return plan.exercises[currentExerciseIndex]
