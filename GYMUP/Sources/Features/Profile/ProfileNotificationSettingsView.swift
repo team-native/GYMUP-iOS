@@ -41,7 +41,7 @@ struct ProfileNotificationSettingsView: View {
 
                 permissionInfoCard
             }
-            .padding(.horizontal, GymupSpacing.large)
+            .padding(.horizontal, 20)
             .padding(.top, GymupSpacing.small)
             .padding(.bottom, GymupSpacing.xxLarge)
         }
@@ -62,11 +62,6 @@ struct ProfileNotificationSettingsView: View {
     private var reminderScheduleRow: some View {
         Button { isReminderSchedulePresented = true } label: {
             HStack(spacing: GymupSpacing.medium) {
-                Image(systemName: "calendar")
-                    .foregroundStyle(GymupColors.primaryText)
-                    .frame(width: 36, height: 36)
-                    .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
-                    .accessibilityHidden(true)
                 VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
                     Text("일정")
                         .font(scaledRowTitle)
@@ -151,7 +146,7 @@ struct ProfileNotificationSettingsView: View {
         VStack(alignment: .leading, spacing: GymupSpacing.small) {
             sectionTitle(title)
             content()
-                .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+                .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
         }
     }
 

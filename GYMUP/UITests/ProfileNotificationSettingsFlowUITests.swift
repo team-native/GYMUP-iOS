@@ -16,10 +16,16 @@ final class ProfileNotificationSettingsFlowUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["알림 설정"].waitForExistence(timeout: 10))
         XCTAssertFalse(app.buttons["홈"].exists)
+        let sectionHeader = app.staticTexts["운동 중"]
+        XCTAssertTrue(sectionHeader.exists)
+        XCTAssertEqual(sectionHeader.frame.minX, 20, accuracy: 1)
         XCTAssertTrue(app.switches["휴식 종료 알림"].exists)
         XCTAssertTrue(app.switches["햅틱"].exists)
         XCTAssertTrue(app.switches["운동 리마인더"].exists)
-        XCTAssertTrue(app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "일정,")).firstMatch.exists)
+        let scheduleRow = app.buttons.matching(NSPredicate(format: "label BEGINSWITH %@", "일정,")).firstMatch
+        XCTAssertTrue(scheduleRow.exists)
+        XCTAssertEqual(scheduleRow.frame.minX, 20, accuracy: 1)
+        XCTAssertEqual(app.staticTexts["일정"].frame.minX, 32, accuracy: 1)
         XCTAssertTrue(app.staticTexts["알림 권한이 꺼져 있으면 위 설정이 켜져 있어도 알림이 오지 않아요."].exists)
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
