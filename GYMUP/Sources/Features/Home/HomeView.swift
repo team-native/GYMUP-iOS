@@ -28,18 +28,6 @@ struct HomeView: View {
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
-    private var weeklyGoal: Int {
-        onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
-    }
-
-    private var weeklyRecords: [WorkoutRecord]? {
-        guard onboardingCompleted, let historyStore,
-              let week = Calendar.current.dateInterval(of: .weekOfYear, for: .now) else { return nil }
-        return historyStore.records.filter { week.contains($0.date) }
-    }
-
-    private var weeklyCount: Int { weeklyRecords?.count ?? viewModel.weeklyWorkoutCount }
-
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView(showsIndicators: false) {
@@ -282,4 +270,17 @@ struct HomeView: View {
 
 #Preview {
     HomeView(onOpenRoutines: {}, inventory: BarbellCustomizationViewModel())
+}
+
+private extension HomeView {
+    var weeklyGoal: Int {
+        onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
+    }
+
+    var weeklyRecords: [WorkoutRecord]? {
+        onboardingCompleted ? historyStore?.recordsInCurrentWeek() : nil
+    }
+
+    var weeklyCount: Int { weeklyRecords?.count ?? viewModel.weeklyWorkoutCount }
+
 }
