@@ -25,6 +25,7 @@ struct MainTabView: View {
                 HomeView(
                     onOpenRoutines: { requestedRoutineID = "upper-a"; selection = .routine },
                     inventory: inventory,
+                    historyStore: historyStore,
                     onDetailRouteChanged: { isDetailPresented = $0 }
                 )
             case .routine:

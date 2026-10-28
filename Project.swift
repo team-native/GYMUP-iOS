@@ -73,12 +73,22 @@ let project = Project(
             sources: ["GYMUP/Tests/**"],
             dependencies: [.target(name: "GYMUP")]
         ),
+        .target(
+            name: "GYMUPUITests",
+            destinations: .iOS,
+            product: .uiTests,
+            bundleId: "com.teamnative.gymup.uitests",
+            deploymentTargets: .iOS("17.0"),
+            infoPlist: .default,
+            sources: ["GYMUP/UITests/**"],
+            dependencies: [.target(name: "GYMUP")]
+        ),
     ],
     schemes: [
         .scheme(
             name: "GYMUP",
             buildAction: .buildAction(targets: ["GYMUP"]),
-            testAction: .targets([.testableTarget(target: "GYMUPTests")]),
+            testAction: .targets([.testableTarget(target: "GYMUPTests"), .testableTarget(target: "GYMUPUITests")]),
             runAction: .runAction(executable: .target("GYMUP"))
         ),
     ]

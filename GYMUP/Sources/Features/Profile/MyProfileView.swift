@@ -5,7 +5,7 @@ struct MyProfileView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
-    @State private var goals = ProfileSampleData.goalHistory
+    @State private var goals: [ProfileGoalRecord]
     @State private var isNotificationSettingsPresented = false
     @State private var isPhotoPermissionsPresented = false
     @State private var restTimeSeconds = 90
@@ -17,7 +17,28 @@ struct MyProfileView: View {
     @State private var restTimeSheetDetent: PresentationDetent = .height(426)
     @State private var isPlaylistPresented = false
 
-    private let profile = ProfileSampleData.summary
+    private let profile: ProfileSummary
+
+    init() {
+        let sample = ProfileSampleData.summary
+        if let settings = OnboardingStoredSettings.load() {
+            let experienceTitles = ["처음", "입문", "중급", "숙련"]
+            let types: [ProfileGoalType] = [.body, .strength, .consistency]
+            let current = ProfileGoalRecord(type: types[settings.goal], workoutsPerWeek: settings.frequency,
+                                            durationWeeks: settings.weeks, period: "진행 중", growth: 0,
+                                            completedWeeks: 0, isCurrent: true)
+            _goals = State(initialValue: [current])
+            profile = ProfileSummary(level: sample.level, stage: sample.stage,
+                                     focus: "\(experienceTitles[settings.experience]) · \(settings.purposes.joined(separator: " · "))",
+                                     workoutsPerWeek: settings.frequency, currentGoal: current.type.rawValue,
+                                     goalDurationWeeks: settings.weeks, restTimeSummary: sample.restTimeSummary,
+                                     notificationSummary: sample.notificationSummary,
+                                     photoPermissionSummary: sample.photoPermissionSummary)
+        } else {
+            _goals = State(initialValue: ProfileSampleData.goalHistory)
+            profile = sample
+        }
+    }
 
     private var currentGoal: ProfileGoalRecord {
         goals.first(where: \.isCurrent) ?? ProfileSampleData.goalHistory[0]
