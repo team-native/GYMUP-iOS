@@ -6,6 +6,8 @@ struct GYMUPApp: App {
     @State private var experience: Int?
     @State private var purposes: Set<String> = []
     @State private var frequency = 3
+    @State private var goal = 0
+    @State private var goalWeeks = 12
 
     var body: some Scene {
         WindowGroup {
@@ -36,6 +38,14 @@ struct GYMUPApp: App {
                     OnboardingFrequencyView(
                         frequency: $frequency,
                         onBack: { startupStep = .purpose },
+                        onNext: { startupStep = .goal }
+                    )
+                case .goal:
+                    OnboardingGoalView(
+                        goal: $goal,
+                        weeks: $goalWeeks,
+                        frequency: frequency,
+                        onBack: { startupStep = .frequency },
                         onNext: { startupStep = .home }
                     )
                 case .home:
@@ -53,5 +63,6 @@ private enum StartupStep {
     case experience
     case purpose
     case frequency
+    case goal
     case home
 }
