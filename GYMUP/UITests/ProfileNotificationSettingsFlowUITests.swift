@@ -15,6 +15,7 @@ final class ProfileNotificationSettingsFlowUITests: XCTestCase {
         settingsRow.tap()
 
         XCTAssertTrue(app.staticTexts["알림 설정"].waitForExistence(timeout: 10))
+        XCTAssertFalse(app.buttons["홈"].exists)
         XCTAssertTrue(app.switches["휴식 종료 알림"].exists)
         XCTAssertTrue(app.switches["햅틱"].exists)
         XCTAssertTrue(app.switches["운동 리마인더"].exists)
@@ -40,5 +41,6 @@ final class ProfileNotificationSettingsFlowUITests: XCTestCase {
         let reopenedSwitch = app.switches["햅틱"]
         XCTAssertTrue(reopenedSwitch.waitForExistence(timeout: 5))
         XCTAssertEqual(String(describing: reopenedSwitch.value ?? ""), toggledValue)
+
     }
 }
