@@ -3,14 +3,17 @@ import SwiftUI
 struct HistoryGrowthView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedMetric: HistoryGrowthMetric = .maxWeight
-    @State private var selectedExercise = "벤치프레스"
+    @State private var selectedExercise = ""
     @State private var selectedRange: HistoryGrowthRange = .twelveWeeks
     @State private var selectedPointDate: Date?
 
+    private let store: HistoryStore
     private let anchorDate: Date
     private let sampleDataOverride: [HistoryGrowthDataPoint]?
 
-    init(anchorDate: Date = .now, sampleDataOverride: [HistoryGrowthDataPoint]? = nil) {
+    @MainActor
+    init(store: HistoryStore? = nil, anchorDate: Date = .now, sampleDataOverride: [HistoryGrowthDataPoint]? = nil) {
+        self.store = store ?? HistoryStore()
         self.anchorDate = anchorDate
         self.sampleDataOverride = sampleDataOverride
     }
@@ -35,6 +38,7 @@ struct HistoryGrowthView: View {
         }
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear { if selectedExercise.isEmpty { selectedExercise = exercises.first ?? "" } }
     }
 
     private var exercisePicker: some View {
@@ -44,7 +48,7 @@ struct HistoryGrowthView: View {
             }
         } label: {
             HStack(spacing: 8) {
-                Text(selectedExercise)
+                Text(selectedExercise.isEmpty ? "운동 기록 없음" : selectedExercise)
                     .font(GymupTypography.uiStrong)
                     .foregroundStyle(GymupColors.primaryText)
                 Image(systemName: "chevron.down")
@@ -193,19 +197,17 @@ struct HistoryGrowthView: View {
     }
 
     private var exercises: [String] {
-        HistoryGrowthSampleData.exercises
+        HistoryGrowthRecordData.exercises(from: store.records)
     }
 
     private var allSamples: [HistoryGrowthDataPoint] {
-        sampleDataOverride ?? HistoryGrowthSampleData.points(
-            for: selectedMetric,
-            exercise: selectedExercise,
-            anchorDate: anchorDate
+        sampleDataOverride ?? HistoryGrowthRecordData.points(
+            from: store.records, exercise: selectedExercise, metric: selectedMetric
         )
     }
 
     private var visiblePoints: [HistoryGrowthDataPoint] {
-        selectedRange.points(from: allSamples)
+        selectedRange.recordedPoints(from: allSamples, now: anchorDate)
     }
 
     private var selectedPoint: HistoryGrowthDataPoint? {
@@ -220,7 +222,7 @@ struct HistoryGrowthView: View {
     private var changeValue: Double? {
         guard let selectedPoint,
               let selectedIndex = allSamples.firstIndex(where: { $0.date == selectedPoint.date }) else { return nil }
-        let comparisonIndex = max(0, selectedIndex - selectedRange.comparisonPointCount)
+        let comparisonIndex = allSamples.firstIndex { $0.date == visiblePoints.first?.date } ?? selectedIndex
         guard comparisonIndex < selectedIndex else { return nil }
         return selectedPoint.value - allSamples[comparisonIndex].value
     }

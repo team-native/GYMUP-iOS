@@ -233,7 +233,7 @@ struct HistoryView: View {
         case .calendar:
             HistoryCalendarView(store: store, onOpenDetail: { path.append(.detail($0)) })
         case .growth:
-            HistoryGrowthView()
+            HistoryGrowthView(store: store)
         case .album:
             HistoryAlbumView(
                 store: store,

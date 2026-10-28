@@ -44,6 +44,17 @@ enum HistoryGrowthRange: String, CaseIterable, Identifiable, Hashable {
         return Array(samples.suffix(visiblePointCount))
     }
 
+    func recordedPoints(from points: [HistoryGrowthDataPoint], now: Date, calendar: Calendar = .current) -> [HistoryGrowthDataPoint] {
+        let start: Date?
+        switch self {
+        case .fourWeeks: start = calendar.date(byAdding: .day, value: -28, to: now)
+        case .twelveWeeks: start = calendar.date(byAdding: .day, value: -84, to: now)
+        case .sixMonths: start = calendar.date(byAdding: .month, value: -6, to: now)
+        case .all: start = nil
+        }
+        return points.filter { point in point.date <= now && (start.map { point.date >= $0 } ?? true) }
+    }
+
     func axisLabels(for points: [HistoryGrowthDataPoint], calendar: Calendar = .current) -> [HistoryGrowthAxisLabel] {
         guard !points.isEmpty else { return [] }
         let step = self == .sixMonths ? 2 : self == .all ? 3 : 1
@@ -123,6 +134,33 @@ enum HistoryGrowthSampleData {
                 date: calendar.startOfDay(for: date),
                 value: valueRange.lowerBound + (valueRange.upperBound - valueRange.lowerBound) * progress
             )
+        }
+    }
+}
+
+enum HistoryGrowthRecordData {
+    static func exercises(from records: [WorkoutRecord]) -> [String] {
+        Array(Set(records.flatMap(\.exercises).filter {
+            $0.sets.contains { $0.measure == .repetitions }
+        }.map(\.name))).sorted()
+    }
+
+    static func points(from records: [WorkoutRecord], exercise: String,
+                       metric: HistoryGrowthMetric) -> [HistoryGrowthDataPoint] {
+        records.sorted { $0.date < $1.date }.compactMap { record in
+            let sets = record.exercises.filter { $0.name == exercise }.flatMap(\.sets)
+                .filter { $0.measure == .repetitions && $0.repetitions > 0 }
+            guard !sets.isEmpty else { return nil }
+            let value: Double
+            switch metric {
+            case .maxWeight:
+                value = sets.map(\.weight).max() ?? 0
+            case .estimatedOneRepMax:
+                value = sets.map { $0.weight * (1 + Double($0.repetitions) / 30) }.max() ?? 0
+            case .volume:
+                value = sets.reduce(0) { $0 + $1.weight * Double($1.repetitions) }
+            }
+            return HistoryGrowthDataPoint(date: record.date, value: value)
         }
     }
 }
