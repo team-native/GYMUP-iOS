@@ -61,7 +61,7 @@ struct MainTabView: View {
                         onComparisonPresented: { isHistoryComparisonPresented = $0 }
                     )
                 case .profile:
-                    MyProfileView()
+                    MyProfileView(onDetailRouteChanged: { isDetailPresented = $0 })
                 }
             }
         }
