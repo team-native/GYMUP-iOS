@@ -3,6 +3,7 @@ import SwiftUI
 @main
 struct GYMUPApp: App {
     @State private var startupStep = StartupStep.splash
+    @State private var experience: Int?
 
     var body: some Scene {
         WindowGroup {
@@ -16,7 +17,13 @@ struct GYMUPApp: App {
                             startupStep = .welcome
                         }
                 case .welcome:
-                    OnboardingWelcomeView { startupStep = .home }
+                    OnboardingWelcomeView { startupStep = .experience }
+                case .experience:
+                    OnboardingExperienceView(
+                        selection: $experience,
+                        onBack: { startupStep = .welcome },
+                        onNext: { startupStep = .home }
+                    )
                 case .home:
                     MainTabView()
                 }
@@ -29,5 +36,6 @@ struct GYMUPApp: App {
 private enum StartupStep {
     case splash
     case welcome
+    case experience
     case home
 }
