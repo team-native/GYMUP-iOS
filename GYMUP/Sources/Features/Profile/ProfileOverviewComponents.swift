@@ -64,6 +64,8 @@ struct ProfileLevelCard: View {
             .resizable()
             .scaledToFit()
             .frame(width: 80, height: 40)
+            .frame(width: 96, height: 48)
+            .background(ProfileOverviewColors.iconSurface, in: RoundedRectangle(cornerRadius: 12))
             .accessibilityHidden(true)
     }
 
@@ -75,7 +77,7 @@ struct ProfileLevelCard: View {
                     .foregroundStyle(GymupColors.primaryText)
                 Text(profile.stage)
                     .font(ProfileTypography.stage)
-                    .foregroundStyle(ProfileOverviewColors.brandPrimary)
+                    .foregroundStyle(GymupColors.brandText)
             }
             Text("\(profile.focus) · 주 \(profile.workoutsPerWeek)회")
                 .font(ProfileTypography.settingSubtitle)
@@ -87,7 +89,7 @@ struct ProfileLevelCard: View {
 
 struct ProfileChevron: View {
     var body: some View {
-        Image("H1IconChevronRight")
+        Image("H3IconChevronRight")
             .resizable()
             .scaledToFit()
             .frame(width: 16, height: 16)

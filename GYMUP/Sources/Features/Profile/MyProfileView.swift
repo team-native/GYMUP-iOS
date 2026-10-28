@@ -250,6 +250,7 @@ struct ProfilePlaylistSection: View {
                 title: "루틴별 플레이리스트",
                 subtitle: "Apple Music · Spotify 연결",
                 value: "V2",
+                valueColor: GymupColors.tertiaryText,
                 action: onPlaylist
             )
             .overlay(alignment: .bottom) { ProfileRowSeparator(horizontalInset: 16) }
@@ -262,6 +263,7 @@ private struct ProfileSettingRow: View {
     let title: String
     let subtitle: String
     let value: String?
+    let valueColor: Color
     let horizontalPadding: CGFloat
     let action: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
@@ -271,6 +273,7 @@ private struct ProfileSettingRow: View {
         title: String,
         subtitle: String,
         value: String? = nil,
+        valueColor: Color = GymupColors.brandText,
         horizontalPadding: CGFloat = 16,
         action: @escaping () -> Void
     ) {
@@ -278,6 +281,7 @@ private struct ProfileSettingRow: View {
         self.title = title
         self.subtitle = subtitle
         self.value = value
+        self.valueColor = valueColor
         self.horizontalPadding = horizontalPadding
         self.action = action
     }
@@ -353,7 +357,7 @@ private struct ProfileSettingRow: View {
             Text(value)
                 .font(ProfileTypography.level)
                 .dynamicTypeSize(DynamicTypeSize.xSmall ... DynamicTypeSize.xxxLarge)
-                .foregroundStyle(ProfileOverviewColors.brandPrimary)
+                .foregroundStyle(valueColor)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
         }
