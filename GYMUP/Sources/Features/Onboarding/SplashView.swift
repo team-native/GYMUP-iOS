@@ -19,7 +19,7 @@ struct SplashView: View {
                     .accessibilityHidden(true)
             }
             .frame(maxWidth: .infinity)
-            .position(x: geometry.size.width / 2, y: geometry.size.height * 0.46)
+            .position(x: geometry.size.width / 2, y: geometry.size.height * 0.435)
         }
         .background(GymupColors.canvas.ignoresSafeArea())
         .accessibilityElement(children: .combine)
