@@ -3,6 +3,7 @@ import SwiftUI
 enum ProfileOverviewColors {
     static let canvas = Color(red: 11.0 / 255, green: 11.0 / 255, blue: 13.0 / 255)
     static let surface = Color(red: 22.0 / 255, green: 22.0 / 255, blue: 26.0 / 255)
+    static let iconSurface = Color(red: 31.0 / 255, green: 31.0 / 255, blue: 36.0 / 255)
     static let secondaryText = Color(red: 161.0 / 255, green: 161.0 / 255, blue: 170.0 / 255)
     static let brandPrimary = Color(red: 255.0 / 255, green: 18.0 / 255, blue: 22.0 / 255)
     static let statusCritical = Color(red: 255.0 / 255, green: 69.0 / 255, blue: 58.0 / 255)
@@ -13,6 +14,7 @@ enum ProfileTypography {
     static let level = Font.custom("BarlowCondensed-ExtraBold", size: 18, relativeTo: .title3)
     static let stage = Font.custom("Archivo-SemiBold", size: 10, relativeTo: .caption2)
     static let rowTitle = Font.custom("GothicA1-SemiBold", size: 14, relativeTo: .headline)
+    static let settingSubtitle = Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption)
     static let action = Font.custom("GothicA1-Bold", size: 13, relativeTo: .body)
     static let caption = Font.custom("NotoSansKR-Regular", size: 12, relativeTo: .caption)
     static let section = Font.custom("Archivo-SemiBold", size: 10, relativeTo: .caption2)
@@ -36,7 +38,7 @@ struct ProfileLevelCard: View {
                         profileDetails
                     }
                 } else {
-                    HStack(spacing: GymupSpacing.medium) {
+                    HStack(spacing: 14) {
                         equipmentImage
                         profileDetails
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -45,8 +47,8 @@ struct ProfileLevelCard: View {
                 }
             }
             .padding(.horizontal, GymupSpacing.large)
-            .padding(.vertical, GymupSpacing.medium)
-            .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+            .padding(.vertical, 14)
+            .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
             .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
             .contentShape(Rectangle())
         }
@@ -76,7 +78,7 @@ struct ProfileLevelCard: View {
                     .foregroundStyle(ProfileOverviewColors.brandPrimary)
             }
             Text("\(profile.focus) · 주 \(profile.workoutsPerWeek)회")
-                .font(ProfileTypography.caption)
+                .font(ProfileTypography.settingSubtitle)
                 .foregroundStyle(ProfileOverviewColors.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }

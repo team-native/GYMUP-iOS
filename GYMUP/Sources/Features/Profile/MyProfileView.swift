@@ -3,6 +3,7 @@ import UserNotifications
 
 struct MyProfileView: View {
     @Environment(\.scenePhase) private var scenePhase
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
     @State private var goals: [ProfileGoalRecord]
@@ -58,40 +59,47 @@ struct MyProfileView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
+            VStack(spacing: 6) {
+                HStack {
                     Text("마이")
                         .font(ProfileTypography.pageTitle)
                         .foregroundStyle(GymupColors.primaryText)
                         .accessibilityAddTraits(.isHeader)
-
-                    ProfileLevelCard(profile: profile) { isLevelPresented = true }
-
-                    if let notificationPermissionSnapshot,
-                       notificationPermissionSnapshot.shouldShowPermissionBanner {
-                        ProfileNotificationPermissionBanner(
-                            authorization: notificationPermissionSnapshot.authorization,
-                            onEnable: { isNotificationPermissionPresented = true }
-                        )
-                    }
-
-                    ProfileGoalWorkoutSection(
-                        goalSummary: currentGoalSummary,
-                        restTimeSummary: restTimeSummary,
-                        onGoal: { perform(.goals) },
-                        onRestTime: { perform(.restTime) }
-                    )
-                    ProfilePermissionSection(
-                        notificationSummary: notificationSummary,
-                        photoPermissionSummary: profile.photoPermissionSummary,
-                        onNotifications: { perform(.notifications) },
-                        onPhotoAccess: { perform(.photoAccess) }
-                    )
-                    ProfilePlaylistSection { perform(.playlist) }
+                    Spacer(minLength: 0)
                 }
-                .padding(.horizontal, GymupSpacing.large)
-                .padding(.top, GymupSpacing.large)
-                .padding(.bottom, GymupSpacing.xxLarge)
+                .padding(.horizontal, 20)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48, alignment: .leading)
+
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 15) {
+                        ProfileLevelCard(profile: profile) { isLevelPresented = true }
+
+                        if let notificationPermissionSnapshot,
+                           notificationPermissionSnapshot.shouldShowPermissionBanner {
+                            ProfileNotificationPermissionBanner(
+                                authorization: notificationPermissionSnapshot.authorization,
+                                onEnable: { isNotificationPermissionPresented = true }
+                            )
+                        }
+
+                        ProfileGoalWorkoutSection(
+                            goalSummary: currentGoalSummary,
+                            restTimeSummary: restTimeSummary,
+                            onGoal: { perform(.goals) },
+                            onRestTime: { perform(.restTime) }
+                        )
+                        ProfilePermissionSection(
+                            notificationSummary: notificationSummary,
+                            photoPermissionSummary: profile.photoPermissionSummary,
+                            onNotifications: { perform(.notifications) },
+                            onPhotoAccess: { perform(.photoAccess) }
+                        )
+                        ProfilePlaylistSection { perform(.playlist) }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.bottom, dynamicTypeSize.isAccessibilitySize ? 120 : GymupSpacing.xxLarge)
+                }
             }
             .background(ProfileOverviewColors.canvas)
             .toolbar(.hidden, for: .navigationBar)
@@ -180,6 +188,7 @@ struct ProfileGoalWorkoutSection: View {
                     icon: "target",
                     title: "운동 목표",
                     subtitle: goalSummary,
+                    horizontalPadding: 0,
                     action: onGoal
                 )
                 ProfileRowSeparator()
@@ -188,10 +197,12 @@ struct ProfileGoalWorkoutSection: View {
                     title: "기본 휴식 시간",
                     subtitle: "운동별 설정이 없을 때 사용",
                     value: restTimeSummary,
+                    horizontalPadding: 0,
                     action: onRestTime
                 )
             }
-            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+            .padding(.horizontal, GymupSpacing.large)
+            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
         }
     }
 }
@@ -210,6 +221,7 @@ struct ProfilePermissionSection: View {
                     icon: "bell",
                     title: "알림 설정",
                     subtitle: notificationSummary,
+                    horizontalPadding: 0,
                     action: onNotifications
                 )
                 ProfileRowSeparator()
@@ -217,10 +229,12 @@ struct ProfilePermissionSection: View {
                     icon: "camera",
                     title: "카메라 · 사진 권한",
                     subtitle: photoPermissionSummary,
+                    horizontalPadding: 0,
                     action: onPhotoAccess
                 )
             }
-            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
+            .padding(.horizontal, GymupSpacing.large)
+            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
         }
     }
 }
@@ -238,8 +252,7 @@ struct ProfilePlaylistSection: View {
                 value: "V2",
                 action: onPlaylist
             )
-            .padding(.horizontal, GymupSpacing.medium)
-            .overlay(alignment: .bottom) { ProfileRowSeparator() }
+            .overlay(alignment: .bottom) { ProfileRowSeparator(horizontalInset: 16) }
         }
     }
 }
@@ -249,6 +262,7 @@ private struct ProfileSettingRow: View {
     let title: String
     let subtitle: String
     let value: String?
+    let horizontalPadding: CGFloat
     let action: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -257,12 +271,14 @@ private struct ProfileSettingRow: View {
         title: String,
         subtitle: String,
         value: String? = nil,
+        horizontalPadding: CGFloat = 16,
         action: @escaping () -> Void
     ) {
         self.icon = icon
         self.title = title
         self.subtitle = subtitle
         self.value = value
+        self.horizontalPadding = horizontalPadding
         self.action = action
     }
 
@@ -270,7 +286,7 @@ private struct ProfileSettingRow: View {
         Button(action: action) {
             Group {
                 if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                    VStack(alignment: .leading, spacing: GymupSpacing.xSmall / 2) {
                         HStack(spacing: GymupSpacing.medium) {
                             iconView
                             Text(title)
@@ -281,7 +297,7 @@ private struct ProfileSettingRow: View {
                         }
 
                         Text(subtitle)
-                            .font(ProfileTypography.caption)
+                            .font(ProfileTypography.settingSubtitle)
                             .foregroundStyle(ProfileOverviewColors.secondaryText)
                             .fixedSize(horizontal: false, vertical: true)
                             .padding(.leading, 48)
@@ -295,13 +311,13 @@ private struct ProfileSettingRow: View {
                 } else {
                     HStack(spacing: GymupSpacing.medium) {
                         iconView
-                        VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
+                        VStack(alignment: .leading, spacing: GymupSpacing.xSmall / 2) {
                             Text(title)
                                 .font(ProfileTypography.rowTitle)
                                 .foregroundStyle(GymupColors.primaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                             Text(subtitle)
-                                .font(ProfileTypography.caption)
+                                .font(ProfileTypography.settingSubtitle)
                                 .foregroundStyle(ProfileOverviewColors.secondaryText)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
@@ -312,9 +328,9 @@ private struct ProfileSettingRow: View {
                     }
                 }
             }
-            .padding(.horizontal, GymupSpacing.medium)
-            .padding(.vertical, GymupSpacing.small)
-            .frame(maxWidth: .infinity, minHeight: 64, alignment: .leading)
+            .padding(.horizontal, horizontalPadding)
+            .padding(.vertical, GymupSpacing.medium)
+            .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
@@ -326,8 +342,8 @@ private struct ProfileSettingRow: View {
         Image(systemName: icon)
             .font(.system(size: 17, weight: .medium))
             .foregroundStyle(GymupColors.primaryText)
-            .frame(width: 36, height: 36)
-            .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
+            .frame(width: 30, height: 30)
+            .background(ProfileOverviewColors.iconSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
             .accessibilityHidden(true)
     }
 
@@ -336,6 +352,7 @@ private struct ProfileSettingRow: View {
         if let value {
             Text(value)
                 .font(ProfileTypography.level)
+                .dynamicTypeSize(DynamicTypeSize.xSmall ... DynamicTypeSize.xxxLarge)
                 .foregroundStyle(ProfileOverviewColors.brandPrimary)
                 .lineLimit(1)
                 .fixedSize(horizontal: true, vertical: false)
@@ -360,11 +377,13 @@ private struct ProfileSectionTitle: View {
 }
 
 private struct ProfileRowSeparator: View {
+    var horizontalInset: CGFloat = 0
+
     var body: some View {
         Rectangle()
             .fill(GymupColors.border)
             .frame(height: 1)
-            .padding(.leading, 56)
+            .padding(.horizontal, horizontalInset)
     }
 }
 
