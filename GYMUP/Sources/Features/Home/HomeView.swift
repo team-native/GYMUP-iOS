@@ -7,6 +7,7 @@ private enum HomeRoute: Hashable {
 struct HomeView: View {
     let onOpenRoutines: () -> Void
     let onDetailRouteChanged: (Bool) -> Void
+    private let historyStore: HistoryStore?
     @State private var viewModel = HomeViewModel()
     @AppStorage("onboarding.completed") private var onboardingCompleted = false
     @AppStorage("onboarding.frequency") private var onboardingFrequency = 3
@@ -18,16 +19,26 @@ struct HomeView: View {
     init(
         onOpenRoutines: @escaping () -> Void,
         inventory: BarbellCustomizationViewModel,
+        historyStore: HistoryStore? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
         self.inventory = inventory
+        self.historyStore = historyStore
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
     private var weeklyGoal: Int {
         onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
     }
+
+    private var weeklyRecords: [WorkoutRecord]? {
+        guard onboardingCompleted, let historyStore,
+              let week = Calendar.current.dateInterval(of: .weekOfYear, for: .now) else { return nil }
+        return historyStore.records.filter { week.contains($0.date) }
+    }
+
+    private var weeklyCount: Int { weeklyRecords?.count ?? viewModel.weeklyWorkoutCount }
 
     var body: some View {
         NavigationStack(path: $path) {
@@ -163,7 +174,7 @@ struct HomeView: View {
             NavigationLink(value: HomeRoute.weeklyGoal) {
                 statistic(
                     icon: "H1IconCalendar",
-                    value: "\(viewModel.weeklyWorkoutCount)/\(weeklyGoal)",
+                    value: "\(weeklyCount)/\(weeklyGoal)",
                     title: "이번 주 운동"
                 )
             }
@@ -242,7 +253,7 @@ struct HomeView: View {
         case .growth:
             GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) })
         case .weeklyGoal:
-            WeeklyGoalView(onNavigationStateChanged: { _ in }, goal: weeklyGoal)
+            WeeklyGoalView(onNavigationStateChanged: { _ in }, goal: weeklyGoal, records: weeklyRecords)
         case .level:
             LevelView(onNavigationStateChanged: { _ in })
         case .goalHistory:

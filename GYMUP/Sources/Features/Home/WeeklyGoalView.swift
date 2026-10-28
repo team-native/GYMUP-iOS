@@ -4,8 +4,18 @@ struct WeeklyGoalView: View {
     let onNavigationStateChanged: (Bool) -> Void
     var onChangeGoal: (() -> Void)?
     var goal: Int = 3
+    var records: [WorkoutRecord]?
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel = WeeklyGoalViewModel()
+
+    private var completedWorkouts: Int { records?.count ?? viewModel.completedWorkouts }
+    private var completedWeekdays: Set<Int> {
+        guard let records else { return viewModel.completedWeekdays }
+        return Set(records.map { (Calendar.current.component(.weekday, from: $0.date) + 5) % 7 })
+    }
+    private var currentWeekday: Int {
+        records == nil ? viewModel.currentWeekday : (Calendar.current.component(.weekday, from: .now) + 5) % 7
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -18,7 +28,7 @@ struct WeeklyGoalView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     weeklyScore
-                    Text("이번 주 목표까지 \(max(goal - viewModel.completedWorkouts, 0))회 남았어요")
+                    Text("이번 주 목표까지 \(max(goal - completedWorkouts, 0))회 남았어요")
                         .font(GymupTypography.uiMedium)
                         .foregroundStyle(GymupColors.secondaryText)
                         .frame(minHeight: 19)
@@ -44,7 +54,7 @@ struct WeeklyGoalView: View {
 
     private var weeklyScore: some View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text("\(viewModel.completedWorkouts)")
+            Text("\(completedWorkouts)")
                 .font(GymupTypography.score)
                 .tracking(-0.57)
                 .foregroundStyle(GymupColors.primaryText)
@@ -56,6 +66,12 @@ struct WeeklyGoalView: View {
         .accessibilityElement(children: .combine)
     }
 
+    private var weekdayAccessibilityLabel: String {
+        let completed = completedWeekdays.sorted().map { viewModel.weekdays[$0] + "요일" }.joined(separator: ", ")
+        let summary = completed.isEmpty ? "이번 주 운동 기록 없음" : "\(completed) 운동 완료"
+        return "\(summary), 오늘 \(viewModel.weekdays[currentWeekday])요일"
+    }
+
     private var weekdayProgress: some View {
         HStack(spacing: 6) {
             ForEach(Array(viewModel.weekdays.enumerated()), id: \.offset) { index, day in
@@ -63,10 +79,10 @@ struct WeeklyGoalView: View {
                     ZStack {
                         Circle()
                             .fill(weekdayColor(at: index))
-                        if index == viewModel.currentWeekday {
+                        if index == currentWeekday {
                             Circle().strokeBorder(GymupColors.accent, lineWidth: 1.23)
                         }
-                        if viewModel.completedWeekdays.contains(index) {
+                        if completedWeekdays.contains(index) {
                             Image("H3IconCheck")
                                 .resizable()
                                 .frame(width: 13.12, height: 13.12)
@@ -75,14 +91,14 @@ struct WeeklyGoalView: View {
                     .frame(width: 29.52, height: 29.52)
                     Text(day)
                         .font(GymupTypography.uiCaption)
-                        .foregroundStyle(index == viewModel.currentWeekday ? GymupColors.brandText : GymupColors.secondaryText)
+                        .foregroundStyle(index == currentWeekday ? GymupColors.brandText : GymupColors.secondaryText)
                         .frame(height: 15)
                 }
                 .frame(maxWidth: .infinity)
             }
         }
         .accessibilityElement(children: .combine)
-        .accessibilityLabel("월요일과 수요일 운동 완료, 토요일")
+        .accessibilityLabel(weekdayAccessibilityLabel)
     }
 
     private var streakSummary: some View {
@@ -156,8 +172,8 @@ struct WeeklyGoalView: View {
     }
 
     private func weekdayColor(at index: Int) -> Color {
-        if viewModel.completedWeekdays.contains(index) { return GymupColors.accent }
-        return index == viewModel.currentWeekday ? .clear : GymupColors.elevatedSurface
+        if completedWeekdays.contains(index) { return GymupColors.accent }
+        return index == currentWeekday ? .clear : GymupColors.elevatedSurface
     }
 
     private func historyBarColor(for bar: WeeklyProgressBar) -> Color {
