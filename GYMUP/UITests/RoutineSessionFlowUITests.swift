@@ -32,4 +32,34 @@ final class RoutineSessionFlowUITests: XCTestCase {
         XCTAssertTrue(app.buttons["workout.quit"].waitForExistence(timeout: 10))
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "스쿼트")).firstMatch.exists)
     }
+
+    func testHistoryOpensGrowthGraphFromWorkoutRecords() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-onboarding.completed", "YES", "--uitest-g5-growth"]
+        app.launch()
+
+        let openGrowth = app.buttons["history.openGrowth"]
+        XCTAssertTrue(openGrowth.waitForExistence(timeout: 15))
+        while !openGrowth.isHittable {
+            app.swipeUp()
+        }
+        openGrowth.tap()
+
+        let exercisePicker = app.buttons["history.growth.exercise"]
+        XCTAssertTrue(exercisePicker.waitForExistence(timeout: 5))
+        exercisePicker.tap()
+        app.buttons["벤치프레스"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "최고 무게 62.5 KG")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["V2 · MVP 제외"].exists)
+
+        app.buttons["history.growth.metric.예상 1RM"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "예상 1RM 79.2 KG")).firstMatch.exists)
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "G5 growth graph with workout records"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
 }

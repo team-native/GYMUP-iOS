@@ -19,6 +19,12 @@ struct MainTabView: View {
     @State private var isDetailPresented = false
     @State private var isHistoryComparisonPresented = false
 
+    init() {
+        let isGrowthUITest = ProcessInfo.processInfo.arguments.contains("--uitest-g5-growth")
+        _selection = State(initialValue: isGrowthUITest ? .history : .home)
+        _historyStore = State(initialValue: HistoryStore(records: isGrowthUITest ? HistorySampleData.records : []))
+    }
+
     var body: some View {
         Group {
             switch selection {
