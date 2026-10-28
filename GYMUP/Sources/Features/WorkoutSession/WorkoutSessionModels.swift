@@ -28,6 +28,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     let beginnerTip: String
     var sets: [WorkoutSessionSet]
     var imageAssetOverride: String?
+    var usesSampleHistory = true
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
     var isComplete: Bool { !sets.isEmpty && sets.allSatisfy(\.isCompleted) }
@@ -97,13 +98,13 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     }
 
     func previousPerformanceTitle(for setIndex: Int?) -> String {
-        guard id == "bench-press" else { return "이전 기록 없음" }
+        guard usesSampleHistory, id == "bench-press" else { return "이전 기록 없음" }
         let repetitions = setIndex == sets.count - 1 ? 6 : 8
         return "이전 · 10월 8일 60kg × \(repetitions)"
     }
 
     func previousPerformance(for setIndex: Int) -> String? {
-        guard id == "bench-press" else { return nil }
+        guard usesSampleHistory, id == "bench-press" else { return nil }
         return setIndex == 3 ? "60 × 6" : "60 × 8"
     }
 
@@ -111,7 +112,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
         previousPerformance(for: 0) != nil
     }
 
-    var personalRecordKilograms: Double? { id == "bench-press" ? 62.5 : nil }
+    var personalRecordKilograms: Double? { usesSampleHistory && id == "bench-press" ? 62.5 : nil }
 
     var personalRecordSet: WorkoutSessionSet? {
         guard let personalRecordKilograms else { return nil }
@@ -141,7 +142,7 @@ struct WorkoutSessionPlan: Identifiable, Equatable {
                 formSteps: guidance.steps, beginnerTip: guidance.beginnerTip,
                 sets: (0..<item.setCount).map { _ in
                     WorkoutSessionSet(weightKilograms: item.weight, repetitions: item.repetitions)
-                }, imageAssetOverride: item.imageAssetName
+                }, imageAssetOverride: item.imageAssetName, usesSampleHistory: false
             )
         }
         return WorkoutSessionPlan(id: routine.id, name: routine.name, title: routine.title,
