@@ -17,7 +17,8 @@ struct OnboardingFlowView: View {
             case 3: OnboardingExperienceView(selection: $draft.experience, onBack: { step = 2 }, onNext: { step = 4 })
             case 4: OnboardingPurposeView(draft: $draft, onBack: { step = 3 }, onNext: { step = 5 })
             case 5: OnboardingFrequencyView(draft: $draft, onBack: { step = 4 }, onNext: { step = 6 })
-            case 6: OnboardingGoalView(goal: $draft.goal, weeks: $draft.weeks, frequency: draft.frequency, onBack: { step = 5 }, onNext: { step = 7 })
+            case 6: OnboardingGoalView(goal: $draft.goal, weeks: $draft.weeks, frequency: draft.frequency,
+                                      onBack: { step = 5 }, onNext: { step = 7 })
             case 7: OnboardingGoalCreatedView(frequency: draft.frequency, weeks: draft.weeks) { step = 8 }
             default: OnboardingNotificationView(onFinish: finish)
             }
