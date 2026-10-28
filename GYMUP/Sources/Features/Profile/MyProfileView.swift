@@ -2,6 +2,7 @@ import SwiftUI
 import UserNotifications
 
 struct MyProfileView: View {
+    let onDetailRouteChanged: (Bool) -> Void
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isLevelPresented = false
@@ -20,7 +21,8 @@ struct MyProfileView: View {
 
     private let profile: ProfileSummary
 
-    init() {
+    init(onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
+        self.onDetailRouteChanged = onDetailRouteChanged
         let sample = ProfileSampleData.summary
         if let settings = OnboardingStoredSettings.load() {
             let experienceTitles = ["처음", "입문", "중급", "숙련"]
@@ -137,7 +139,21 @@ struct MyProfileView: View {
                 guard newPhase == .active else { return }
                 Task { await refreshNotificationPermissionStatus() }
             }
+            .onChange(of: hasPresentedDetail) { _, isPresented in
+                onDetailRouteChanged(isPresented)
+            }
+            .onAppear { onDetailRouteChanged(hasPresentedDetail) }
         }
+    }
+
+    private var hasPresentedDetail: Bool {
+        isLevelPresented
+            || isGoalHistoryPresented
+            || isNotificationSettingsPresented
+            || isPhotoPermissionsPresented
+            || isNotificationPermissionPresented
+            || isPlaylistPresented
+            || presentedSheet != nil
     }
 
     private var currentGoalSummary: String {
@@ -171,223 +187,6 @@ struct MyProfileView: View {
     private func refreshNotificationPermissionStatus() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         notificationPermissionSnapshot = ProfileNotificationPermissionSnapshot(settings: settings)
-    }
-}
-
-struct ProfileGoalWorkoutSection: View {
-    let goalSummary: String
-    let restTimeSummary: String
-    let onGoal: () -> Void
-    let onRestTime: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: GymupSpacing.small) {
-            ProfileSectionTitle("목표 · 운동")
-            VStack(spacing: 0) {
-                ProfileSettingRow(
-                    icon: "target",
-                    title: "운동 목표",
-                    subtitle: goalSummary,
-                    horizontalPadding: 0,
-                    action: onGoal
-                )
-                ProfileRowSeparator()
-                ProfileSettingRow(
-                    icon: "timer",
-                    title: "기본 휴식 시간",
-                    subtitle: "운동별 설정이 없을 때 사용",
-                    value: restTimeSummary,
-                    horizontalPadding: 0,
-                    action: onRestTime
-                )
-            }
-            .padding(.horizontal, GymupSpacing.large)
-            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
-        }
-    }
-}
-
-struct ProfilePermissionSection: View {
-    let notificationSummary: String
-    let photoPermissionSummary: String
-    let onNotifications: () -> Void
-    let onPhotoAccess: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: GymupSpacing.small) {
-            ProfileSectionTitle("알림 · 권한")
-            VStack(spacing: 0) {
-                ProfileSettingRow(
-                    icon: "bell",
-                    title: "알림 설정",
-                    subtitle: notificationSummary,
-                    horizontalPadding: 0,
-                    action: onNotifications
-                )
-                ProfileRowSeparator()
-                ProfileSettingRow(
-                    icon: "camera",
-                    title: "카메라 · 사진 권한",
-                    subtitle: photoPermissionSummary,
-                    horizontalPadding: 0,
-                    action: onPhotoAccess
-                )
-            }
-            .padding(.horizontal, GymupSpacing.large)
-            .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
-        }
-    }
-}
-
-struct ProfilePlaylistSection: View {
-    let onPlaylist: () -> Void
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: GymupSpacing.small) {
-            ProfileSectionTitle("V2")
-            ProfileSettingRow(
-                icon: "music.note",
-                title: "루틴별 플레이리스트",
-                subtitle: "Apple Music · Spotify 연결",
-                value: "V2",
-                valueColor: GymupColors.tertiaryText,
-                action: onPlaylist
-            )
-            .overlay(alignment: .bottom) { ProfileRowSeparator(horizontalInset: 16) }
-        }
-    }
-}
-
-private struct ProfileSettingRow: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let value: String?
-    let valueColor: Color
-    let horizontalPadding: CGFloat
-    let action: () -> Void
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
-
-    init(
-        icon: String,
-        title: String,
-        subtitle: String,
-        value: String? = nil,
-        valueColor: Color = GymupColors.brandText,
-        horizontalPadding: CGFloat = 16,
-        action: @escaping () -> Void
-    ) {
-        self.icon = icon
-        self.title = title
-        self.subtitle = subtitle
-        self.value = value
-        self.valueColor = valueColor
-        self.horizontalPadding = horizontalPadding
-        self.action = action
-    }
-
-    var body: some View {
-        Button(action: action) {
-            Group {
-                if dynamicTypeSize.isAccessibilitySize {
-                    VStack(alignment: .leading, spacing: GymupSpacing.xSmall / 2) {
-                        HStack(spacing: GymupSpacing.medium) {
-                            iconView
-                            Text(title)
-                                .font(ProfileTypography.rowTitle)
-                                .foregroundStyle(GymupColors.primaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
-
-                        Text(subtitle)
-                            .font(ProfileTypography.settingSubtitle)
-                            .foregroundStyle(ProfileOverviewColors.secondaryText)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .padding(.leading, 48)
-
-                        HStack(spacing: GymupSpacing.small) {
-                            Spacer(minLength: 0)
-                            valueLabel
-                            ProfileChevron()
-                        }
-                    }
-                } else {
-                    HStack(spacing: GymupSpacing.medium) {
-                        iconView
-                        VStack(alignment: .leading, spacing: GymupSpacing.xSmall / 2) {
-                            Text(title)
-                                .font(ProfileTypography.rowTitle)
-                                .foregroundStyle(GymupColors.primaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                            Text(subtitle)
-                                .font(ProfileTypography.settingSubtitle)
-                                .foregroundStyle(ProfileOverviewColors.secondaryText)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        .frame(maxWidth: .infinity, alignment: .leading)
-
-                        valueLabel
-                        ProfileChevron()
-                    }
-                }
-            }
-            .padding(.horizontal, horizontalPadding)
-            .padding(.vertical, GymupSpacing.medium)
-            .frame(maxWidth: .infinity, minHeight: 62, alignment: .leading)
-            .contentShape(Rectangle())
-        }
-        .buttonStyle(.plain)
-        .accessibilityLabel("\(title), \(subtitle)\(value.map { ", \($0)" } ?? "")")
-        .accessibilityHint("설정을 엽니다")
-    }
-
-    private var iconView: some View {
-        Image(systemName: icon)
-            .font(.system(size: 17, weight: .medium))
-            .foregroundStyle(GymupColors.primaryText)
-            .frame(width: 30, height: 30)
-            .background(ProfileOverviewColors.iconSurface, in: RoundedRectangle(cornerRadius: GymupRadius.small))
-            .accessibilityHidden(true)
-    }
-
-    @ViewBuilder
-    private var valueLabel: some View {
-        if let value {
-            Text(value)
-                .font(ProfileTypography.level)
-                .dynamicTypeSize(DynamicTypeSize.xSmall ... DynamicTypeSize.xxxLarge)
-                .foregroundStyle(valueColor)
-                .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
-        }
-    }
-}
-
-private struct ProfileSectionTitle: View {
-    let title: String
-
-    init(_ title: String) {
-        self.title = title
-    }
-
-    var body: some View {
-        Text(title)
-            .font(ProfileTypography.section)
-            .foregroundStyle(ProfileOverviewColors.secondaryText)
-            .frame(minHeight: 20, alignment: .leading)
-            .accessibilityAddTraits(.isHeader)
-    }
-}
-
-private struct ProfileRowSeparator: View {
-    var horizontalInset: CGFloat = 0
-
-    var body: some View {
-        Rectangle()
-            .fill(GymupColors.border)
-            .frame(height: 1)
-            .padding(.horizontal, horizontalInset)
     }
 }
 
