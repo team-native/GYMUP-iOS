@@ -15,6 +15,7 @@ enum ProfileTypography {
     static let rowTitle = Font.custom("GothicA1-SemiBold", size: 14, relativeTo: .headline)
     static let action = Font.custom("GothicA1-Bold", size: 13, relativeTo: .body)
     static let caption = Font.custom("NotoSansKR-Regular", size: 12, relativeTo: .caption)
+    static let settingsCaption = Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption)
     static let section = Font.custom("Archivo-SemiBold", size: 10, relativeTo: .caption2)
 }
 
@@ -36,7 +37,7 @@ struct ProfileLevelCard: View {
                         profileDetails
                     }
                 } else {
-                    HStack(spacing: GymupSpacing.medium) {
+                    HStack(spacing: 14) {
                         equipmentImage
                         profileDetails
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -46,7 +47,7 @@ struct ProfileLevelCard: View {
             }
             .padding(.horizontal, GymupSpacing.large)
             .padding(.vertical, GymupSpacing.medium)
-            .frame(maxWidth: .infinity, minHeight: 72, alignment: .leading)
+            .frame(maxWidth: .infinity, minHeight: 76, alignment: .leading)
             .background(ProfileOverviewColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
             .contentShape(Rectangle())
         }
@@ -61,7 +62,8 @@ struct ProfileLevelCard: View {
         Image("H2EquipmentHeavy")
             .resizable()
             .scaledToFit()
-            .frame(width: 80, height: 40)
+            .frame(width: 88, height: 44)
+            .frame(width: 96, height: 48)
             .accessibilityHidden(true)
     }
 
@@ -76,7 +78,7 @@ struct ProfileLevelCard: View {
                     .foregroundStyle(ProfileOverviewColors.brandPrimary)
             }
             Text("\(profile.focus) · 주 \(profile.workoutsPerWeek)회")
-                .font(ProfileTypography.caption)
+                .font(ProfileTypography.settingsCaption)
                 .foregroundStyle(ProfileOverviewColors.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
