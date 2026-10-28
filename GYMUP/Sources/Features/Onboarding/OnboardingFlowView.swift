@@ -9,6 +9,7 @@ struct OnboardingFlowView: View {
     @AppStorage("onboarding.frequency") private var savedFrequency = 3
     @AppStorage("onboarding.goal") private var savedGoal = 0
     @AppStorage("onboarding.weeks") private var savedWeeks = 12
+    @AppStorage("onboarding.goal.startedAt") private var savedGoalStartedAt = ""
 
     var body: some View {
         Group {
@@ -31,6 +32,7 @@ struct OnboardingFlowView: View {
         savedFrequency = draft.frequency
         savedGoal = draft.goal
         savedWeeks = draft.weeks
+        savedGoalStartedAt = ISO8601DateFormatter().string(from: .now)
         onFinish()
     }
 }

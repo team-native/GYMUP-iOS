@@ -83,7 +83,8 @@ enum WorkoutSessionCompletionDataFactory {
             volumeKilograms: Int(volume.rounded()),
             growth: plan.exercises.filter { $0.personalRecordSet != nil }.count,
             photoAssetName: plan.exercises.first?.imageAssetName ?? "H1RoutinePhoto",
-            exercises: exercises
+            exercises: exercises,
+            routineCompleted: !plan.exercises.isEmpty && plan.exercises.allSatisfy(\.isComplete)
         )
     }
 
