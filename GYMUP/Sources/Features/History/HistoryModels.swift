@@ -62,7 +62,7 @@ final class HistoryStore {
 
     func recordsInCurrentWeek(now: Date = .now, calendar: Calendar = .current) -> [WorkoutRecord] {
         guard let week = calendar.dateInterval(of: .weekOfYear, for: now) else { return [] }
-        return records.filter { week.contains($0.date) }
+        return records.filter { $0.date >= week.start && $0.date < week.end }
     }
 
     func records(inMonthOf date: Date) -> [WorkoutRecord] {
