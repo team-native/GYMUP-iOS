@@ -3,15 +3,21 @@ import SwiftUI
 struct HistoryView: View {
     let store: HistoryStore
     let onOpenRoutines: () -> Void
+    let onComparisonPresented: (Bool) -> Void
     @State private var path: [HistoryRoute] = []
     @State private var selectedMonth: Date
     @State private var selectedDate: Date
     @State private var visibleWorkoutID: UUID?
 
     @MainActor
-    init(store: HistoryStore, onOpenRoutines: @escaping () -> Void = {}) {
+    init(
+        store: HistoryStore,
+        onOpenRoutines: @escaping () -> Void = {},
+        onComparisonPresented: @escaping (Bool) -> Void = { _ in }
+    ) {
         self.store = store
         self.onOpenRoutines = onOpenRoutines
+        self.onComparisonPresented = onComparisonPresented
         let initialRecord = store.records.first
         let initialDate = initialRecord?.date ?? .now
         let initialMonth = Calendar.current.dateInterval(of: .month, for: initialDate)?.start ?? initialDate
@@ -29,6 +35,12 @@ struct HistoryView: View {
         }
         .toolbar(.hidden, for: .navigationBar)
         .background(GymupColors.canvas.ignoresSafeArea())
+        .onAppear {
+            onComparisonPresented(isComparisonPresented)
+        }
+        .onChange(of: path) { _, _ in
+            onComparisonPresented(isComparisonPresented)
+        }
     }
 
     private var historyList: some View {
@@ -209,36 +221,6 @@ struct HistoryView: View {
         .accessibilityIdentifier("history.openGrowth")
     }
 
-    private var monthRecords: [WorkoutRecord] {
-        store.records(inMonthOf: selectedMonth)
-    }
-
-    private var formattedDuration: String {
-        let totalMinutes = monthRecords.reduce(0) { $0 + $1.durationMinutes }
-        return "\(totalMinutes / 60)H \(totalMinutes % 60)M"
-    }
-
-    private var formattedVolume: String {
-        let totalKilograms = monthRecords.reduce(0) { $0 + $1.volumeKilograms }
-        return String(format: "%.1f", Double(totalKilograms) / 1_000)
-    }
-
-    private func select(_ date: Date, using proxy: ScrollViewProxy) {
-        selectedDate = date
-        guard let record = monthRecords.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) else { return }
-        withAnimation(.easeInOut(duration: 0.25)) {
-            visibleWorkoutID = record.id
-            proxy.scrollTo(record.id, anchor: .top)
-        }
-    }
-
-    private func selectMonth(_ month: Date) {
-        selectedMonth = month
-        let monthRecords = store.records(inMonthOf: month)
-        selectedDate = monthRecords.first?.date ?? month
-        visibleWorkoutID = monthRecords.first?.id
-    }
-
     @ViewBuilder
     private func destination(for route: HistoryRoute) -> some View {
         switch route {
@@ -266,6 +248,44 @@ struct HistoryView: View {
 }
 
 private extension HistoryView {
+    var isComparisonPresented: Bool {
+        guard let route = path.last else { return false }
+        if case .comparison = route { return true }
+        return false
+    }
+}
+
+private extension HistoryView {
+    var monthRecords: [WorkoutRecord] {
+        store.records(inMonthOf: selectedMonth)
+    }
+
+    var formattedDuration: String {
+        let totalMinutes = monthRecords.reduce(0) { $0 + $1.durationMinutes }
+        return "\(totalMinutes / 60)H \(totalMinutes % 60)M"
+    }
+
+    var formattedVolume: String {
+        let totalKilograms = monthRecords.reduce(0) { $0 + $1.volumeKilograms }
+        return String(format: "%.1f", Double(totalKilograms) / 1_000)
+    }
+
+    func select(_ date: Date, using proxy: ScrollViewProxy) {
+        selectedDate = date
+        guard let record = monthRecords.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) else { return }
+        withAnimation(.easeInOut(duration: 0.25)) {
+            visibleWorkoutID = record.id
+            proxy.scrollTo(record.id, anchor: .top)
+        }
+    }
+
+    func selectMonth(_ month: Date) {
+        selectedMonth = month
+        let monthRecords = store.records(inMonthOf: month)
+        selectedDate = monthRecords.first?.date ?? month
+        visibleWorkoutID = monthRecords.first?.id
+    }
+
     var monthOptions: [Date] {
         let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
         return [selectedMonth, previousMonth]

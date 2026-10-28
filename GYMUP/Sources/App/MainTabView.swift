@@ -16,6 +16,7 @@ struct MainTabView: View {
     @State private var requestedExerciseAddRoutineID: String?
     @State private var emptyStartRoutineID: String?
     @State private var isDetailPresented = false
+    @State private var isHistoryComparisonPresented = false
 
     var body: some View {
         Group {
@@ -32,13 +33,17 @@ struct MainTabView: View {
                             onEmptyStartAttempt: { emptyStartRoutineID = $0 },
                             onDetailRouteChanged: { isDetailPresented = $0 })
             case .history:
-                HistoryView(store: historyStore, onOpenRoutines: { selection = .routine })
+                HistoryView(
+                    store: historyStore,
+                    onOpenRoutines: { selection = .routine },
+                    onComparisonPresented: { isHistoryComparisonPresented = $0 }
+                )
             case .profile:
                 MyProfileView()
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if !isDetailPresented {
+            if !isDetailPresented && !(selection == .history && isHistoryComparisonPresented) {
                 tabBar
             }
         }
