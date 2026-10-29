@@ -7,7 +7,9 @@ struct MyProfileView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
-    @State private var goals: [ProfileGoalRecord]
+    var historyStore: HistoryStore = HistoryStore()
+    @State private var goalStore = GoalStore.shared
+    private var goals: [ProfileGoalRecord] { goalStore.goals(historyStore: historyStore) }
     @State private var isNotificationSettingsPresented = false
     @State private var isPhotoPermissionsPresented = false
     @State private var settings = WorkoutSettings.shared
@@ -17,32 +19,28 @@ struct MyProfileView: View {
     @State private var restTimeSheetDetent: PresentationDetent = .height(426)
     @State private var isPlaylistPresented = false
 
-    private let profile: ProfileSummary
-
-    init(onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
+    @MainActor
+    init(historyStore: HistoryStore? = nil, onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
+        self.historyStore = historyStore ?? HistoryStore()
         self.onDetailRouteChanged = onDetailRouteChanged
-        let sample = ProfileSampleData.summary
-        if let settings = OnboardingStoredSettings.load() {
-            let experienceTitles = ["처음", "입문", "중급", "숙련"]
-            let types: [ProfileGoalType] = [.body, .strength, .consistency]
-            let current = ProfileGoalRecord(type: types[settings.goal], workoutsPerWeek: settings.frequency,
-                                            durationWeeks: settings.weeks, period: "진행 중", growth: 0,
-                                            completedWeeks: 0, isCurrent: true)
-            _goals = State(initialValue: [current])
-            profile = ProfileSummary(level: sample.level, stage: sample.stage,
-                                     focus: "\(experienceTitles[settings.experience]) · \(settings.purposes.joined(separator: " · "))",
-                                     workoutsPerWeek: settings.frequency, currentGoal: current.type.rawValue,
-                                     goalDurationWeeks: settings.weeks, restTimeSummary: sample.restTimeSummary,
-                                     notificationSummary: sample.notificationSummary,
-                                     photoPermissionSummary: sample.photoPermissionSummary)
-        } else {
-            _goals = State(initialValue: ProfileSampleData.goalHistory)
-            profile = sample
-        }
+    }
+
+    private var profile: ProfileSummary {
+        let settings = goalStore.settings
+        let growth = GrowthViewModel(historyStore: historyStore, goalSettings: settings)
+        let experienceTitles = ["처음", "입문", "중급", "숙련"]
+        return ProfileSummary(
+            level: ProfileSampleData.summary.level, stage: growth.currentStage.title,
+            focus: settings.map { "\(experienceTitles[$0.experience]) · \($0.purposes.joined(separator: " · "))" } ?? "목표를 설정해 주세요",
+            workoutsPerWeek: settings?.frequency ?? 3, currentGoal: growth.goalTitle,
+            goalDurationWeeks: settings?.weeks ?? 12, restTimeSummary: restTimeSummary,
+            notificationSummary: notificationSummary, photoPermissionSummary: "오운완 사진 촬영 · 저장"
+        )
     }
 
     private var currentGoal: ProfileGoalRecord {
-        goals.first(where: \.isCurrent) ?? ProfileSampleData.goalHistory[0]
+        goals.first(where: \.isCurrent) ?? ProfileGoalRecord(type: .body, workoutsPerWeek: 3,
+            durationWeeks: 12, period: "목표 설정 필요", growth: 0, completedWeeks: 0, isCurrent: true)
     }
 
     private var restTimeSummary: String {
@@ -107,7 +105,7 @@ struct MyProfileView: View {
                 LevelView(onNavigationStateChanged: { _ in })
             }
             .navigationDestination(isPresented: $isGoalHistoryPresented) {
-                ProfileGoalHistoryView(goals: $goals)
+                ProfileGoalHistoryView(historyStore: historyStore)
             }
             .navigationDestination(isPresented: $isNotificationSettingsPresented) {
                 ProfileNotificationSettingsView(

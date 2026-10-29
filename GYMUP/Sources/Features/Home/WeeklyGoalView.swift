@@ -6,16 +6,11 @@ struct WeeklyGoalView: View {
     var goal: Int = 3
     var records: [WorkoutRecord]?
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = WeeklyGoalViewModel()
+    private var viewModel: WeeklyGoalViewModel { WeeklyGoalViewModel(records: records ?? [], goal: goal) }
 
-    private var completedWorkouts: Int { records?.count ?? viewModel.completedWorkouts }
-    private var completedWeekdays: Set<Int> {
-        guard let records else { return viewModel.completedWeekdays }
-        return Set(records.map { (Calendar.current.component(.weekday, from: $0.date) + 5) % 7 })
-    }
-    private var currentWeekday: Int {
-        records == nil ? viewModel.currentWeekday : (Calendar.current.component(.weekday, from: .now) + 5) % 7
-    }
+    private var completedWorkouts: Int { viewModel.completedWorkouts }
+    private var completedWeekdays: Set<Int> { viewModel.completedWeekdays }
+    private var currentWeekday: Int { viewModel.currentWeekday }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -35,7 +30,7 @@ struct WeeklyGoalView: View {
                     weekdayProgress
                     streakSummary
                     historyChart
-                    Text("4주차는 목표 미달로 Streak가 초기화됐어요. 쉬는 날은 실패로 계산되지 않아요.")
+                    Text("최근 12주 기록이에요. 이번 주 목표를 채우면 연속 달성에 포함돼요.")
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(GymupColors.secondaryText)
                         .lineSpacing(4)
@@ -124,7 +119,7 @@ struct WeeklyGoalView: View {
                 VStack(spacing: 6) {
                     RoundedRectangle(cornerRadius: 4)
                         .fill(historyBarColor(for: bar))
-                        .frame(width: 20, height: bar.isMissedGoal ? 12 : (bar.week < 4 ? 40 : 56))
+                        .frame(width: 20, height: bar.isMissedGoal ? 12 : CGFloat(max(4, min(bar.workoutCount * 12, 72))))
                     Text("\(bar.week)")
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(GymupColors.tertiaryText)

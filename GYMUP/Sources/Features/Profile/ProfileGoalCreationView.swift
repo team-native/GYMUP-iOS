@@ -7,7 +7,7 @@ struct ProfileGoalCreationView: View {
 
     let onStart: (ProfileGoalRecord) -> Void
 
-    private let workoutsPerWeek = 3
+    var workoutsPerWeek = 3
     private let durations = [4, 8, 12, 16]
     private let customTabBarClearance: CGFloat = 58
 

@@ -42,6 +42,7 @@ struct WorkoutRecord: Identifiable, Hashable, Codable {
     let photoAssetName: String
     let exercises: [WorkoutExerciseRecord]
     var routineCompleted = false
+    var earnedExperience: Int?
 
     var accessibilityDescription: String {
         let date = HistoryDateText.string(self.date, format: "M월 d일 EEEE")

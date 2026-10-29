@@ -2,7 +2,9 @@ import SwiftUI
 
 struct ProfileGoalHistoryView: View {
     @Environment(\.dismiss) private var dismiss
-    @Binding var goals: [ProfileGoalRecord]
+    var historyStore: HistoryStore = HistoryStore()
+    @State private var goalStore = GoalStore.shared
+    private var goals: [ProfileGoalRecord] { goalStore.goals(historyStore: historyStore) }
     @State private var isCreationPresented = false
 
     private var currentGoal: ProfileGoalRecord? {
@@ -52,9 +54,8 @@ struct ProfileGoalHistoryView: View {
             .background(GymupColors.canvas)
         }
         .navigationDestination(isPresented: $isCreationPresented) {
-            ProfileGoalCreationView { newGoal in
-                goals.removeAll(where: \.isCurrent)
-                goals.insert(newGoal, at: 0)
+            ProfileGoalCreationView(workoutsPerWeek: goalStore.settings?.frequency ?? 3) { newGoal in
+                goalStore.start(newGoal, historyStore: historyStore)
                 isCreationPresented = false
             }
         }
@@ -139,7 +140,7 @@ struct ProfileGoalHistoryView: View {
 
 #Preview {
     NavigationStack {
-        ProfileGoalHistoryView(goals: .constant(ProfileSampleData.goalHistory))
+        ProfileGoalHistoryView()
             .preferredColorScheme(.dark)
     }
 }

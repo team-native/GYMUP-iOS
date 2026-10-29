@@ -8,8 +8,13 @@ struct HomeView: View {
     let onOpenRoutines: () -> Void
     let onDetailRouteChanged: (Bool) -> Void
     private let historyStore: HistoryStore?
+    private let routineStore: RoutineStore?
     @State private var viewModel = HomeViewModel()
-    @State private var growthViewModel: GrowthViewModel
+    @State private var goalStore = GoalStore.shared
+    private var growthViewModel: GrowthViewModel {
+        GrowthViewModel(historyStore: historyStore, goalSettings: goalStore.settings)
+    }
+    private var progress: WorkoutProgress { WorkoutProgress(records: historyStore?.records ?? [], goal: weeklyGoal) }
     @AppStorage("onboarding.completed") private var onboardingCompleted = false
     @AppStorage("onboarding.frequency") private var onboardingFrequency = 3
     @Bindable private var inventory: BarbellCustomizationViewModel
@@ -22,13 +27,14 @@ struct HomeView: View {
         onOpenRoutines: @escaping () -> Void,
         inventory: BarbellCustomizationViewModel,
         historyStore: HistoryStore? = nil,
+        routineStore: RoutineStore? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
         self.inventory = inventory
         self.historyStore = historyStore
+        self.routineStore = routineStore
         self.onDetailRouteChanged = onDetailRouteChanged
-        _growthViewModel = State(initialValue: GrowthViewModel(historyStore: historyStore))
     }
 
     var body: some View {
@@ -120,10 +126,10 @@ struct HomeView: View {
                 )
             }
             NavigationLink(value: HomeRoute.weeklyGoal) {
-                statistic(icon: "H1IconFlame", value: "\(viewModel.streakWeeks)주", title: "Streak")
+                statistic(icon: "H1IconFlame", value: "\(progress.streakWeeks)주", title: "Streak")
             }
             NavigationLink(value: HomeRoute.level) {
-                statistic(icon: "H1IconZap", value: viewModel.experiencePoints.formatted(), title: "XP")
+                statistic(icon: "H1IconZap", value: progress.experiencePoints.formatted(), title: "XP")
             }
         }
         .buttonStyle(.plain)
@@ -169,7 +175,7 @@ struct HomeView: View {
                         Text("오늘의 루틴")
                             .font(GymupTypography.uiCaption)
                             .foregroundStyle(GymupColors.secondaryText)
-                        Text(viewModel.todayRoutine)
+                        Text(routineStore?.routines.first(where: { !$0.isEmpty })?.name ?? "루틴 만들기")
                             .font(GymupTypography.display)
                             .foregroundStyle(GymupColors.primaryText)
                     }
@@ -194,11 +200,12 @@ struct HomeView: View {
         case .growth:
             GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) }, historyStore: historyStore)
         case .weeklyGoal:
-            WeeklyGoalView(onNavigationStateChanged: { _ in }, goal: weeklyGoal, records: weeklyRecords)
+            WeeklyGoalView(onNavigationStateChanged: { _ in }, onChangeGoal: { path.append(.goalHistory) },
+                           goal: weeklyGoal, records: historyStore?.records ?? [])
         case .level:
             LevelView(onNavigationStateChanged: { _ in })
         case .goalHistory:
-            GoalHistoryView()
+            ProfileGoalHistoryView(historyStore: historyStore ?? HistoryStore())
         case .customization:
             BarbellCustomizationView(
                 viewModel: inventory,
