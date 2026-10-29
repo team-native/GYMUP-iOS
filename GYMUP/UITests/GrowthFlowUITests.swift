@@ -25,7 +25,7 @@ final class GrowthFlowUITests: XCTestCase {
         XCTAssertTrue(goalDescription.waitForExistence(timeout: 5))
         XCTAssertEqual(growthScore.label, "Growth 0 / 100")
         XCTAssertEqual(goalDescription.label, "근력 목표 · 12주 중 1주차")
-        XCTAssertTrue(app.staticTexts["EMPTY BAR"].exists)
+        XCTAssertTrue(app.staticTexts["EMPTY BAR · 20kg"].exists)
 
         let screenshot = XCTAttachment(screenshot: app.screenshot())
         screenshot.name = "H2 growth screen"

@@ -192,7 +192,6 @@ struct ProfileGoalCreationView: View {
                 isCurrent: true
             )
         )
-        dismiss()
     }
 }
 

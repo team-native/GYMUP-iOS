@@ -138,27 +138,7 @@ struct WorkoutSessionView: View {
             }
         }
         .onReceive(clock) { date in
-            Task { @MainActor in
-                if let activityState = WorkoutRestActivityController.shared.currentState(sessionID: liveActivitySessionID) {
-                    if activityState.isSkipped {
-                        viewModel.skipRest()
-                        settings.cancelRestNotification(sessionID: liveActivitySessionID)
-                        await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
-                        return
-                    }
-                    viewModel.synchronizeRestTimer(
-                        endsAt: activityState.restEndsAt,
-                        durationSeconds: activityState.restDurationSeconds,
-                        at: date
-                    )
-                }
-                guard viewModel.refreshClock(at: date) else { return }
-                isShowingRestFinishedAlert = settings.preferences.restTimerEnabled
-                if settings.preferences.hapticsEnabled {
-                    UINotificationFeedbackGenerator().notificationOccurred(.success)
-                }
-                await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
-            }
+            Task { @MainActor in await handleRestTick(at: date) }
         }
         .alert("휴식 시간이 끝났어요", isPresented: $isShowingRestFinishedAlert) {
             Button("다음 세트 진행", role: .cancel) {}
@@ -168,6 +148,11 @@ struct WorkoutSessionView: View {
         .onChange(of: viewModel.currentExerciseIndex) { _, _ in
             isShowingCurrentGuide = false
             showFirstExercisePromptIfNeeded()
+        }
+        .onChange(of: viewModel.finishedAt) { _, finishedAt in
+            guard finishedAt != nil else { return }
+            settings.cancelRestNotification(sessionID: liveActivitySessionID)
+            Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
         }
         .task { showFirstExercisePromptIfNeeded() }
     }
@@ -262,6 +247,28 @@ struct WorkoutSessionView: View {
 }
 
 private extension WorkoutSessionView {
+    func handleRestTick(at date: Date) async {
+        if let activityState = WorkoutRestActivityController.shared.currentState(sessionID: liveActivitySessionID) {
+            if activityState.isSkipped {
+                viewModel.skipRest()
+                settings.cancelRestNotification(sessionID: liveActivitySessionID)
+                await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+                return
+            }
+            viewModel.synchronizeRestTimer(
+                endsAt: activityState.restEndsAt,
+                durationSeconds: activityState.restDurationSeconds,
+                at: date
+            )
+        }
+        guard viewModel.refreshClock(at: date) else { return }
+        isShowingRestFinishedAlert = settings.preferences.restTimerEnabled
+        if settings.preferences.hapticsEnabled {
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+        }
+        await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+    }
+
     func completeCurrentSet(at date: Date) {
         guard let currentSetIndex = viewModel.currentSetIndex else { return }
         viewModel.toggleSetCompletion(

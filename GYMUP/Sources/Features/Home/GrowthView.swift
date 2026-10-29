@@ -4,7 +4,13 @@ struct GrowthView: View {
     let onNavigationStateChanged: (Bool) -> Void
     let onOpenHistory: () -> Void
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel: GrowthViewModel
+    @State private var goalStore = GoalStore.shared
+    private let historyStore: HistoryStore
+    private let initialGoalSettings: OnboardingStoredSettings?
+    private var viewModel: GrowthViewModel {
+        GrowthViewModel(historyStore: historyStore,
+                        goalSettings: goalStore.revision > 0 ? goalStore.settings : initialGoalSettings)
+    }
 
     @MainActor
     init(
@@ -15,7 +21,8 @@ struct GrowthView: View {
     ) {
         self.onNavigationStateChanged = onNavigationStateChanged
         self.onOpenHistory = onOpenHistory
-        _viewModel = State(initialValue: GrowthViewModel(historyStore: historyStore, goalSettings: goalSettings))
+        self.historyStore = historyStore ?? HistoryStore()
+        self.initialGoalSettings = goalSettings
     }
 
     var body: some View {
@@ -148,24 +155,23 @@ private struct GrowthStageRow: View {
                 .frame(width: 96, height: 40)
             VStack(alignment: .leading, spacing: 4) {
                 HStack(spacing: 6) {
-                    Text(stage.title)
+                    Text("\(stage.title) · \(stage.weight)kg")
                         .font(GymupTypography.growthStageTitle)
                         .foregroundStyle(textColor)
-                    if stage.isCurrent {
-                        Text("현재")
-                            .font(GymupTypography.growthStageBadge)
-                            .foregroundStyle(.white)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 3)
-                            .background(GymupColors.accent, in: Capsule())
-                    }
                 }
-                Text("\(stage.weight)kg · \(stage.growthRangeTitle)")
+                Text(stage.growthRangeTitle)
                     .font(GymupTypography.uiCaption)
                     .foregroundStyle(stage.isLocked ? Color.white.opacity(0.25) : GymupColors.secondaryText)
             }
             Spacer(minLength: 0)
-            if stage.isLocked {
+            if stage.isCurrent {
+                Text("현재")
+                    .font(GymupTypography.growthStageBadge)
+                    .foregroundStyle(.white)
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 4)
+                    .background(GymupColors.accent, in: Capsule())
+            } else if stage.isLocked {
                 Image("H2IconLock")
                     .resizable()
                     .frame(width: 16, height: 16)

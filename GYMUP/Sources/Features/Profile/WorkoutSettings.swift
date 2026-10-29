@@ -5,7 +5,16 @@ import UserNotifications
 @Observable
 @MainActor
 final class WorkoutSettings {
-    static let shared = WorkoutSettings()
+    static let shared: WorkoutSettings = {
+#if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--uitest-reset-settings") {
+            ["workout.restSeconds", "workout.notifications", "workout.reminder"].forEach {
+                UserDefaults.standard.removeObject(forKey: $0)
+            }
+        }
+#endif
+        return WorkoutSettings()
+    }()
     private let defaults: UserDefaults
     private let schedulesNotifications: Bool
     var restSeconds: Int { didSet { save() } }
