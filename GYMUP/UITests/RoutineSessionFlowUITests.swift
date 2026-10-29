@@ -20,6 +20,34 @@ final class RoutineSessionFlowUITests: XCTestCase {
         }
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "벤치프레스")).firstMatch.exists)
     }
+
+    func testUnavailableExerciseVideoExplainsStatusAndReturnsToWorkout() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-onboarding.completed", "YES", "--uitest-ephemeral"]
+        app.launch()
+
+        let routineTab = app.buttons["루틴"]
+        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
+        routineTab.tap()
+
+        let start = app.buttons["routine.start.upper-a"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        start.tap()
+        startExerciseIfPrompted(in: app)
+        XCTAssertTrue(app.buttons["workout.exercise-guide"].waitForExistence(timeout: 10))
+        app.buttons["workout.exercise-guide"].tap()
+
+        let unavailableNotice = app.staticTexts["workout.guide.video-unavailable"]
+        XCTAssertTrue(unavailableNotice.waitForExistence(timeout: 5))
+        XCTAssertTrue(unavailableNotice.label.contains("자세 설명"))
+        XCTAssertFalse(app.buttons["workout.guide.play-video"].exists)
+
+        let confirm = app.buttons["workout.guide.confirm"]
+        XCTAssertTrue(confirm.waitForExistence(timeout: 5))
+        confirm.tap()
+        XCTAssertTrue(app.buttons["workout.exercise-guide"].waitForExistence(timeout: 5))
+    }
+
     func testRoutineContainingTimedExerciseCanStart() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
