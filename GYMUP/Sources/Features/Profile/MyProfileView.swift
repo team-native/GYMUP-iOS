@@ -10,11 +10,9 @@ struct MyProfileView: View {
     @State private var goals: [ProfileGoalRecord]
     @State private var isNotificationSettingsPresented = false
     @State private var isPhotoPermissionsPresented = false
-    @State private var restTimeSeconds = 90
-    @State private var notificationPreferences = ProfileNotificationPreferences()
+    @State private var settings = WorkoutSettings.shared
     @State private var notificationPermissionSnapshot: ProfileNotificationPermissionSnapshot?
     @State private var isNotificationPermissionPresented = false
-    @State private var reminderSchedule = ProfileReminderSchedule()
     @State private var presentedSheet: ProfileSheetDestination?
     @State private var restTimeSheetDetent: PresentationDetent = .height(426)
     @State private var isPlaylistPresented = false
@@ -48,14 +46,14 @@ struct MyProfileView: View {
     }
 
     private var restTimeSummary: String {
-        String(format: "%d:%02d", restTimeSeconds / 60, restTimeSeconds % 60)
+        String(format: "%d:%02d", settings.restSeconds / 60, settings.restSeconds % 60)
     }
 
     private var notificationSummary: String {
         var items: [String] = []
-        if notificationPreferences.restTimerEnabled { items.append("휴식 종료") }
-        if notificationPreferences.hapticsEnabled { items.append("햅틱") }
-        if notificationPreferences.workoutReminderEnabled { items.append("리마인더") }
+        if settings.preferences.restTimerEnabled { items.append("휴식 종료") }
+        if settings.preferences.hapticsEnabled { items.append("햅틱") }
+        if settings.preferences.workoutReminderEnabled { items.append("리마인더") }
         return items.isEmpty ? "모든 알림 꺼짐" : items.joined(separator: " · ")
     }
 
@@ -113,8 +111,8 @@ struct MyProfileView: View {
             }
             .navigationDestination(isPresented: $isNotificationSettingsPresented) {
                 ProfileNotificationSettingsView(
-                    preferences: $notificationPreferences,
-                    schedule: $reminderSchedule,
+                    preferences: $settings.preferences,
+                    schedule: $settings.schedule,
                     permissionSnapshot: $notificationPermissionSnapshot
                 )
             }
@@ -164,7 +162,7 @@ struct MyProfileView: View {
     private func sheet(for destination: ProfileSheetDestination) -> some View {
         switch destination {
         case .restTime:
-            ProfileRestTimeSheetView(selection: $restTimeSeconds)
+            ProfileRestTimeSheetView(selection: $settings.restSeconds)
         }
     }
 
@@ -187,6 +185,7 @@ struct MyProfileView: View {
     private func refreshNotificationPermissionStatus() async {
         let settings = await UNUserNotificationCenter.current().notificationSettings()
         notificationPermissionSnapshot = ProfileNotificationPermissionSnapshot(settings: settings)
+        await self.settings.refreshReminders()
     }
 }
 

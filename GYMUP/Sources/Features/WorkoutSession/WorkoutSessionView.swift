@@ -5,6 +5,7 @@ import UIKit
 struct WorkoutSessionView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: WorkoutSessionViewModel
+    @State private var settings = WorkoutSettings.shared
     @State private var didSaveHistoryRecord = false
     private let historyStore: HistoryStore
     @State private var isConfirmingFinish = false
@@ -141,6 +142,7 @@ struct WorkoutSessionView: View {
                 if let activityState = WorkoutRestActivityController.shared.currentState(sessionID: liveActivitySessionID) {
                     if activityState.isSkipped {
                         viewModel.skipRest()
+                        settings.cancelRestNotification(sessionID: liveActivitySessionID)
                         await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
                         return
                     }
@@ -151,8 +153,10 @@ struct WorkoutSessionView: View {
                     )
                 }
                 guard viewModel.refreshClock(at: date) else { return }
-                isShowingRestFinishedAlert = true
-                UINotificationFeedbackGenerator().notificationOccurred(.success)
+                isShowingRestFinishedAlert = settings.preferences.restTimerEnabled
+                if settings.preferences.hapticsEnabled {
+                    UINotificationFeedbackGenerator().notificationOccurred(.success)
+                }
                 await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
             }
         }
@@ -205,6 +209,7 @@ struct WorkoutSessionView: View {
                     },
                     onSkip: {
                         viewModel.skipRest()
+                        settings.cancelRestNotification(sessionID: liveActivitySessionID)
                         Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
                     }
                 )
@@ -241,7 +246,10 @@ struct WorkoutSessionView: View {
                     },
                     onAdjustRepetitions: viewModel.adjustCurrentRepetitions,
                     onSetDone: { completeCurrentSet(at: Date()) },
-                    onSkipRest: viewModel.skipRest,
+                    onSkipRest: {
+                        viewModel.skipRest()
+                        syncRestActivity()
+                    },
                     onNextExercise: { _ = viewModel.moveToNextExercise() },
                     onFinish: { isConfirmingFinish = true }
                 )
@@ -261,6 +269,9 @@ private extension WorkoutSessionView {
             setIndex: currentSetIndex,
             at: date
         )
+        if settings.preferences.hapticsEnabled {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+        }
         syncRestActivity()
         if viewModel.currentExerciseIndex == viewModel.plan.exercises.count - 1,
            viewModel.currentExercise?.isComplete == true {
@@ -273,6 +284,8 @@ private extension WorkoutSessionView {
     }
 
     func finishWorkout() {
+        settings.cancelRestNotification(sessionID: liveActivitySessionID)
+        Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
         guard !didSaveHistoryRecord else {
             dismiss()
             return
@@ -293,14 +306,16 @@ private extension WorkoutSessionView {
     }
 
     func syncRestActivity() {
-        guard viewModel.isResting,
+        guard settings.preferences.restTimerEnabled, viewModel.isResting,
               let exercise = viewModel.currentExercise,
               let setIndex = viewModel.currentSetIndex,
               let restEndsAt = viewModel.activeRestEndsAt else {
+            settings.cancelRestNotification(sessionID: liveActivitySessionID)
             Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
             return
         }
 
+        settings.scheduleRestNotification(sessionID: liveActivitySessionID, endsAt: restEndsAt)
         let nextSet = exercise.sets[setIndex]
         let duration = viewModel.activeRestDurationSeconds
         let state = WorkoutRestActivityAttributes.ContentState(
