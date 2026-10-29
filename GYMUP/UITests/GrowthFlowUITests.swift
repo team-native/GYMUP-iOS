@@ -12,6 +12,7 @@ final class GrowthFlowUITests: XCTestCase {
             "-onboarding.weeks", "12",
             "-onboarding.goal.startedAt", "2026-10-28T00:00:00Z"
         ]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
 
         let growthCard = app.buttons["home.growth"]

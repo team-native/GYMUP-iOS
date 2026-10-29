@@ -4,6 +4,7 @@ final class ProfileReminderScheduleFlowUITests: XCTestCase {
     func testReminderScheduleMatchesDesignAndPersistsSelectedWeekday() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
 
         let myTab = app.buttons["마이"]

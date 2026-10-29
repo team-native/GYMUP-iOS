@@ -4,6 +4,7 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testSelectedRoutineOpensItsFirstExercise() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
         let routineTab = app.buttons["루틴"]
         XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
@@ -22,6 +23,7 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testRoutineContainingTimedExerciseCanStart() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
         let routineTab = app.buttons["루틴"]
         XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
@@ -36,6 +38,7 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testTimedPlankCompletesRestAndSavesHistory() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
         let routineTab = app.buttons["루틴"]
         XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
@@ -150,6 +153,7 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testHistoryOpensGrowthGraphFromWorkoutRecords() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES", "--uitest-g5-growth"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
 
         let openGrowth = app.buttons["history.openGrowth"]
@@ -194,6 +198,7 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testCompletionSummaryShowsCurrentSessionAndWeeklyProgress() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES", "--uitest-e1-completion"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
 
         let growth = app.descendants(matching: .any)["workout.completion.growth"]

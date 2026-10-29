@@ -4,6 +4,7 @@ final class ProfileNotificationSettingsFlowUITests: XCTestCase {
     func testNotificationSettingsMatchDesignAndRetainToggleOnReturn() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
 
         let myTab = app.buttons["마이"]
