@@ -168,7 +168,7 @@ struct ProfileNotificationSettingsView: View {
         .frame(minHeight: 62)
         .accessibilityLabel(title)
         .accessibilityValue(isOn.wrappedValue ? "켜짐" : "꺼짐")
-        .accessibilityHint("\(subtitle). 앱 화면의 샘플 설정을 바꿉니다")
+        .accessibilityHint("\(subtitle)")
     }
 
     private var separator: some View {

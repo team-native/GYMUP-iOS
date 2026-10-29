@@ -70,6 +70,10 @@ final class RoutineAddExerciseViewModel {
     func exercisesToAdd() -> [RoutineExercise] {
         RoutineExerciseOption.all
             .filter { selectedExerciseIDs.contains($0.id) && !existingExerciseIDs.contains($0.id) }
-            .map(\.exercise)
+            .map { option in
+                var exercise = option.exercise
+                exercise.restSeconds = WorkoutSettings.shared.restSeconds
+                return exercise
+            }
     }
 }

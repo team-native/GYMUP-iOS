@@ -123,13 +123,13 @@ enum ProfileAction: Equatable {
     case playlist
 }
 
-struct ProfileNotificationPreferences {
+struct ProfileNotificationPreferences: Codable {
     var workoutReminderEnabled = true
     var restTimerEnabled = true
     var hapticsEnabled = true
 }
 
-struct ProfileReminderSchedule: Equatable {
+struct ProfileReminderSchedule: Equatable, Codable {
     static let weekdayOrder = [2, 3, 4, 5, 6, 7, 1]
     static let recommendedWeekdays: Set<Int> = [2, 4, 6]
 
