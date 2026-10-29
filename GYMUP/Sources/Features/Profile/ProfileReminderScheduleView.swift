@@ -16,7 +16,7 @@ struct ProfileReminderScheduleView: View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: GymupSpacing.xLarge) {
                 Text("언제 알려드릴까요?")
-                    .font(GymupTypography.headline)
+                    .font(.custom("GothicA1-ExtraBold", size: 20, relativeTo: .headline))
                     .foregroundStyle(GymupColors.primaryText)
                     .accessibilityAddTraits(.isHeader)
 
@@ -30,7 +30,8 @@ struct ProfileReminderScheduleView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("reminder.weekdayGuidance")
             }
-            .padding(.horizontal, GymupSpacing.large)
+            .padding(.horizontal, 20)
+            .padding(.top, 8)
             .padding(.bottom, GymupSpacing.large)
         }
         .background(GymupColors.canvas)
@@ -48,9 +49,9 @@ struct ProfileReminderScheduleView: View {
                 action: save
             )
             .accessibilityIdentifier("reminder.save")
-            .padding(.horizontal, GymupSpacing.large)
+            .padding(.horizontal, 36)
             .padding(.top, GymupSpacing.small)
-            .padding(.bottom, GymupSpacing.xLarge)
+            .padding(.bottom, 0)
             .background(GymupColors.canvas)
         }
     }
@@ -87,36 +88,15 @@ struct ProfileReminderScheduleView: View {
 
     private var timePicker: some View {
         HStack(spacing: 0) {
-            Picker("시", selection: hourSelection) {
-                ForEach(1...12, id: \.self) { hour in
-                    Text("\(hour)").tag(hour)
-                }
-            }
-            .labelsHidden()
-            .accessibilityIdentifier("reminder.hourPicker")
-
-            Picker("분", selection: minuteSelection) {
-                ForEach(Array(stride(from: 0, through: 55, by: 5)), id: \.self) { minute in
-                    Text(String(format: "%02d", minute)).tag(minute)
-                }
-            }
-            .labelsHidden()
-            .accessibilityIdentifier("reminder.minutePicker")
-
-            Picker("오전/오후", selection: periodSelection) {
-                ForEach(ReminderPeriod.allCases) { period in
-                    Text(period.rawValue).tag(period)
-                }
-            }
-            .labelsHidden()
-            .accessibilityIdentifier("reminder.periodPicker")
+            ReminderWheel(title: "시", values: Array(1...12), selection: hourSelection,
+                          text: { String($0) }, identifier: "reminder.hourPicker")
+            ReminderWheel(title: "분", values: Array(stride(from: 0, through: 55, by: 5)), selection: minuteSelection,
+                          text: { String(format: "%02d", $0) }, identifier: "reminder.minutePicker")
+            ReminderWheel(title: "오전/오후", values: ReminderPeriod.allCases, selection: periodSelection,
+                          text: { $0.rawValue }, isPeriod: true, identifier: "reminder.periodPicker")
         }
-        .pickerStyle(.wheel)
-            .frame(maxWidth: .infinity)
-            .frame(height: dynamicTypeSize.isAccessibilitySize ? 190 : 143)
-            .clipped()
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: GymupRadius.large))
-            .accessibilityIdentifier("reminder.timePicker")
+        .frame(maxWidth: .infinity)
+        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16))
     }
 
     private var hourSelection: Binding<Int> {
@@ -169,7 +149,7 @@ struct ProfileReminderScheduleView: View {
             Text(title)
                 .font(GymupTypography.uiStrong)
                 .foregroundStyle(isSelected ? .white : GymupColors.secondaryText)
-                .frame(width: 32, height: 32)
+                .frame(width: 36, height: 36)
                 .background(isSelected ? GymupColors.accent : GymupColors.elevatedSurface, in: Circle())
                 .frame(minWidth: 44, minHeight: 44)
                 .contentShape(Rectangle())

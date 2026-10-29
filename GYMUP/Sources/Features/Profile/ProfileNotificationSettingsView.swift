@@ -73,7 +73,9 @@ struct ProfileNotificationSettingsView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 Image("H1IconChevronRight")
+                    .renderingMode(.template)
                     .resizable()
+                    .foregroundStyle(GymupColors.secondaryText)
                     .scaledToFit()
                     .frame(width: 16, height: 16)
                     .accessibilityHidden(true)
