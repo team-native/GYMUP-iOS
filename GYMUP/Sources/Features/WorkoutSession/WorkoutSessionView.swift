@@ -292,11 +292,12 @@ private extension WorkoutSessionView {
         }
 
         if let completedAt = viewModel.finishedAt {
-            let record = WorkoutSessionCompletionDataFactory.makeHistoryRecord(
+            var record = WorkoutSessionCompletionDataFactory.makeHistoryRecord(
                 plan: viewModel.plan,
                 elapsedSeconds: viewModel.elapsedSeconds(at: completedAt),
                 completedAt: completedAt
             )
+            record.earnedExperience = viewModel.completionData?.earnedXP
             if record.setCount > 0 {
                 historyStore.add(record)
             }

@@ -1,9 +1,10 @@
+import Foundation
 import Observation
 
 @Observable
 @MainActor
 final class HomeViewModel {
-    let dateTitle = "10월 11일 토요일"
+    var dateTitle: String { HistoryDateText.string(.now, format: "M월 d일 EEEE") }
     let level = 17
     let stageTitle = "STAGE 5 · HEAVY"
     let rewardNotice = "새 원판이 해금됐어요"

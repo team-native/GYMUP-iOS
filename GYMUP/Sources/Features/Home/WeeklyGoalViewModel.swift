@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 struct WeeklyWorkout: Identifiable, Equatable {
@@ -20,20 +21,44 @@ struct WeeklyProgressBar: Identifiable, Equatable {
 @Observable
 @MainActor
 final class WeeklyGoalViewModel {
-    let completedWorkouts = 2
-    let weeklyGoal = 3
-    let streakWeeks = 7
-    let longestStreakWeeks = 9
+    private let records: [WorkoutRecord]
+    let weeklyGoal: Int
+    private let now: Date
     let weekdays = ["월", "화", "수", "목", "금", "토", "일"]
-    let completedWeekdays: Set<Int> = [0, 2]
-    let currentWeekday = 5
-    let progressBars = (1...12).map { week in
-        WeeklyProgressBar(week: week, workoutCount: week == 4 ? 0 : (week < 4 ? 1 : 2), isMissedGoal: week == 4)
-    }
-    let workouts = [
-        WeeklyWorkout(title: "상체 A", date: "10월 6일 (월)", duration: "58분", volume: "8,420kg"),
-        WeeklyWorkout(title: "하체 B", date: "10월 8일 (수)", duration: "62분", volume: "11,200kg")
-    ]
 
+    init(records: [WorkoutRecord] = [], goal: Int = 3, now: Date = .now) {
+        self.records = records
+        self.weeklyGoal = goal
+        self.now = now
+    }
+
+    private var currentWeek: [WorkoutRecord] {
+        records.filter { Calendar.current.isDate($0.date, equalTo: now, toGranularity: .weekOfYear) && $0.date <= now }
+    }
+    var completedWorkouts: Int { currentWeek.count }
+    var streakWeeks: Int { WorkoutProgress(records: records, goal: weeklyGoal, now: now).streakWeeks }
+    var longestStreakWeeks: Int { WorkoutProgress(records: records, goal: weeklyGoal, now: now).longestStreakWeeks }
+    var completedWeekdays: Set<Int> {
+        Set(currentWeek.map { (Calendar.current.component(.weekday, from: $0.date) + 5) % 7 })
+    }
+    var currentWeekday: Int { (Calendar.current.component(.weekday, from: now) + 5) % 7 }
+    var progressBars: [WeeklyProgressBar] {
+        let calendar = Calendar.current
+        guard let currentStart = calendar.dateInterval(of: .weekOfYear, for: now)?.start else { return [] }
+        return (0..<12).compactMap { index in
+            guard let start = calendar.date(byAdding: .weekOfYear, value: index - 11, to: currentStart),
+                  let end = calendar.date(byAdding: .weekOfYear, value: 1, to: start) else { return nil }
+            let count = records.filter { $0.date >= start && $0.date < end && $0.date <= now }.count
+            let hasStarted = start >= (records.map(\.date).min() ?? now)
+            return WeeklyProgressBar(week: index + 1, workoutCount: count,
+                                     isMissedGoal: index < 11 && count < weeklyGoal && hasStarted)
+        }
+    }
+    var workouts: [WeeklyWorkout] {
+        currentWeek.sorted { $0.date > $1.date }.map {
+            WeeklyWorkout(title: $0.routineName, date: HistoryDateText.string($0.date, format: "M월 d일 (E)"),
+                          duration: "\($0.durationMinutes)분", volume: "\($0.volumeKilograms.formatted())kg")
+        }
+    }
     var remainingWorkouts: Int { max(weeklyGoal - completedWorkouts, 0) }
 }

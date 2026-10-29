@@ -53,9 +53,13 @@ struct MainTabView: View {
                 switch selection {
                 case .home:
                     HomeView(
-                        onOpenRoutines: { requestedRoutineID = "upper-a"; selection = .routine },
+                        onOpenRoutines: {
+                            requestedRoutineID = routineStore.routines.first(where: { !$0.isEmpty })?.id
+                            selection = .routine
+                        },
                         inventory: inventory,
                         historyStore: historyStore,
+                        routineStore: routineStore,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:
@@ -71,7 +75,7 @@ struct MainTabView: View {
                         onGrowthPresented: { isHistoryGrowthPresented = $0 }
                     )
                 case .profile:
-                    MyProfileView(onDetailRouteChanged: { isDetailPresented = $0 })
+                    MyProfileView(historyStore: historyStore, onDetailRouteChanged: { isDetailPresented = $0 })
                 }
             }
         }

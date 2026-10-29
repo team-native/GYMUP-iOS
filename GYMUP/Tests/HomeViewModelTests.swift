@@ -6,7 +6,7 @@ final class HomeViewModelTests: XCTestCase {
     func testInitialState() {
         let viewModel = HomeViewModel()
 
-        XCTAssertEqual(viewModel.dateTitle, "10월 11일 토요일")
+        XCTAssertEqual(viewModel.dateTitle, HistoryDateText.string(.now, format: "M월 d일 EEEE"))
         XCTAssertEqual(viewModel.growth, 67)
         XCTAssertEqual(viewModel.weeklyWorkoutCount, 2)
         XCTAssertEqual(viewModel.weeklyWorkoutGoal, 3)

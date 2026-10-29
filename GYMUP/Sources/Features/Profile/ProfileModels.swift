@@ -65,7 +65,7 @@ enum ProfileSampleData {
     ]
 }
 
-enum ProfileGoalType: String, CaseIterable, Identifiable {
+enum ProfileGoalType: String, CaseIterable, Identifiable, Codable {
     case body = "체형"
     case strength = "근력"
     case consistency = "꾸준함"
@@ -81,7 +81,7 @@ enum ProfileGoalType: String, CaseIterable, Identifiable {
     }
 }
 
-struct ProfileGoalRecord: Identifiable, Equatable {
+struct ProfileGoalRecord: Identifiable, Equatable, Codable {
     let id: UUID
     var type: ProfileGoalType
     var workoutsPerWeek: Int

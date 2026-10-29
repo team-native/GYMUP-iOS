@@ -150,7 +150,7 @@ enum WorkoutSessionCompletionDataFactory {
         Calendar.current.isDate(recordDate, equalTo: date, toGranularity: .weekOfYear)
     }
 
-    private static func currentStreakWeeks(records: [WorkoutRecord], goal: Int, at date: Date) -> Int {
+    static func currentStreakWeeks(records: [WorkoutRecord], goal: Int, at date: Date) -> Int {
         guard goal > 0, let currentWeek = Calendar.current.dateInterval(of: .weekOfYear, for: date) else { return 0 }
         var weekStart = currentWeek.start
         var streak = 0
