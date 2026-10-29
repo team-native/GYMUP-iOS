@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-struct RoutinePlan: Identifiable, Hashable {
+struct RoutinePlan: Identifiable, Hashable, Codable {
     let id: String
     var name: String
     var title: String
@@ -53,7 +53,22 @@ struct RoutinePlan: Identifiable, Hashable {
 @Observable
 @MainActor
 final class RoutineStore {
-    var routines = RoutinePlan.samples
+    var routines: [RoutinePlan] {
+        didSet { persist() }
+    }
+    private let defaults: UserDefaults?
+    private let storageKey = "routine.plans.v1"
+
+    init(defaults: UserDefaults? = nil) {
+        self.defaults = defaults
+        routines = defaults?.data(forKey: storageKey)
+            .flatMap { try? JSONDecoder().decode([RoutinePlan].self, from: $0) } ?? RoutinePlan.samples
+    }
+
+    private func persist() {
+        guard let defaults, let data = try? JSONEncoder().encode(routines) else { return }
+        defaults.set(data, forKey: storageKey)
+    }
 
     func routine(id: String) -> RoutinePlan? { routines.first { $0.id == id } }
 

@@ -23,10 +23,13 @@ struct MainTabView: View {
 
     @MainActor
     init() {
+        let storage: UserDefaults? = ProcessInfo.processInfo.arguments.contains("--uitest-ephemeral") ? nil : .standard
+        _routineStore = State(initialValue: RoutineStore(defaults: storage))
         let isGrowthUITest = ProcessInfo.processInfo.arguments.contains("--uitest-g5-growth")
         _selection = State(initialValue: isGrowthUITest ? .history : .home)
         _historyStore = State(initialValue: HistoryStore(
-            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : []
+            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : [],
+            defaults: isGrowthUITest ? nil : storage
         ))
 #if DEBUG
         completionTestData = ProcessInfo.processInfo.arguments.contains("--uitest-e1-completion")

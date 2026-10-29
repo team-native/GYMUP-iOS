@@ -4,6 +4,7 @@ final class PlateCalculatorFlowUITests: XCTestCase {
     func testRestScreenOpensAndClosesPlateCalculator() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
         XCTAssertTrue(app.buttons["루틴"].waitForExistence(timeout: 15))
         app.buttons["루틴"].tap()

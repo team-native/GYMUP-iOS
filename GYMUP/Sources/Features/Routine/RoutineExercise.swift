@@ -1,10 +1,10 @@
 import Foundation
 
-enum RoutineExerciseMeasure: Hashable {
+enum RoutineExerciseMeasure: Hashable, Codable {
     case repetitions, seconds
 }
 
-struct RoutineExercise: Identifiable, Hashable {
+struct RoutineExercise: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let imageAssetName: String

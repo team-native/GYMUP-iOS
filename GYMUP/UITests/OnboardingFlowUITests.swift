@@ -4,6 +4,7 @@ final class OnboardingFlowUITests: XCTestCase {
     func testOnboardingMovesThroughAllScreensAndEntersHome() {
         let app = XCUIApplication()
         app.launchArguments += ["--uitest-reset-onboarding"]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
 
         let start = app.buttons["시작하기"]
@@ -46,6 +47,7 @@ final class OnboardingFlowUITests: XCTestCase {
 
         app.terminate()
         app.launchArguments = []
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
         XCTAssertTrue(app.buttons["홈"].waitForExistence(timeout: 15))
         XCTAssertFalse(app.buttons["시작하기"].exists)
@@ -57,6 +59,7 @@ final class OnboardingFlowUITests: XCTestCase {
             "-UIPreferredContentSizeCategoryName", "UICTContentSizeCategoryAccessibilityXXXL",
             "-onboarding.completed", "YES"
         ]
+        app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
 
         XCTAssertTrue(app.buttons["홈"].waitForExistence(timeout: 15))
