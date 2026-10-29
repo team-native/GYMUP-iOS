@@ -18,10 +18,16 @@ struct MainTabView: View {
     @State private var emptyStartRoutineID: String?
     @State private var isDetailPresented = false
     @State private var isHistoryComparisonPresented = false
+    @State private var isHistoryGrowthPresented = false
     private let completionTestData: WorkoutCompletionData?
 
     @MainActor
     init() {
+        let isGrowthUITest = ProcessInfo.processInfo.arguments.contains("--uitest-g5-growth")
+        _selection = State(initialValue: isGrowthUITest ? .history : .home)
+        _historyStore = State(initialValue: HistoryStore(
+            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : []
+        ))
 #if DEBUG
         completionTestData = ProcessInfo.processInfo.arguments.contains("--uitest-e1-completion")
             ? Self.makeCompletionTestData()
@@ -58,7 +64,8 @@ struct MainTabView: View {
                     HistoryView(
                         store: historyStore,
                         onOpenRoutines: { selection = .routine },
-                        onComparisonPresented: { isHistoryComparisonPresented = $0 }
+                        onComparisonPresented: { isHistoryComparisonPresented = $0 },
+                        onGrowthPresented: { isHistoryGrowthPresented = $0 }
                     )
                 case .profile:
                     MyProfileView(onDetailRouteChanged: { isDetailPresented = $0 })
@@ -66,7 +73,8 @@ struct MainTabView: View {
             }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            if completionTestData == nil && !isDetailPresented && !(selection == .history && isHistoryComparisonPresented) {
+            let isHistoryDetailPresented = isHistoryComparisonPresented || isHistoryGrowthPresented
+            if completionTestData == nil && !isDetailPresented && !(selection == .history && isHistoryDetailPresented) {
                 tabBar
             }
         }

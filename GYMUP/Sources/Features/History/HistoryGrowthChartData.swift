@@ -44,17 +44,52 @@ enum HistoryGrowthRange: String, CaseIterable, Identifiable, Hashable {
         return Array(samples.suffix(visiblePointCount))
     }
 
+    func recordedPoints(from points: [HistoryGrowthDataPoint], now: Date, calendar: Calendar = .current) -> [HistoryGrowthDataPoint] {
+        let start = startDate(endingAt: now, calendar: calendar)
+        return points.filter { point in point.date <= now && (start.map { point.date >= $0 } ?? true) }
+    }
+
+    func comparisonLabel(firstRecordDate: Date?, now: Date, calendar: Calendar = .current) -> String {
+        guard let firstRecordDate else { return "첫 기록" }
+        guard let start = startDate(endingAt: now, calendar: calendar) else { return "첫 기록" }
+        let rangeDuration = now.timeIntervalSince(start)
+        let recordedDuration = now.timeIntervalSince(firstRecordDate)
+        return recordedDuration >= rangeDuration * 0.75 ? "\(rawValue) 전" : "기간 내 첫 기록"
+    }
+
+    private func startDate(endingAt now: Date, calendar: Calendar) -> Date? {
+        switch self {
+        case .fourWeeks: calendar.date(byAdding: .day, value: -28, to: now)
+        case .twelveWeeks: calendar.date(byAdding: .day, value: -84, to: now)
+        case .sixMonths: calendar.date(byAdding: .month, value: -6, to: now)
+        case .all: nil
+        }
+    }
+
     func axisLabels(for points: [HistoryGrowthDataPoint], calendar: Calendar = .current) -> [HistoryGrowthAxisLabel] {
         guard !points.isEmpty else { return [] }
-        let step = self == .sixMonths ? 2 : self == .all ? 3 : 1
-        var indices = Array(stride(from: 0, to: points.count, by: step))
-        if let lastIndex = points.indices.last, indices.last != lastIndex {
-            indices.append(lastIndex)
+        let indices: [Int]
+        if self == .fourWeeks {
+            let labelCount = min(points.count, 4)
+            indices = (0 ..< labelCount).map { labelIndex in
+                guard labelCount > 1 else { return 0 }
+                let fraction = Double(labelIndex) / Double(labelCount - 1)
+                return Int((fraction * Double(points.count - 1)).rounded())
+            }
+        } else {
+            let step = self == .sixMonths ? 2 : self == .all ? 3 : 1
+            var selectedIndices = Array(stride(from: 0, to: points.count, by: step))
+            if let lastIndex = points.indices.last, selectedIndices.last != lastIndex {
+                selectedIndices.append(lastIndex)
+            }
+            indices = selectedIndices
         }
         return indices.map { index in
             let title: String
             if self == .fourWeeks {
-                title = index == points.indices.last ? "이번 주" : "4주 전"
+                title = points[index].date.formatted(
+                    .dateTime.locale(Locale(identifier: "ko_KR")).month(.defaultDigits).day()
+                )
             } else {
                 title = points[index].date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month())
             }
@@ -124,5 +159,62 @@ enum HistoryGrowthSampleData {
                 value: valueRange.lowerBound + (valueRange.upperBound - valueRange.lowerBound) * progress
             )
         }
+    }
+}
+
+enum HistoryGrowthRecordData {
+    static func exercises(from records: [WorkoutRecord]) -> [String] {
+        Array(Set(records.flatMap(\.exercises).filter {
+            $0.sets.contains { $0.measure == .repetitions }
+        }.map(\.name))).sorted()
+    }
+
+    static func points(from records: [WorkoutRecord], exercise: String,
+                       metric: HistoryGrowthMetric) -> [HistoryGrowthDataPoint] {
+        records.sorted { $0.date < $1.date }.compactMap { record in
+            let sets = record.exercises.filter { $0.name == exercise }.flatMap(\.sets)
+                .filter { $0.measure == .repetitions && $0.repetitions > 0 }
+            guard !sets.isEmpty else { return nil }
+            let value: Double
+            switch metric {
+            case .maxWeight:
+                value = sets.map(\.weight).max() ?? 0
+            case .estimatedOneRepMax:
+                value = sets.map { set in
+                    set.repetitions == 1 ? set.weight : set.weight * (1 + Double(set.repetitions) / 30)
+                }.max() ?? 0
+            case .volume:
+                value = sets.reduce(0) { $0 + $1.weight * Double($1.repetitions) }
+            }
+            return HistoryGrowthDataPoint(date: record.date, value: value)
+        }
+    }
+}
+
+extension HistorySampleData {
+    static var growthGraphUITestRecords: [WorkoutRecord] {
+        let calendar = Calendar.current
+        let historicalBenchPressSets = [(-80, 50.0), (-10, 55.0)]
+        let historicalRecords = historicalBenchPressSets.compactMap { sample -> WorkoutRecord? in
+            let (days, weight) = sample
+            guard let date = calendar.date(byAdding: .day, value: days, to: .now) else { return nil }
+            return WorkoutRecord(
+                id: UUID(),
+                date: date,
+                routineName: "상체 A 루틴",
+                category: "가슴 · 어깨 · 삼두",
+                durationMinutes: 58,
+                setCount: 1,
+                volumeKilograms: Int(weight * 8),
+                growth: 0,
+                photoAssetName: "H1RoutinePhoto",
+                exercises: [
+                    WorkoutExerciseRecord(id: 1, name: "벤치프레스", sets: [
+                        WorkoutSetRecord(id: 1, weight: weight, repetitions: 8)
+                    ])
+                ]
+            )
+        }
+        return records + historicalRecords
     }
 }

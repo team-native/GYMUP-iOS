@@ -33,6 +33,50 @@ final class RoutineSessionFlowUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts.containing(NSPredicate(format: "label CONTAINS %@", "스쿼트")).firstMatch.exists)
     }
 
+    func testHistoryOpensGrowthGraphFromWorkoutRecords() {
+        let app = XCUIApplication()
+        app.launchArguments = ["-onboarding.completed", "YES", "--uitest-g5-growth"]
+        app.launch()
+
+        let openGrowth = app.buttons["history.openGrowth"]
+        XCTAssertTrue(openGrowth.waitForExistence(timeout: 15))
+        while !openGrowth.isHittable {
+            app.swipeUp()
+        }
+        openGrowth.tap()
+
+        let exercisePicker = app.buttons["history.growth.exercise"]
+        XCTAssertTrue(exercisePicker.waitForExistence(timeout: 5))
+        XCTAssertFalse(app.buttons["홈"].exists)
+        exercisePicker.tap()
+        app.buttons["벤치프레스"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "최고 무게 62.5 KG")).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts["V2 · MVP 제외"].exists)
+
+        app.buttons["history.growth.metric.예상 1RM"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "예상 1RM 79.2 KG")).firstMatch.exists)
+
+        let fourWeekRange = app.buttons["history.growth.range.4주"]
+        if !fourWeekRange.isHittable { app.swipeUp() }
+        fourWeekRange.tap()
+        XCTAssertTrue(fourWeekRange.isSelected)
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "기간 내 첫 기록보다 +9.5KG")).firstMatch.exists)
+
+        let allTimeRange = app.buttons["history.growth.range.전체"]
+        allTimeRange.tap()
+        XCTAssertTrue(allTimeRange.isSelected)
+        XCTAssertTrue(app.descendants(matching: .any)
+            .matching(NSPredicate(format: "label CONTAINS %@", "첫 기록보다 +15.8KG")).firstMatch.exists)
+
+        let screenshot = XCTAttachment(screenshot: app.screenshot())
+        screenshot.name = "G5 growth graph with workout records"
+        screenshot.lifetime = .keepAlways
+        add(screenshot)
+    }
+
     func testCompletionSummaryShowsCurrentSessionAndWeeklyProgress() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES", "--uitest-e1-completion"]

@@ -3,65 +3,84 @@ import SwiftUI
 struct HistoryGrowthView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var selectedMetric: HistoryGrowthMetric = .maxWeight
-    @State private var selectedExercise = "벤치프레스"
+    @State private var selectedExercise = ""
     @State private var selectedRange: HistoryGrowthRange = .twelveWeeks
     @State private var selectedPointDate: Date?
 
+    private let store: HistoryStore
     private let anchorDate: Date
     private let sampleDataOverride: [HistoryGrowthDataPoint]?
 
-    init(anchorDate: Date = .now, sampleDataOverride: [HistoryGrowthDataPoint]? = nil) {
+    @MainActor
+    init(store: HistoryStore? = nil, anchorDate: Date = .now, sampleDataOverride: [HistoryGrowthDataPoint]? = nil) {
+        self.store = store ?? HistoryStore()
         self.anchorDate = anchorDate
         self.sampleDataOverride = sampleDataOverride
     }
 
     var body: some View {
         VStack(spacing: 0) {
-            HistoryNavigationBar(title: "성장 그래프", onBack: dismiss.callAsFunction)
+            navigationBar
             ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
-                    exercisePicker
+                VStack(alignment: .leading, spacing: 19) {
+                    scopeTag
                     metricPicker
-                    if chartAvailability != .empty {
-                        featuredMetric
-                    }
+                    if chartAvailability != .empty { featuredMetric }
                     chart
                     rangePicker
                 }
                 .padding(.horizontal, 20)
-                .padding(.top, 8)
+                .padding(.top, 10)
                 .padding(.bottom, 28)
             }
         }
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .onAppear { if selectedExercise.isEmpty { selectedExercise = exercises.first ?? "" } }
     }
 
-    private var exercisePicker: some View {
-        Menu {
-            ForEach(exercises, id: \.self) { exercise in
-                Button(exercise) { selectedExercise = exercise }
+    private var navigationBar: some View {
+        HStack(spacing: 8) {
+            Button(action: dismiss.callAsFunction) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(GymupColors.primaryText)
+                    .frame(width: 40, height: 48)
+                    .contentShape(Rectangle())
             }
-        } label: {
-            HStack(spacing: 8) {
-                Text(selectedExercise)
+            .buttonStyle(.plain)
+            .accessibilityLabel("뒤로")
+
+            Spacer(minLength: 0)
+            Menu {
+                ForEach(exercises, id: \.self) { exercise in
+                    Button(exercise) { selectedExercise = exercise }
+                }
+            } label: {
+                Text(selectedExercise.isEmpty ? "성장 그래프" : selectedExercise)
                     .font(GymupTypography.uiStrong)
                     .foregroundStyle(GymupColors.primaryText)
-                Image(systemName: "chevron.down")
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(GymupColors.secondaryText)
-                Spacer()
-                Text("종목 선택")
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
+                    .lineLimit(1)
             }
-            .frame(maxWidth: .infinity, minHeight: 48)
-            .padding(.horizontal, 14)
-            .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 14))
+            .accessibilityIdentifier("history.growth.exercise")
+            Spacer(minLength: 0)
+
+            Color.clear.frame(width: 40, height: 48)
+                .accessibilityHidden(true)
         }
-        .buttonStyle(.plain)
-        .accessibilityLabel("운동 종목 선택, \(selectedExercise)")
-        .accessibilityIdentifier("history.growth.exercise")
+        .padding(.horizontal, 8)
+        .frame(height: 48)
+        .accessibilityElement(children: .contain)
+    }
+
+    private var scopeTag: some View {
+        Text("V2 · MVP 제외")
+            .font(GymupTypography.uiCaption)
+            .foregroundStyle(GymupColors.secondaryText)
+            .padding(.horizontal, 10)
+            .padding(.vertical, 4)
+            .background(GymupColors.elevatedSurface, in: Capsule())
+            .accessibilityIdentifier("history.growth.scope")
     }
 
     private var metricPicker: some View {
@@ -73,10 +92,10 @@ struct HistoryGrowthView: View {
                 } label: {
                     Text(metric.rawValue)
                         .font(GymupTypography.uiCaption)
-                        .foregroundStyle(isSelected ? .white : GymupColors.secondaryText)
+                        .foregroundStyle(isSelected ? GymupColors.primaryText : GymupColors.secondaryText)
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: 44)
-                        .background(isSelected ? GymupColors.accent : GymupColors.surface, in: Capsule())
+                        .frame(minHeight: 28)
+                        .background(isSelected ? GymupColors.overlay : .clear, in: RoundedRectangle(cornerRadius: 7))
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -84,33 +103,26 @@ struct HistoryGrowthView: View {
                 .accessibilityLabel(metric.rawValue)
             }
         }
+        .padding(2)
+        .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: 9))
         .accessibilityLabel("성장 지표 선택")
     }
 
     private var featuredMetric: some View {
         Group {
             if let selectedPoint {
-                HistoryCard {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text("\(selectedMetric.rawValue) · \(HistoryDateText.string(selectedPoint.date, format: "M월 d일"))")
-                            .font(GymupTypography.uiCaption)
+                VStack(alignment: .leading, spacing: 14) {
+                    HStack(alignment: .firstTextBaseline, spacing: 6) {
+                        Text(formattedValue(selectedPoint.value))
+                            .font(GymupTypography.growthScore)
+                            .foregroundStyle(GymupColors.primaryText)
+                        Text(selectedMetric.unit)
+                            .font(GymupTypography.growthScoreUnit)
                             .foregroundStyle(GymupColors.secondaryText)
-                        HStack(alignment: .firstTextBaseline, spacing: 6) {
-                            Text(formattedValue(selectedPoint.value))
-                                .font(GymupTypography.growthScore)
-                                .foregroundStyle(GymupColors.primaryText)
-                            Text(selectedMetric.unit)
-                                .font(GymupTypography.growthScoreUnit)
-                                .foregroundStyle(GymupColors.secondaryText)
-                        }
-                        HStack(spacing: 5) {
-                            Image(systemName: changeIndicatorSymbol)
-                                .font(.system(size: 10, weight: .bold))
-                            Text(changeDescription)
-                                .font(GymupTypography.uiCaption)
-                        }
-                        .foregroundStyle(changeIndicatorColor)
                     }
+                    Text(changeDescription)
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(changeIndicatorColor)
                 }
                 .accessibilityElement(children: .combine)
                 .accessibilityLabel(featuredMetricAccessibilityLabel)
@@ -120,7 +132,6 @@ struct HistoryGrowthView: View {
 
     private var chart: some View {
         VStack(alignment: .leading, spacing: 12) {
-            HistorySectionTitle(title: "기록 변화", subtitle: selectedExercise)
             switch chartAvailability {
             case .empty:
                 HistoryCard {
@@ -141,22 +152,20 @@ struct HistoryGrowthView: View {
                 }
                 .accessibilityIdentifier("history.growth.empty")
             case .sparse, .ready:
-                HistoryCard {
-                    VStack(spacing: 12) {
-                        HistoryGrowthChartView(
-                            points: visiblePoints,
-                            selectedDate: selectedPoint?.date,
-                            metric: selectedMetric,
-                            exercise: selectedExercise,
-                            range: selectedRange,
-                            onSelect: { selectedPointDate = $0 }
-                        )
-                        if chartAvailability == .sparse {
-                            Text("기록이 더 쌓이면 추이 변화를 비교할 수 있어요.")
-                                .font(GymupTypography.uiCaption)
-                                .foregroundStyle(GymupColors.secondaryText)
-                                .frame(maxWidth: .infinity, alignment: .leading)
-                        }
+                VStack(spacing: 8) {
+                    HistoryGrowthChartView(
+                        points: visiblePoints,
+                        selectedDate: selectedPoint?.date,
+                        metric: selectedMetric,
+                        exercise: selectedExercise,
+                        range: selectedRange,
+                        onSelect: { selectedPointDate = $0 }
+                    )
+                    if chartAvailability == .sparse {
+                        Text("기록이 더 쌓이면 추이 변화를 비교할 수 있어요.")
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.secondaryText)
+                            .frame(maxWidth: .infinity, alignment: .leading)
                     }
                 }
                 .accessibilityIdentifier(chartAvailability == .sparse ? "history.growth.sparse" : "history.growth.chart")
@@ -175,15 +184,15 @@ struct HistoryGrowthView: View {
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(isSelected ? GymupColors.primaryText : GymupColors.secondaryText)
                         .frame(maxWidth: .infinity)
-                        .frame(minHeight: 44)
-                        .background(isSelected ? GymupColors.elevatedSurface : .clear, in: Capsule())
+                        .frame(minHeight: 28)
+                        .background(isSelected ? GymupColors.overlay : .clear, in: Capsule())
                 }
                 .buttonStyle(.plain)
                 .accessibilityAddTraits(isSelected ? .isSelected : [])
                 .accessibilityIdentifier("history.growth.range.\(range.id)")
             }
         }
-        .padding(4)
+        .padding(2)
         .background(GymupColors.surface, in: Capsule())
         .accessibilityLabel("그래프 조회 기간")
     }
@@ -193,19 +202,17 @@ struct HistoryGrowthView: View {
     }
 
     private var exercises: [String] {
-        HistoryGrowthSampleData.exercises
+        HistoryGrowthRecordData.exercises(from: store.records)
     }
 
     private var allSamples: [HistoryGrowthDataPoint] {
-        sampleDataOverride ?? HistoryGrowthSampleData.points(
-            for: selectedMetric,
-            exercise: selectedExercise,
-            anchorDate: anchorDate
+        sampleDataOverride ?? HistoryGrowthRecordData.points(
+            from: store.records, exercise: selectedExercise, metric: selectedMetric
         )
     }
 
     private var visiblePoints: [HistoryGrowthDataPoint] {
-        selectedRange.points(from: allSamples)
+        selectedRange.recordedPoints(from: allSamples, now: anchorDate)
     }
 
     private var selectedPoint: HistoryGrowthDataPoint? {
@@ -220,21 +227,15 @@ struct HistoryGrowthView: View {
     private var changeValue: Double? {
         guard let selectedPoint,
               let selectedIndex = allSamples.firstIndex(where: { $0.date == selectedPoint.date }) else { return nil }
-        let comparisonIndex = max(0, selectedIndex - selectedRange.comparisonPointCount)
+        let comparisonIndex = allSamples.firstIndex { $0.date == visiblePoints.first?.date } ?? selectedIndex
         guard comparisonIndex < selectedIndex else { return nil }
         return selectedPoint.value - allSamples[comparisonIndex].value
     }
 
     private var changeDescription: String {
         guard let value = changeValue else { return "첫 기록이에요" }
-        return "\(selectedRange.rawValue) 전보다 \(value >= 0 ? "+" : "")\(formattedValue(value))\(selectedMetric.unit)"
-    }
-
-    private var changeIndicatorSymbol: String {
-        guard let value = changeValue else { return "minus" }
-        if value > 0 { return "arrow.up.right" }
-        if value < 0 { return "arrow.down.right" }
-        return "minus"
+        let rangeLabel = selectedRange.comparisonLabel(firstRecordDate: visiblePoints.first?.date, now: anchorDate)
+        return "\(rangeLabel)보다 \(value >= 0 ? "+" : "")\(formattedValue(value))\(selectedMetric.unit)"
     }
 
     private var changeIndicatorColor: Color {
