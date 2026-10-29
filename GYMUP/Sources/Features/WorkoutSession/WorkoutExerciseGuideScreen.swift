@@ -4,8 +4,6 @@ struct WorkoutExerciseGuideScreen: View {
     let exercise: WorkoutSessionExercise
     let onClose: () -> Void
 
-    @State private var isShowingVideoUnavailableAlert = false
-
     var body: some View {
         ScrollView(showsIndicators: false) {
             VStack(alignment: .leading, spacing: 19) {
@@ -16,11 +14,7 @@ struct WorkoutExerciseGuideScreen: View {
         .safeAreaInset(edge: .bottom, spacing: 0) { footer }
         .background(GymupColors.canvas.ignoresSafeArea())
         .ignoresSafeArea(edges: .top)
-        .alert("운동 영상은 준비 중이에요", isPresented: $isShowingVideoUnavailableAlert) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text("자세 설명을 확인한 뒤 세트를 진행해 주세요.")
-        }
+
     }
 
     private var videoHero: some View {
@@ -32,19 +26,14 @@ struct WorkoutExerciseGuideScreen: View {
                 .frame(height: 300)
                 .clipped()
 
-            Button {
-                isShowingVideoUnavailableAlert = true
-            } label: {
-                Image("R1IconPlay")
-                    .resizable()
-                    .frame(width: 20, height: 20)
-                    .frame(width: 52, height: 52)
-                    .background(GymupColors.accent, in: Circle())
-            }
-            .buttonStyle(.plain)
-            .offset(y: -6)
-            .accessibilityLabel("자세 영상 재생")
-            .accessibilityIdentifier("workout.guide.play-video")
+            Text("영상 준비 중")
+                .font(GymupTypography.uiBold)
+                .foregroundStyle(GymupColors.primaryText)
+                .padding(.horizontal, 16)
+                .padding(.vertical, 10)
+                .background(GymupColors.canvas.opacity(0.85), in: Capsule())
+                .accessibilityLabel("자세 영상은 준비 중이에요. 아래 자세 설명을 확인해 주세요.")
+                .accessibilityIdentifier("workout.guide.video-unavailable")
         }
         .frame(height: 300)
         .overlay(alignment: .topTrailing) {
