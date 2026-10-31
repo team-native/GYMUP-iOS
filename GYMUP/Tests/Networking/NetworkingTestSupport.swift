@@ -193,8 +193,8 @@ class StubURLProtocolBase: URLProtocol {
         }
 
         var materializedRequest = request
-        materializedRequest.httpBody = body
         materializedRequest.httpBodyStream = nil
+        materializedRequest.httpBody = body
         return materializedRequest
     }
 }
