@@ -93,8 +93,18 @@ struct TestTokenProvider: BearerTokenProviding {
     }
 }
 
-enum APIClientTestError: Error {
+enum APIClientTestError: Error, LocalizedError {
     case noResponseConfigured
+    case requestBodyStreamReadFailed(String)
+
+    var errorDescription: String? {
+        switch self {
+        case .noResponseConfigured:
+            return "No URLProtocol response was configured."
+        case let .requestBodyStreamReadFailed(message):
+            return "Could not read request body stream: \(message)"
+        }
+    }
 }
 
 class StubURLProtocolBase: URLProtocol {
@@ -123,7 +133,8 @@ class StubURLProtocolBase: URLProtocol {
         Self.lock.unlock()
 
         do {
-            let (response, data) = try activeHandler(request)
+            let handlerRequest = try Self.materializeBodyStream(in: request)
+            let (response, data) = try activeHandler(handlerRequest)
             client?.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client?.urlProtocol(self, didLoad: data)
             client?.urlProtocolDidFinishLoading(self)
@@ -133,6 +144,59 @@ class StubURLProtocolBase: URLProtocol {
     }
 
     override func stopLoading() {}
+
+    static func materializeBodyStream(in request: URLRequest) throws -> URLRequest {
+        guard request.httpBody == nil, let bodyStream = request.httpBodyStream else {
+            return request
+        }
+
+        let shouldCloseStream = bodyStream.streamStatus == .notOpen
+        if shouldCloseStream {
+            bodyStream.open()
+        }
+        defer {
+            if shouldCloseStream {
+                bodyStream.close()
+            }
+        }
+
+        var body = Data()
+        var buffer = [UInt8](repeating: 0, count: 16_384)
+
+        while true {
+            let bytesRead = buffer.withUnsafeMutableBufferPointer { bufferPointer in
+                guard let baseAddress = bufferPointer.baseAddress else {
+                    return 0
+                }
+                return bodyStream.read(baseAddress, maxLength: bufferPointer.count)
+            }
+
+            if bytesRead < 0 {
+                let message = bodyStream.streamError?.localizedDescription
+                    ?? "InputStream.read returned a negative result."
+                throw APIClientTestError.requestBodyStreamReadFailed(message)
+            }
+
+            guard bytesRead > 0 else {
+                if let streamError = bodyStream.streamError {
+                    throw APIClientTestError.requestBodyStreamReadFailed(streamError.localizedDescription)
+                }
+                guard bodyStream.streamStatus == .atEnd else {
+                    throw APIClientTestError.requestBodyStreamReadFailed(
+                        "InputStream stopped before reaching the end of the stream."
+                    )
+                }
+                break
+            }
+
+            body.append(contentsOf: buffer.prefix(bytesRead))
+        }
+
+        var materializedRequest = request
+        materializedRequest.httpBody = body
+        materializedRequest.httpBodyStream = nil
+        return materializedRequest
+    }
 }
 
 final class StubURLProtocol: StubURLProtocolBase {}
