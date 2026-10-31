@@ -233,6 +233,10 @@ private final class EmptyBeforeEOFRequestBodyStream: InputStream {
         true
     }
 
+    override var streamError: Error? {
+        nil
+    }
+
     override func read(_ buffer: UnsafeMutablePointer<UInt8>, maxLength len: Int) -> Int {
         0
     }
