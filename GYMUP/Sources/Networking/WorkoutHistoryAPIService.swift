@@ -3,7 +3,13 @@ import Foundation
 struct WorkoutDetailSet: Codable, Equatable {
     let reps: Int
     let weight: Double
-    let pr: Bool
+    let isPersonalRecord: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case reps
+        case weight
+        case isPersonalRecord = "pr"
+    }
 }
 
 struct WorkoutDetailExercise: Codable, Equatable {
@@ -25,10 +31,22 @@ struct WorkoutSummaryResponse: Codable, Equatable {
     let volume: Double
     let prs: JSONValue
     let growthDelta: JSONValue
-    let xp: Int
+    let experiencePoints: Int
     let levelUp: JSONValue
     let avatarGrowth: JSONValue
     let progressShotAvailable: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case duration
+        case totalSets
+        case volume
+        case prs
+        case growthDelta
+        case experiencePoints = "xp"
+        case levelUp
+        case avatarGrowth
+        case progressShotAvailable
+    }
 }
 
 struct CompleteWorkoutRequest: Codable, Equatable {
@@ -47,8 +65,19 @@ struct CompleteWorkoutResponse: Codable, Equatable {
     let totalSets: Int
     let volume: Double
     let prs: JSONValue
-    let xp: Int
+    let experiencePoints: Int
     let growthDelta: JSONValue
+
+    enum CodingKeys: String, CodingKey {
+        case workoutId
+        case status
+        case duration
+        case totalSets
+        case volume
+        case prs
+        case experiencePoints = "xp"
+        case growthDelta
+    }
 }
 
 struct WorkoutHistoryAPIService {

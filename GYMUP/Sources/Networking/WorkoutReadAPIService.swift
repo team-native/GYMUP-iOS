@@ -4,7 +4,7 @@ struct ListWorkoutsQuery {
     let cursor: String
     let size: Int
     let from: String
-    let to: String
+    let endDate: String
     let routineId: String
 
     var queryItems: [URLQueryItem] {
@@ -12,7 +12,7 @@ struct ListWorkoutsQuery {
             URLQueryItem(name: "cursor", value: cursor),
             URLQueryItem(name: "size", value: String(size)),
             URLQueryItem(name: "from", value: from),
-            URLQueryItem(name: "to", value: to),
+            URLQueryItem(name: "to", value: endDate),
             URLQueryItem(name: "routineId", value: routineId)
         ]
     }

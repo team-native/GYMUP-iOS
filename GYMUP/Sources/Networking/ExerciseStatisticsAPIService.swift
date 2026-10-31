@@ -3,14 +3,14 @@ import Foundation
 struct ExerciseStatisticsQuery {
     let metric: String
     let from: String
-    let to: String
+    let endDate: String
     let interval: String
 
     var queryItems: [URLQueryItem] {
         [
             URLQueryItem(name: "metric", value: metric),
             URLQueryItem(name: "from", value: from),
-            URLQueryItem(name: "to", value: to),
+            URLQueryItem(name: "to", value: endDate),
             URLQueryItem(name: "interval", value: interval)
         ]
     }

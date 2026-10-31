@@ -47,9 +47,19 @@ struct CreateWorkoutSetResponse: Codable, Equatable {
     let workoutId: String
     let exerciseId: String
     let setIndex: Int
-    let pr: Bool
+    let isPersonalRecord: Bool
     let nextAction: JSONValue
     let rest: JSONValue
+
+    enum CodingKeys: String, CodingKey {
+        case setId
+        case workoutId
+        case exerciseId
+        case setIndex
+        case isPersonalRecord = "pr"
+        case nextAction
+        case rest
+    }
 }
 
 struct StartWorkoutRequest: Codable, Equatable {

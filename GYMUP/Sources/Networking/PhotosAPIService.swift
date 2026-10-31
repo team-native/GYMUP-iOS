@@ -4,7 +4,7 @@ struct ListPhotosQuery {
     let cursor: String
     let size: Int
     let from: String
-    let to: String
+    let endDate: String
     let sort: String
 
     var queryItems: [URLQueryItem] {
@@ -12,7 +12,7 @@ struct ListPhotosQuery {
             URLQueryItem(name: "cursor", value: cursor),
             URLQueryItem(name: "size", value: String(size)),
             URLQueryItem(name: "from", value: from),
-            URLQueryItem(name: "to", value: to),
+            URLQueryItem(name: "to", value: endDate),
             URLQueryItem(name: "sort", value: sort)
         ]
     }
