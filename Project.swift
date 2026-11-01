@@ -30,7 +30,20 @@ let project = Project(
             sources: ["GYMUP/Sources/**"],
             resources: ["GYMUP/Resources/**"],
             dependencies: [.target(name: "GYMUPWidgetExtension")],
-            settings: .settings(base: ["ASSETCATALOG_COMPILER_APPICON_NAME": ""])
+            settings: .settings(
+                base: ["ASSETCATALOG_COMPILER_APPICON_NAME": ""],
+                configurations: [
+                    .debug(
+                        name: "Debug",
+                        // Preserve the ATS nested dictionary from a complete Debug-only plist.
+                        settings: [
+                            "GENERATE_INFOPLIST_FILE": "NO",
+                            "INFOPLIST_FILE": "$(SRCROOT)/Config/Info-Debug.plist",
+                        ]
+                    ),
+                    .release(name: "Release", settings: [:])
+                ]
+            )
         ),
         .target(
             name: "GYMUPWidgetExtension",

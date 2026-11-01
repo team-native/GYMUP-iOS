@@ -53,6 +53,45 @@ final class OnboardingFlowUITests: XCTestCase {
         XCTAssertFalse(app.buttons["시작하기"].exists)
     }
 
+    func testOnboardingShowsServerErrorAndCanRetry() {
+        let app = XCUIApplication()
+        app.launchArguments = ["--uitest-reset-onboarding", "--uitest-ephemeral", "--uitest-onboarding-error"]
+        app.launch()
+
+        let start = app.buttons["시작하기"]
+        XCTAssertTrue(start.waitForExistence(timeout: 15))
+        start.tap()
+        let experience = app.buttons.matching(NSPredicate(format: "label CONTAINS %@", "입문")).firstMatch
+        XCTAssertTrue(experience.waitForExistence(timeout: 5))
+        experience.tap()
+        let next = app.buttons["다음"]
+        XCTAssertTrue(next.waitForExistence(timeout: 5))
+        next.tap()
+        let purpose = app.buttons["근비대"]
+        XCTAssertTrue(purpose.waitForExistence(timeout: 5))
+        purpose.tap()
+        next.tap()
+        next.tap()
+        let startGoal = app.buttons["목표 시작하기"]
+        XCTAssertTrue(startGoal.waitForExistence(timeout: 5))
+        startGoal.tap()
+        next.tap()
+        let later = app.buttons["나중에"]
+        XCTAssertTrue(later.waitForExistence(timeout: 5))
+        later.tap()
+
+        let errorMessage = app.staticTexts["onboarding.saveError"]
+        XCTAssertTrue(errorMessage.waitForExistence(timeout: 5))
+        XCTAssertEqual(errorMessage.label, "테스트 서버 오류 메시지")
+        let errorScreenshot = XCTAttachment(screenshot: XCUIScreen.main.screenshot())
+        errorScreenshot.name = "onboarding-server-save-error"
+        errorScreenshot.lifetime = .keepAlways
+        add(errorScreenshot)
+
+        app.buttons["다시 시도"].tap()
+        XCTAssertTrue(app.buttons["홈"].waitForExistence(timeout: 5))
+    }
+
     func testMyProfileRemainsAccessibleAtLargeTextSize() {
         let app = XCUIApplication()
         app.launchArguments = [
