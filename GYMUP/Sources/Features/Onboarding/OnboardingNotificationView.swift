@@ -4,6 +4,7 @@ import UserNotifications
 struct OnboardingNotificationView: View {
     let isSubmitting: Bool
     let errorMessage: String?
+    let canRetry: Bool
     let onSubmit: () -> Void
     let onRetry: () -> Void
     let onContinueLocally: () -> Void
@@ -27,7 +28,9 @@ struct OnboardingNotificationView: View {
                     .multilineTextAlignment(.center)
                     .padding(.bottom, 12)
                     .accessibilityIdentifier("onboarding.saveError")
-                OnboardingActionButton(title: "다시 시도", disabled: isSubmitting, action: onRetry)
+                if canRetry {
+                    OnboardingActionButton(title: "다시 시도", disabled: isSubmitting, action: onRetry)
+                }
                 Button("서버 저장 없이 계속", action: onContinueLocally)
                     .font(GymupTypography.uiBold)
                     .foregroundStyle(GymupColors.secondaryText)

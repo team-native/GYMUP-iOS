@@ -34,12 +34,14 @@ final class OnboardingSubmissionTests: XCTestCase {
         XCTAssertFalse(firstResult)
         XCTAssertEqual(viewModel.errorMessage, "Already completed by another session.")
         XCTAssertFalse(viewModel.isSubmitting)
+        XCTAssertTrue(viewModel.canRetry)
 
         let retryResult = await viewModel.submit(draft: draft)
         let requests = await service.recordedRequests()
 
         XCTAssertTrue(retryResult)
         XCTAssertNil(viewModel.errorMessage)
+        XCTAssertFalse(viewModel.canRetry)
         XCTAssertEqual(requests.count, 2)
         XCTAssertEqual(requests[0].experienceLevel, .string("BEGINNER"))
         XCTAssertEqual(requests[0].goalType, .string("HABIT"))
@@ -48,6 +50,18 @@ final class OnboardingSubmissionTests: XCTestCase {
 
     func testRequestMapperRejectsMissingExperience() {
         XCTAssertNil(OnboardingSubmissionRequestMapper.request(for: OnboardingDraft()))
+    }
+
+    func testUnavailableServiceIsNotASuccessAndCannotBeRetried() async {
+        let viewModel = OnboardingSubmissionViewModel(service: nil)
+        var draft = OnboardingDraft()
+        draft.experience = 1
+
+        let result = await viewModel.submit(draft: draft)
+
+        XCTAssertFalse(result)
+        XCTAssertEqual(viewModel.errorMessage, OnboardingSubmissionViewModel.unavailableServiceMessage)
+        XCTAssertFalse(viewModel.canRetry)
     }
 }
 

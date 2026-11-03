@@ -38,6 +38,7 @@ struct OnboardingFlowView: View {
                 OnboardingNotificationView(
                     isSubmitting: submissionViewModel.isSubmitting || isSubmissionStarted,
                     errorMessage: submissionViewModel.errorMessage,
+                    canRetry: submissionViewModel.canRetry,
                     onSubmit: submit,
                     onRetry: submit,
                     onContinueLocally: finishLocally

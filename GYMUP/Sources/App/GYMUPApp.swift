@@ -13,7 +13,9 @@ struct GYMUPApp: App {
         }
 
 #if DEBUG
-        if arguments.contains("--uitest-ephemeral") {
+        if arguments.contains("--uitest-no-onboarding-service") {
+            onboardingSubmissionService = nil
+        } else if arguments.contains("--uitest-ephemeral") {
             onboardingSubmissionService = UITestOnboardingSubmissionService(
                 failsFirstRequest: arguments.contains("--uitest-onboarding-error")
             )
