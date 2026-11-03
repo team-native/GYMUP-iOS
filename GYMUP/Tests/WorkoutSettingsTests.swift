@@ -30,20 +30,86 @@ final class WorkoutSettingsTests: XCTestCase {
         XCTAssertTrue(WorkoutSettings.reminderComponents(schedule: ProfileReminderSchedule(weekdays: [], time: time)).isEmpty)
     }
 
-    func testRestTimeSavePreservesLocalValueAndServerMessageAndRetriesSameSeconds() async throws {
-        var capturedRequests: [URLRequest] = []
+    func testRestTimeSaveKeepsLocalValueAndShowsServerMessageOnFailure() async throws {
+        let scenario = try makeRestTimeScenario()
+        defer {
+            resetStubResponse()
+            scenario.defaults.removePersistentDomain(forName: scenario.suite)
+        }
+
+        let didSave = await scenario.viewModel.save(seconds: scenario.selectedSeconds) {
+            scenario.settings.restSeconds = $0
+        }
+
+        XCTAssertFalse(didSave)
+        XCTAssertEqual(scenario.settings.restSeconds, scenario.selectedSeconds)
+        let restored = WorkoutSettings(defaults: scenario.defaults, schedulesNotifications: false)
+        XCTAssertEqual(restored.restSeconds, scenario.selectedSeconds)
+        XCTAssertEqual(scenario.viewModel.errorMessage, scenario.serverMessage)
+        XCTAssertEqual(scenario.viewModel.retrySeconds, scenario.selectedSeconds)
+        XCTAssertTrue(scenario.viewModel.canRetry)
+        XCTAssertEqual(scenario.requests.requests.count, 1)
+        try assertRestTimeRequest(scenario.requests.requests[0], seconds: scenario.selectedSeconds)
+    }
+
+    func testRestTimeRetrySendsSameSecondsAfterFailure() async throws {
+        let scenario = try makeRestTimeScenario()
+        defer {
+            resetStubResponse()
+            scenario.defaults.removePersistentDomain(forName: scenario.suite)
+        }
+
+        let didSave = await scenario.viewModel.save(seconds: scenario.selectedSeconds) {
+            scenario.settings.restSeconds = $0
+        }
+        let didRetry = await scenario.viewModel.retry()
+
+        XCTAssertFalse(didSave)
+        XCTAssertTrue(didRetry)
+        XCTAssertEqual(scenario.settings.restSeconds, scenario.selectedSeconds)
+        XCTAssertNil(scenario.viewModel.errorMessage)
+        XCTAssertNil(scenario.viewModel.retrySeconds)
+        XCTAssertFalse(scenario.viewModel.canRetry)
+        XCTAssertEqual(scenario.requests.requests.count, 2)
+        for request in scenario.requests.requests {
+            try assertRestTimeRequest(request, seconds: scenario.selectedSeconds)
+        }
+    }
+
+    private func makeRestTimeScenario() throws -> RestTimeScenario {
+        let requests = RestTimeRequestRecorder()
+        installRestTimeResponses(capturing: requests)
+        let suite = "rest-time-api-\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        let settings = WorkoutSettings(defaults: defaults, schedulesNotifications: false)
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.protocolClasses = [StubURLProtocol.self]
+        let session = URLSession(configuration: configuration)
+        let environment = try APIEnvironment(baseURL: XCTUnwrap(URL(string: "https://api.example.test")))
+        let client = APIClient(
+            environment: environment,
+            session: session,
+            tokenProvider: TestTokenProvider(token: "test-token")
+        )
+        let viewModel = ProfileRestTimeViewModel(service: UserSettingsAPIService(client: client))
+        return RestTimeScenario(
+            suite: suite,
+            defaults: defaults,
+            settings: settings,
+            viewModel: viewModel,
+            requests: requests
+        )
+    }
+
+    private func installRestTimeResponses(capturing requests: RestTimeRequestRecorder) {
         var requestCount = 0
-        let serverMessage = "기본 휴식 시간 범위를 확인해 주세요."
         StubURLProtocol.install { request in
-            capturedRequests.append(request)
+            requests.requests.append(request)
             requestCount += 1
             let statusCode = requestCount == 1 ? 400 : 200
-            let body: String
-            if requestCount == 1 {
-                body = #"{"detail":{"code":"OUT_OF_RANGE","message":"기본 휴식 시간 범위를 확인해 주세요."}}"#
-            } else {
-                body = #"{"defaultRestSeconds":135,"updatedAt":"2026-10-31T09:00:00Z"}"#
-            }
+            let body = requestCount == 1
+                ? #"{"detail":{"code":"OUT_OF_RANGE","message":"기본 휴식 시간 범위를 확인해 주세요."}}"#
+                : #"{"defaultRestSeconds":135,"updatedAt":"2026-10-31T09:00:00Z"}"#
             let response = try XCTUnwrap(
                 HTTPURLResponse(
                     url: try XCTUnwrap(request.url),
@@ -54,58 +120,33 @@ final class WorkoutSettingsTests: XCTestCase {
             )
             return (response, Data(body.utf8))
         }
-        defer {
-            StubURLProtocol.install { _ in
-                throw APIClientTestError.noResponseConfigured
-            }
-        }
-
-        let suite = "rest-time-api-\(UUID().uuidString)"
-        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
-        defer { defaults.removePersistentDomain(forName: suite) }
-        let settings = WorkoutSettings(defaults: defaults, schedulesNotifications: false)
-        let selectedSeconds = 135
-        let configuration = URLSessionConfiguration.ephemeral
-        configuration.protocolClasses = [StubURLProtocol.self]
-        let session = URLSession(configuration: configuration)
-        let client = APIClient(
-            environment: try APIEnvironment(baseURL: XCTUnwrap(URL(string: "https://api.example.test"))),
-            session: session,
-            tokenProvider: TestTokenProvider(token: "test-token")
-        )
-        let viewModel = ProfileRestTimeViewModel(service: UserSettingsAPIService(client: client))
-
-        let didSave = await viewModel.save(seconds: selectedSeconds) { settings.restSeconds = $0 }
-
-        XCTAssertFalse(didSave)
-        XCTAssertEqual(settings.restSeconds, selectedSeconds)
-        XCTAssertEqual(
-            WorkoutSettings(defaults: defaults, schedulesNotifications: false).restSeconds,
-            selectedSeconds
-        )
-        XCTAssertEqual(viewModel.errorMessage, serverMessage)
-        XCTAssertEqual(viewModel.retrySeconds, selectedSeconds)
-        XCTAssertTrue(viewModel.canRetry)
-        XCTAssertEqual(capturedRequests.count, 1)
-
-        let didRetry = await viewModel.retry()
-
-        XCTAssertTrue(didRetry)
-        XCTAssertEqual(settings.restSeconds, selectedSeconds)
-        XCTAssertNil(viewModel.errorMessage)
-        XCTAssertNil(viewModel.retrySeconds)
-        XCTAssertFalse(viewModel.canRetry)
-        XCTAssertEqual(capturedRequests.count, 2)
-
-        let requestPayloads = try capturedRequests.map { request -> [String: Int] in
-            let body = try XCTUnwrap(request.httpBody)
-            return try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Int])
-        }
-        XCTAssertEqual(capturedRequests.map(\.httpMethod), ["PATCH", "PATCH"])
-        XCTAssertEqual(
-            capturedRequests.map { $0.url?.path },
-            ["/api/v1/users/me/settings/rest-time", "/api/v1/users/me/settings/rest-time"]
-        )
-        XCTAssertEqual(requestPayloads, [["defaultRestSeconds": selectedSeconds], ["defaultRestSeconds": selectedSeconds]])
     }
+
+    private func assertRestTimeRequest(_ request: URLRequest, seconds: Int) throws {
+        XCTAssertEqual(request.httpMethod, "PATCH")
+        XCTAssertEqual(request.url?.path, "/api/v1/users/me/settings/rest-time")
+        let body = try XCTUnwrap(request.httpBody)
+        let payload = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Int])
+        XCTAssertEqual(payload, ["defaultRestSeconds": seconds])
+    }
+
+    private func resetStubResponse() {
+        StubURLProtocol.install { _ in
+            throw APIClientTestError.noResponseConfigured
+        }
+    }
+}
+
+private final class RestTimeRequestRecorder {
+    var requests: [URLRequest] = []
+}
+
+private struct RestTimeScenario {
+    let suite: String
+    let defaults: UserDefaults
+    let settings: WorkoutSettings
+    let viewModel: ProfileRestTimeViewModel
+    let requests: RestTimeRequestRecorder
+    let selectedSeconds = 135
+    let serverMessage = "기본 휴식 시간 범위를 확인해 주세요."
 }
