@@ -2,7 +2,12 @@ import SwiftUI
 import UserNotifications
 
 struct OnboardingNotificationView: View {
-    let onFinish: () -> Void
+    let isSubmitting: Bool
+    let errorMessage: String?
+    let canRetry: Bool
+    let onSubmit: () -> Void
+    let onRetry: () -> Void
+    let onContinueLocally: () -> Void
     @State private var isRequesting = false
 
     var body: some View {
@@ -16,16 +21,50 @@ struct OnboardingNotificationView: View {
                 .font(GymupTypography.uiStrong).foregroundStyle(GymupColors.secondaryText)
                 .multilineTextAlignment(.center).padding(.top, 22)
             Spacer()
-            OnboardingActionButton(title: "알림 허용", disabled: isRequesting) {
-                isRequesting = true
-                Task {
-                    _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
-                    onFinish()
+            if let errorMessage {
+                Text(errorMessage)
+                    .font(GymupTypography.uiMedium)
+                    .foregroundStyle(GymupColors.accent)
+                    .multilineTextAlignment(.center)
+                    .padding(.bottom, 12)
+                    .accessibilityIdentifier("onboarding.saveError")
+                if canRetry {
+                    OnboardingActionButton(title: "다시 시도", disabled: isSubmitting, action: onRetry)
                 }
+                Button("서버 저장 없이 계속", action: onContinueLocally)
+                    .font(GymupTypography.uiBold)
+                    .foregroundStyle(GymupColors.secondaryText)
+                    .frame(height: 44)
+                    .disabled(isSubmitting)
+            } else {
+                OnboardingActionButton(
+                    title: submissionTitle,
+                    disabled: isSubmitting || isRequesting,
+                    action: requestNotificationsThenSubmit
+                )
+                Button("나중에", action: onSubmit)
+                    .font(GymupTypography.uiBold)
+                    .foregroundStyle(GymupColors.secondaryText)
+                    .frame(height: 44)
+                    .disabled(isSubmitting || isRequesting)
             }
-            Button("나중에", action: onFinish).font(GymupTypography.uiBold)
-                .foregroundStyle(GymupColors.secondaryText).frame(height: 44)
         }.foregroundStyle(GymupColors.primaryText).padding(.horizontal, 36).padding(.bottom, 4)
             .frame(maxWidth: .infinity).background(GymupColors.canvas.ignoresSafeArea())
+    }
+
+    private func requestNotificationsThenSubmit() {
+        isRequesting = true
+        Task {
+            _ = try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])
+            isRequesting = false
+            onSubmit()
+        }
+    }
+
+    private var submissionTitle: String {
+        if isRequesting {
+            return "알림 설정 중..."
+        }
+        return isSubmitting ? "저장 중..." : "알림 허용"
     }
 }
