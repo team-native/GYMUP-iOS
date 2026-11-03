@@ -41,24 +41,25 @@ final class UserAPIServiceTests: NetworkingTestCase {
         XCTAssertEqual(object["weeklyWorkoutTarget"] as? Int, 3)
         XCTAssertEqual(Set(object.keys), Set(["experienceLevel", "goalType", "weeklyWorkoutTarget"]))
     }
-    func testDefaultRestTimeServiceUsesSecondsAndDecodesTimestamp() async throws {
+    func testDefaultRestTimeServiceUsesSelectedSecondsAndDecodesTimestamp() async throws {
         var capturedRequest: URLRequest?
         StubURLProtocol.install { request in
             capturedRequest = request
             let response = try XCTUnwrap(
                 HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: 200, httpVersion: nil, headerFields: nil)
             )
-            return (response, Data(#"{"defaultRestSeconds":90,"updatedAt":"2026-10-31T09:00:00Z"}"#.utf8))
+            return (response, Data(#"{"defaultRestSeconds":135,"updatedAt":"2026-10-31T09:00:00Z"}"#.utf8))
         }
 
         let response = try await UserSettingsAPIService(client: makeClient(token: "test-token"))
-            .updateDefaultRestTime(seconds: 90)
+            .updateDefaultRestTime(seconds: 135)
 
         XCTAssertEqual(capturedRequest?.httpMethod, "PATCH")
         XCTAssertEqual(capturedRequest?.url?.path, "/api/v1/users/me/settings/rest-time")
-        XCTAssertEqual(response, UpdateDefaultRestTimeResponse(defaultRestSeconds: 90, updatedAt: "2026-10-31T09:00:00Z"))
+        XCTAssertEqual(response, UpdateDefaultRestTimeResponse(defaultRestSeconds: 135, updatedAt: "2026-10-31T09:00:00Z"))
         let body = try XCTUnwrap(capturedRequest?.httpBody)
         let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Int])
-        XCTAssertEqual(object, ["defaultRestSeconds": 90])
+        XCTAssertEqual(object, ["defaultRestSeconds": 135])
     }
+
 }
