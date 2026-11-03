@@ -105,9 +105,11 @@ struct ProfileRestTimeSheetView: View {
 
     private var saveButton: some View {
         Button {
-            selection = draftSelection
             Task {
-                if await viewModel.save(seconds: draftSelection) {
+                let didSave = await viewModel.save(seconds: draftSelection) { seconds in
+                    selection = seconds
+                }
+                if didSave {
                     dismiss()
                 }
             }
@@ -259,8 +261,9 @@ final class ProfileRestTimeViewModel {
 
     var canRetry: Bool { retrySeconds != nil }
 
-    func save(seconds: Int) async -> Bool {
+    func save(seconds: Int, persistLocally: (Int) -> Void) async -> Bool {
         guard !isSaving else { return false }
+        persistLocally(seconds)
         errorMessage = nil
         retrySeconds = nil
 
