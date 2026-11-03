@@ -20,9 +20,11 @@ struct MainTabView: View {
     @State private var isHistoryComparisonPresented = false
     @State private var isHistoryGrowthPresented = false
     private let completionTestData: WorkoutCompletionData?
+    private let restTimeService: ProfileRestTimeUpdating?
 
     @MainActor
-    init() {
+    init(restTimeService: ProfileRestTimeUpdating? = nil) {
+        self.restTimeService = restTimeService
         let storage: UserDefaults? = ProcessInfo.processInfo.arguments.contains("--uitest-ephemeral") ? nil : .standard
         _routineStore = State(initialValue: RoutineStore(defaults: storage))
         let isGrowthUITest = ProcessInfo.processInfo.arguments.contains("--uitest-g5-growth")
@@ -75,7 +77,11 @@ struct MainTabView: View {
                         onGrowthPresented: { isHistoryGrowthPresented = $0 }
                     )
                 case .profile:
-                    MyProfileView(historyStore: historyStore, onDetailRouteChanged: { isDetailPresented = $0 })
+                    MyProfileView(
+                        historyStore: historyStore,
+                        restTimeService: restTimeService,
+                        onDetailRouteChanged: { isDetailPresented = $0 }
+                    )
                 }
             }
         }

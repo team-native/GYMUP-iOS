@@ -5,6 +5,7 @@ struct GYMUPApp: App {
     @State private var isShowingSplash = true
     @AppStorage("onboarding.completed") private var hasCompletedOnboarding = false
     private let onboardingSubmissionService: OnboardingSubmissionServicing?
+    private let restTimeService: ProfileRestTimeUpdating?
 
     init() {
         let arguments = ProcessInfo.processInfo.arguments
@@ -22,8 +23,12 @@ struct GYMUPApp: App {
         } else {
             onboardingSubmissionService = DebugOnboardingNetworking.makeService()
         }
+        restTimeService = arguments.contains("--uitest-ephemeral")
+            ? nil
+            : DebugOnboardingNetworking.makeRestTimeService()
 #else
         onboardingSubmissionService = nil
+        restTimeService = nil
 #endif
     }
 
@@ -44,7 +49,7 @@ struct GYMUPApp: App {
                         hasCompletedOnboarding = true
                     }
                 } else {
-                    MainTabView()
+                    MainTabView(restTimeService: restTimeService)
                 }
             }
             .preferredColorScheme(.dark)
