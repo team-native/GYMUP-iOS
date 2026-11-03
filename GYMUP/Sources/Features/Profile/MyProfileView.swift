@@ -13,6 +13,7 @@ struct MyProfileView: View {
     @State private var isNotificationSettingsPresented = false
     @State private var isPhotoPermissionsPresented = false
     @State private var settings = WorkoutSettings.shared
+    @State private var restTimeViewModel: ProfileRestTimeViewModel
     @State private var notificationPermissionSnapshot: ProfileNotificationPermissionSnapshot?
     @State private var isNotificationPermissionPresented = false
     @State private var presentedSheet: ProfileSheetDestination?
@@ -20,8 +21,13 @@ struct MyProfileView: View {
     @State private var isPlaylistPresented = false
 
     @MainActor
-    init(historyStore: HistoryStore? = nil, onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
+    init(
+        historyStore: HistoryStore? = nil,
+        restTimeService: ProfileRestTimeUpdating? = nil,
+        onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
+    ) {
         self.historyStore = historyStore ?? HistoryStore()
+        _restTimeViewModel = State(initialValue: ProfileRestTimeViewModel(service: restTimeService))
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -160,7 +166,7 @@ struct MyProfileView: View {
     private func sheet(for destination: ProfileSheetDestination) -> some View {
         switch destination {
         case .restTime:
-            ProfileRestTimeSheetView(selection: $settings.restSeconds)
+            ProfileRestTimeSheetView(selection: $settings.restSeconds, viewModel: restTimeViewModel)
         }
     }
 

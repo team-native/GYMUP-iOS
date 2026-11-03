@@ -1,16 +1,19 @@
 import SwiftUI
+import Observation
 
 struct ProfileRestTimeSheetView: View {
     @Environment(\.dismiss) private var dismiss
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Binding private var selection: Int
+    @State private var viewModel: ProfileRestTimeViewModel
     @State private var draftSelection: Int
 
     private let presets = [60, 90, 120, 180]
     private let wheelValues = Array(stride(from: 15, through: 300, by: 15))
 
-    init(selection: Binding<Int>) {
+    init(selection: Binding<Int>, viewModel: ProfileRestTimeViewModel) {
         _selection = selection
+        _viewModel = State(initialValue: viewModel)
         _draftSelection = State(initialValue: selection.wrappedValue)
     }
 
@@ -27,11 +30,14 @@ struct ProfileRestTimeSheetView: View {
                     .padding(.top, 32)
                 saveButton
                     .padding(.top, 17)
+                saveFeedback
+                    .padding(.top, viewModel.errorMessage == nil ? 0 : 12)
                     .padding(.bottom, 31)
             }
             .padding(.horizontal, GymupSpacing.large)
         }
         .background(ProfileRestTimeSheetStyle.surface.ignoresSafeArea())
+        .interactiveDismissDisabled(viewModel.isSaving)
         .onAppear { draftSelection = selection }
     }
 
@@ -71,6 +77,7 @@ struct ProfileRestTimeSheetView: View {
             }
             .pickerStyle(.wheel)
             .tint(GymupColors.brandText)
+            .disabled(viewModel.isSaving)
         }
         .frame(height: dynamicTypeSize.isAccessibilitySize ? 160 : 147)
         .clipped()
@@ -99,18 +106,79 @@ struct ProfileRestTimeSheetView: View {
     private var saveButton: some View {
         Button {
             selection = draftSelection
-            dismiss()
+            Task {
+                if await viewModel.save(seconds: draftSelection) {
+                    dismiss()
+                }
+            }
         } label: {
-            Text("저장")
-                .font(GymupTypography.uiBold)
-                .foregroundStyle(.white)
-                .frame(maxWidth: .infinity, minHeight: 52)
-                .background(ProfileOverviewColors.brandPrimary, in: Capsule())
-                .contentShape(Capsule())
+            HStack(spacing: 8) {
+                if viewModel.isSaving {
+                    ProgressView()
+                        .tint(.white)
+                        .accessibilityHidden(true)
+                }
+                Text(viewModel.isSaving ? "저장 중..." : "저장")
+                    .font(GymupTypography.uiBold)
+            }
+            .foregroundStyle(.white)
+            .frame(maxWidth: .infinity, minHeight: 52)
+            .background(ProfileOverviewColors.brandPrimary, in: Capsule())
+            .contentShape(Capsule())
         }
         .buttonStyle(.plain)
+        .disabled(viewModel.isSaving)
         .accessibilityLabel("휴식 시간 저장")
-        .accessibilityHint("선택한 휴식 시간을 저장하고 닫습니다")
+        .accessibilityHint("선택한 휴식 시간을 저장합니다. 서버 저장이 실패하면 다시 시도할 수 있습니다")
+    }
+
+    @ViewBuilder
+    private var saveFeedback: some View {
+        if let errorMessage = viewModel.errorMessage {
+            VStack(alignment: .leading, spacing: 8) {
+                Label {
+                    Text(errorMessage)
+                        .font(GymupTypography.uiMedium)
+                        .fixedSize(horizontal: false, vertical: true)
+                } icon: {
+                    Image(systemName: "exclamationmark.circle.fill")
+                        .accessibilityHidden(true)
+                }
+                .foregroundStyle(GymupColors.accent)
+                .accessibilityIdentifier("profile.restTime.saveError")
+
+                if viewModel.canRetry, let retrySeconds = viewModel.retrySeconds {
+                    Button {
+                        draftSelection = retrySeconds
+                        selection = retrySeconds
+                        Task {
+                            if await viewModel.retry() {
+                                dismiss()
+                            }
+                        }
+                    } label: {
+                        HStack(spacing: 8) {
+                            if viewModel.isSaving {
+                                ProgressView()
+                                    .tint(GymupColors.brandText)
+                                    .accessibilityHidden(true)
+                            }
+                            Text("다시 시도")
+                                .font(GymupTypography.uiBold)
+                        }
+                        .foregroundStyle(GymupColors.brandText)
+                        .frame(minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(viewModel.isSaving)
+                    .accessibilityLabel("\(spokenLabel(for: retrySeconds)) 설정 다시 시도")
+                    .accessibilityHint("서버에 같은 휴식 시간을 다시 저장합니다")
+                    .accessibilityIdentifier("profile.restTime.retrySave")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private func presetButton(_ value: Int) -> some View {
@@ -136,6 +204,7 @@ struct ProfileRestTimeSheetView: View {
                 .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
+        .disabled(viewModel.isSaving)
         .accessibilityLabel("휴식 시간 \(spokenLabel(for: value))")
         .accessibilityHint("선택하면 휠의 휴식 시간도 바뀝니다")
         .accessibilityAddTraits(isSelected ? .isSelected : [])
@@ -162,6 +231,74 @@ private enum ProfileRestTimeSheetStyle {
 }
 
 #Preview {
-    ProfileRestTimeSheetView(selection: .constant(90))
+    ProfileRestTimeSheetView(
+        selection: .constant(90),
+        viewModel: ProfileRestTimeViewModel(service: nil)
+    )
         .preferredColorScheme(.dark)
+}
+
+protocol ProfileRestTimeUpdating {
+    func updateDefaultRestTime(seconds: Int) async throws -> UpdateDefaultRestTimeResponse
+}
+
+extension UserSettingsAPIService: ProfileRestTimeUpdating {}
+
+@Observable
+@MainActor
+final class ProfileRestTimeViewModel {
+    private let service: ProfileRestTimeUpdating?
+
+    private(set) var isSaving = false
+    private(set) var errorMessage: String?
+    private(set) var retrySeconds: Int?
+
+    init(service: ProfileRestTimeUpdating?) {
+        self.service = service
+    }
+
+    var canRetry: Bool { retrySeconds != nil }
+
+    func save(seconds: Int) async -> Bool {
+        guard !isSaving else { return false }
+        errorMessage = nil
+        retrySeconds = nil
+
+        guard let service else {
+            return true
+        }
+
+        return await submit(seconds: seconds, using: service)
+    }
+
+    func retry() async -> Bool {
+        guard !isSaving,
+              let service,
+              let retrySeconds
+        else {
+            return false
+        }
+
+        return await submit(seconds: retrySeconds, using: service)
+    }
+
+    private func submit(seconds: Int, using service: ProfileRestTimeUpdating) async -> Bool {
+        isSaving = true
+        defer { isSaving = false }
+
+        do {
+            _ = try await service.updateDefaultRestTime(seconds: seconds)
+            errorMessage = nil
+            retrySeconds = nil
+            return true
+        } catch {
+            if case let APIClientError.server(_, detail) = error {
+                errorMessage = detail.message
+            } else {
+                errorMessage = "서버 저장에 실패했어요. 로컬 설정은 저장됐어요."
+            }
+            retrySeconds = seconds
+            return false
+        }
+    }
 }
