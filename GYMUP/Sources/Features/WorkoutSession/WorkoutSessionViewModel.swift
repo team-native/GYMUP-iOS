@@ -11,6 +11,9 @@ final class WorkoutSessionViewModel {
     private(set) var notice: String?
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
+    private let previousRecordService: ExerciseReadAPIService?
+    private(set) var previousRecordErrors: [String: String] = [:]
+    private(set) var loadingPreviousRecordExerciseIDs: Set<String> = []
 
     private(set) var startedAt: Date?
     private var pausedAt: Date?
@@ -23,13 +26,15 @@ final class WorkoutSessionViewModel {
         startedAt: Date = Date(),
         startsImmediately: Bool = true,
         historyStore: HistoryStore? = nil,
-        goalSettings: OnboardingStoredSettings? = .load()
+        goalSettings: OnboardingStoredSettings? = .load(),
+        previousRecordService: ExerciseReadAPIService? = nil
     ) {
         plan = .sample(for: routineID)
         self.startedAt = startsImmediately ? startedAt : nil
         now = startedAt
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
+        self.previousRecordService = previousRecordService
     }
 
     init(
@@ -37,13 +42,15 @@ final class WorkoutSessionViewModel {
         startedAt: Date = Date(),
         startsImmediately: Bool = true,
         historyStore: HistoryStore? = nil,
-        goalSettings: OnboardingStoredSettings? = .load()
+        goalSettings: OnboardingStoredSettings? = .load(),
+        previousRecordService: ExerciseReadAPIService? = nil
     ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
         now = startedAt
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
+        self.previousRecordService = previousRecordService
     }
 
     var currentExercise: WorkoutSessionExercise? {
@@ -244,5 +251,46 @@ final class WorkoutSessionViewModel {
         restEndsAt = nil
         activeRestDurationSeconds = 0
         notice = nil
+    }
+}
+
+extension WorkoutSessionViewModel {
+    func previousRecordError(for exerciseID: String) -> String? {
+        previousRecordErrors[exerciseID]
+    }
+
+    func isLoadingPreviousRecord(for exerciseID: String) -> Bool {
+        loadingPreviousRecordExerciseIDs.contains(exerciseID)
+    }
+
+    func loadPreviousRecord(for exerciseID: String) async {
+        guard let previousRecordService,
+              plan.exercises.contains(where: { $0.id == exerciseID }),
+              !loadingPreviousRecordExerciseIDs.contains(exerciseID) else { return }
+
+        loadingPreviousRecordExerciseIDs.insert(exerciseID)
+        defer { loadingPreviousRecordExerciseIDs.remove(exerciseID) }
+
+        do {
+            let response = try await previousRecordService.previousRecord(exerciseId: exerciseID)
+            guard response.exerciseId == exerciseID,
+                  let exerciseIndex = plan.exercises.firstIndex(where: { $0.id == exerciseID }) else {
+                throw APIClientError.invalidResponse
+            }
+
+            plan.exercises[exerciseIndex].usesSampleHistory = false
+            plan.exercises[exerciseIndex].previousRecord = response.hasPreviousRecord
+                ? WorkoutSessionPreviousRecord(response: response)
+                : nil
+            previousRecordErrors.removeValue(forKey: exerciseID)
+        } catch {
+            guard !Task.isCancelled else { return }
+            if let clientError = error as? APIClientError,
+               case let .server(_, detail) = clientError {
+                previousRecordErrors[exerciseID] = detail.message
+            } else {
+                previousRecordErrors[exerciseID] = "이전 기록을 불러오지 못했어요."
+            }
+        }
     }
 }

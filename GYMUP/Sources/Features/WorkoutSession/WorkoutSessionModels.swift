@@ -1,5 +1,46 @@
 import Foundation
 
+struct WorkoutSessionPreviousRecord: Equatable {
+    let weightKilograms: Double
+    let repetitions: Int
+    let setIndex: Int
+    let performedAtLabel: String
+
+    init(response: PreviousExerciseRecordResponse) {
+        weightKilograms = response.weight
+        repetitions = response.reps
+        setIndex = response.setIndex
+        performedAtLabel = Self.dateLabel(from: response.performedAt)
+    }
+
+    var performanceText: String {
+        "\(weightKilograms.formatted(.number.precision(.fractionLength(0...1)))) × \(repetitions)"
+    }
+
+    var title: String {
+        let weight = weightKilograms.formatted(.number.precision(.fractionLength(0...1)))
+        return "이전 · \(performedAtLabel) \(weight)kg × \(repetitions)"
+    }
+
+    private static func dateLabel(from value: String) -> String {
+        let options: [ISO8601DateFormatter.Options] = [
+            [.withInternetDateTime, .withFractionalSeconds],
+            [.withInternetDateTime]
+        ]
+        for formatOptions in options {
+            let parser = ISO8601DateFormatter()
+            parser.formatOptions = formatOptions
+            guard let date = parser.date(from: value) else { continue }
+
+            let formatter = DateFormatter()
+            formatter.locale = Locale(identifier: "ko_KR")
+            formatter.dateFormat = "M월 d일"
+            return formatter.string(from: date)
+        }
+        return String(value.prefix(10))
+    }
+}
+
 struct WorkoutSessionSet: Identifiable, Equatable {
     let id: UUID
     var weightKilograms: Double
@@ -29,6 +70,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     var sets: [WorkoutSessionSet]
     var imageAssetOverride: String?
     var usesSampleHistory = true
+    var previousRecord: WorkoutSessionPreviousRecord?
     var measure = RoutineExerciseMeasure.repetitions
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
@@ -100,18 +142,23 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     }
 
     func previousPerformanceTitle(for setIndex: Int?) -> String {
+        if let previousRecord { return previousRecord.title }
         guard usesSampleHistory, id == "bench-press" else { return "이전 기록 없음" }
         let repetitions = setIndex == sets.count - 1 ? 6 : 8
         return "이전 · 10월 8일 60kg × \(repetitions)"
     }
 
     func previousPerformance(for setIndex: Int) -> String? {
+        if let previousRecord {
+            guard previousRecord.setIndex == setIndex + 1 else { return nil }
+            return previousRecord.performanceText
+        }
         guard usesSampleHistory, id == "bench-press" else { return nil }
         return setIndex == 3 ? "60 × 6" : "60 × 8"
     }
 
     var hasPreviousPerformance: Bool {
-        previousPerformance(for: 0) != nil
+        previousRecord != nil || previousPerformance(for: 0) != nil
     }
 
     var personalRecordKilograms: Double? { usesSampleHistory && id == "bench-press" ? 62.5 : nil }
