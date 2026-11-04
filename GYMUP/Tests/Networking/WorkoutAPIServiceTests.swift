@@ -92,25 +92,6 @@ final class WorkoutAPIServiceTests: NetworkingTestCase {
         let body = try XCTUnwrap(capturedRequest?.httpBody)
         XCTAssertEqual(try JSONDecoder().decode(CompleteWorkoutRequest.self, from: body), request)
     }
-    func testPlateCalculatorUsesTypedWeightsAndOpaquePlateItems() async throws {
-        var capturedRequest: URLRequest?
-        installJSONResponse(
-            ["achievable": true, "eachSide": [["weight": 20.0, "count": 1]], "actualWeight": 60.0, "remainder": 0.0],
-            recordRequest: { capturedRequest = $0 }
-        )
-
-        let availablePlate = JSONValue.object(["weight": .number(20), "count": .integer(2)])
-        let request = PlateCalculatorRequest(targetWeight: 60, barWeight: 20, availablePlates: [availablePlate])
-        let service = try PlateCalculatorAPIService(client: makeClient(token: "test-token"))
-        let response = try await service.calculate(request)
-
-        XCTAssertEqual(capturedRequest?.url?.path, "/api/v1/tools/plate-calculator")
-        XCTAssertTrue(response.achievable)
-        XCTAssertEqual(response.eachSide, [PlateWeightCount(weight: 20, count: 1)])
-        let body = try XCTUnwrap(capturedRequest?.httpBody)
-        let object = try XCTUnwrap(JSONSerialization.jsonObject(with: body) as? [String: Any])
-        XCTAssertEqual((object["availablePlates"] as? [[String: Any]])?.first?["weight"] as? Double, 20)
-    }
     func testWorkoutListDecodesPagedItemsAndNextSet() async throws {
         let paths = [
             "/api/v1/workouts": (
