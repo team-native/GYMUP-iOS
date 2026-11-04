@@ -62,45 +62,6 @@ final class WorkoutSessionViewModel {
         currentExercise?.sets.firstIndex(where: { !$0.isCompleted })
     }
 
-    func previousRecordError(for exerciseID: String) -> String? {
-        previousRecordErrors[exerciseID]
-    }
-
-    func isLoadingPreviousRecord(for exerciseID: String) -> Bool {
-        loadingPreviousRecordExerciseIDs.contains(exerciseID)
-    }
-
-    func loadPreviousRecord(for exerciseID: String) async {
-        guard let previousRecordService,
-              plan.exercises.contains(where: { $0.id == exerciseID }),
-              !loadingPreviousRecordExerciseIDs.contains(exerciseID) else { return }
-
-        loadingPreviousRecordExerciseIDs.insert(exerciseID)
-        defer { loadingPreviousRecordExerciseIDs.remove(exerciseID) }
-
-        do {
-            let response = try await previousRecordService.previousRecord(exerciseId: exerciseID)
-            guard response.exerciseId == exerciseID,
-                  let exerciseIndex = plan.exercises.firstIndex(where: { $0.id == exerciseID }) else {
-                throw APIClientError.invalidResponse
-            }
-
-            plan.exercises[exerciseIndex].usesSampleHistory = false
-            plan.exercises[exerciseIndex].previousRecord = response.hasPreviousRecord
-                ? WorkoutSessionPreviousRecord(response: response)
-                : nil
-            previousRecordErrors.removeValue(forKey: exerciseID)
-        } catch {
-            guard !Task.isCancelled else { return }
-            if let clientError = error as? APIClientError,
-               case let .server(_, detail) = clientError {
-                previousRecordErrors[exerciseID] = detail.message
-            } else {
-                previousRecordErrors[exerciseID] = "이전 기록을 불러오지 못했어요."
-            }
-        }
-    }
-
     var isPaused: Bool { pausedAt != nil }
     var hasStarted: Bool { startedAt != nil }
     var isFinished: Bool { finishedAt != nil }
@@ -290,5 +251,46 @@ final class WorkoutSessionViewModel {
         restEndsAt = nil
         activeRestDurationSeconds = 0
         notice = nil
+    }
+}
+
+extension WorkoutSessionViewModel {
+    func previousRecordError(for exerciseID: String) -> String? {
+        previousRecordErrors[exerciseID]
+    }
+
+    func isLoadingPreviousRecord(for exerciseID: String) -> Bool {
+        loadingPreviousRecordExerciseIDs.contains(exerciseID)
+    }
+
+    func loadPreviousRecord(for exerciseID: String) async {
+        guard let previousRecordService,
+              plan.exercises.contains(where: { $0.id == exerciseID }),
+              !loadingPreviousRecordExerciseIDs.contains(exerciseID) else { return }
+
+        loadingPreviousRecordExerciseIDs.insert(exerciseID)
+        defer { loadingPreviousRecordExerciseIDs.remove(exerciseID) }
+
+        do {
+            let response = try await previousRecordService.previousRecord(exerciseId: exerciseID)
+            guard response.exerciseId == exerciseID,
+                  let exerciseIndex = plan.exercises.firstIndex(where: { $0.id == exerciseID }) else {
+                throw APIClientError.invalidResponse
+            }
+
+            plan.exercises[exerciseIndex].usesSampleHistory = false
+            plan.exercises[exerciseIndex].previousRecord = response.hasPreviousRecord
+                ? WorkoutSessionPreviousRecord(response: response)
+                : nil
+            previousRecordErrors.removeValue(forKey: exerciseID)
+        } catch {
+            guard !Task.isCancelled else { return }
+            if let clientError = error as? APIClientError,
+               case let .server(_, detail) = clientError {
+                previousRecordErrors[exerciseID] = detail.message
+            } else {
+                previousRecordErrors[exerciseID] = "이전 기록을 불러오지 못했어요."
+            }
+        }
     }
 }

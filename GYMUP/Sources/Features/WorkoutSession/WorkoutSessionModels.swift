@@ -70,7 +70,7 @@ struct WorkoutSessionExercise: Identifiable, Equatable {
     var sets: [WorkoutSessionSet]
     var imageAssetOverride: String?
     var usesSampleHistory = true
-    var previousRecord: WorkoutSessionPreviousRecord? = nil
+    var previousRecord: WorkoutSessionPreviousRecord?
     var measure = RoutineExerciseMeasure.repetitions
 
     var completedSetCount: Int { sets.filter(\.isCompleted).count }
