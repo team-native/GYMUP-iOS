@@ -1,5 +1,49 @@
 import SwiftUI
 
+struct WorkoutSessionRecordRetryBanner: View {
+    let message: String
+    let isLoading: Bool
+    let onRetry: () -> Void
+
+    var body: some View {
+        HStack(spacing: GymupSpacing.small) {
+            Image(systemName: "exclamationmark.circle")
+                .foregroundStyle(GymupColors.brandText)
+                .accessibilityHidden(true)
+
+            Text(message)
+                .font(GymupTypography.caption)
+                .foregroundStyle(GymupColors.secondaryText)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Spacer(minLength: 0)
+
+            Button(action: onRetry) {
+                Group {
+                    if isLoading {
+                        ProgressView()
+                            .tint(GymupColors.brandText)
+                    } else {
+                        Text("다시 시도")
+                            .font(GymupTypography.uiSemibold)
+                            .foregroundStyle(GymupColors.brandText)
+                    }
+                }
+                .frame(minWidth: 68, minHeight: 44)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .disabled(isLoading)
+            .accessibilityLabel("이전 운동 기록 다시 시도")
+            .accessibilityIdentifier("workout.previous-record.retry")
+        }
+        .padding(.horizontal, GymupSpacing.medium)
+        .padding(.vertical, GymupSpacing.xSmall)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: GymupRadius.medium))
+    }
+}
+
 struct WorkoutSessionProgressCard: View {
     let title: String
     let completedCount: Int

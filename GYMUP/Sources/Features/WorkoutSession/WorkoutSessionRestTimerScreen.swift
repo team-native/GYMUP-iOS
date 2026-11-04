@@ -8,6 +8,9 @@ struct WorkoutSessionRestTimerScreen: View {
     let totalSeconds: Int
     let onExtend: () -> Void
     let onSkip: () -> Void
+    let previousRecordError: String?
+    let isLoadingPreviousRecord: Bool
+    let onRetryPreviousRecord: () -> Void
     @State private var isPlateCalculatorPresented = false
 
     private var nextSet: WorkoutSessionSet { exercise.sets[nextSetIndex] }
@@ -27,6 +30,14 @@ struct WorkoutSessionRestTimerScreen: View {
                         .padding(.top, 24)
                     nextSetCard
                         .padding(.top, 24)
+                    if let previousRecordError {
+                        WorkoutSessionRecordRetryBanner(
+                            message: previousRecordError,
+                            isLoading: isLoadingPreviousRecord,
+                            onRetry: onRetryPreviousRecord
+                        )
+                        .padding(.top, 12)
+                    }
                     Spacer(minLength: 64)
                     plateCalculatorHint
                 }

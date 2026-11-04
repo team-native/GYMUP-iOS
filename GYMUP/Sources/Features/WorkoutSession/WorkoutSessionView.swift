@@ -26,13 +26,25 @@ struct WorkoutSessionView: View {
 
     @MainActor
     init(routineID: String, historyStore: HistoryStore) {
-        _viewModel = State(initialValue: WorkoutSessionViewModel(routineID: routineID, historyStore: historyStore))
+        _viewModel = State(
+            initialValue: WorkoutSessionViewModel(
+                routineID: routineID,
+                historyStore: historyStore,
+                previousRecordService: Self.makePreviousRecordService()
+            )
+        )
         self.historyStore = historyStore
     }
 
     @MainActor
     init(plan: WorkoutSessionPlan, historyStore: HistoryStore) {
-        _viewModel = State(initialValue: WorkoutSessionViewModel(plan: plan, historyStore: historyStore))
+        _viewModel = State(
+            initialValue: WorkoutSessionViewModel(
+                plan: plan,
+                historyStore: historyStore,
+                previousRecordService: Self.makePreviousRecordService()
+            )
+        )
         self.historyStore = historyStore
     }
 
@@ -155,6 +167,10 @@ struct WorkoutSessionView: View {
             Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
         }
         .task { showFirstExercisePromptIfNeeded() }
+        .task(id: "\(viewModel.hasStarted)-\(viewModel.currentExercise?.id ?? "")") {
+            guard viewModel.hasStarted, let exerciseID = viewModel.currentExercise?.id else { return }
+            await loadPreviousRecord(for: exerciseID)
+        }
     }
 
     private var preparationContent: some View {
@@ -196,7 +212,10 @@ struct WorkoutSessionView: View {
                         viewModel.skipRest()
                         settings.cancelRestNotification(sessionID: liveActivitySessionID)
                         Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
-                    }
+                    },
+                    previousRecordError: viewModel.previousRecordError(for: exercise.id),
+                    isLoadingPreviousRecord: viewModel.isLoadingPreviousRecord(for: exercise.id),
+                    onRetryPreviousRecord: { Task { await loadPreviousRecord(for: exercise.id) } }
                 )
             } else if let exercise = viewModel.currentExercise {
                 WorkoutTrainModeScreen(
@@ -236,7 +255,10 @@ struct WorkoutSessionView: View {
                         syncRestActivity()
                     },
                     onNextExercise: { _ = viewModel.moveToNextExercise() },
-                    onFinish: { isConfirmingFinish = true }
+                    onFinish: { isConfirmingFinish = true },
+                    previousRecordError: viewModel.previousRecordError(for: exercise.id),
+                    isLoadingPreviousRecord: viewModel.isLoadingPreviousRecord(for: exercise.id),
+                    onRetryPreviousRecord: { Task { await loadPreviousRecord(for: exercise.id) } }
                 )
             } else {
                 GymupEmptyState(symbol: "dumbbell", title: "운동을 찾을 수 없어요", message: "루틴으로 돌아가 운동을 확인해 주세요.")
@@ -247,6 +269,12 @@ struct WorkoutSessionView: View {
 }
 
 private extension WorkoutSessionView {
+    func loadPreviousRecord(for exerciseID: String) async {
+        await viewModel.loadPreviousRecord(for: exerciseID)
+        guard viewModel.currentExercise?.id == exerciseID else { return }
+        showFirstExercisePromptIfNeeded()
+    }
+
     func handleRestTick(at date: Date) async {
         if let activityState = WorkoutRestActivityController.shared.currentState(sessionID: liveActivitySessionID) {
             if activityState.isSkipped {
@@ -365,6 +393,14 @@ private extension WorkoutSessionView {
               !promptedExerciseIDs.contains(exercise.id) else { return }
         promptedExerciseIDs.insert(exercise.id)
         isShowingFirstExercisePrompt = true
+    }
+
+    static func makePreviousRecordService() -> ExerciseReadAPIService? {
+#if DEBUG
+        DebugOnboardingNetworking.makeExerciseReadService()
+#else
+        nil
+#endif
     }
 }
 

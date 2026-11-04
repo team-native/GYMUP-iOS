@@ -21,6 +21,9 @@ struct WorkoutTrainModeScreen: View {
     let onSkipRest: () -> Void
     let onNextExercise: () -> Void
     let onFinish: () -> Void
+    let previousRecordError: String?
+    let isLoadingPreviousRecord: Bool
+    let onRetryPreviousRecord: () -> Void
 
     var body: some View {
         GeometryReader { geometry in
@@ -31,6 +34,15 @@ struct WorkoutTrainModeScreen: View {
                         .padding(.top, 6)
                     WorkoutSessionRecordSummary(exercise: exercise, currentSetIndex: currentSetIndex)
                         .padding(.top, 9)
+                    if let previousRecordError {
+                        WorkoutSessionRecordRetryBanner(
+                            message: previousRecordError,
+                            isLoading: isLoadingPreviousRecord,
+                            onRetry: onRetryPreviousRecord
+                        )
+                        .padding(.horizontal, 20)
+                        .padding(.top, 8)
+                    }
                     WorkoutSessionSetTable(
                         exercise: exercise,
                         currentSetIndex: currentSetIndex,
