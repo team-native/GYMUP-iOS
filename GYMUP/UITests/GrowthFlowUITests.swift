@@ -3,6 +3,8 @@ import XCTest
 final class GrowthFlowUITests: XCTestCase {
     func testGrowthScreenUsesConfiguredGoalAndStartsWithoutSampleProgress() {
         let app = XCUIApplication()
+        let goalStartDate = Calendar.current.date(byAdding: .day, value: -1, to: Date()) ?? Date()
+        let goalStartDateArgument = ISO8601DateFormatter().string(from: goalStartDate)
         app.launchArguments = [
             "-onboarding.completed", "YES",
             "-onboarding.experience", "1",
@@ -10,7 +12,7 @@ final class GrowthFlowUITests: XCTestCase {
             "-onboarding.frequency", "2",
             "-onboarding.goal", "1",
             "-onboarding.weeks", "12",
-            "-onboarding.goal.startedAt", "2026-10-28T00:00:00Z"
+            "-onboarding.goal.startedAt", goalStartDateArgument
         ]
         app.launchArguments += ["--uitest-ephemeral"]
         app.launch()
