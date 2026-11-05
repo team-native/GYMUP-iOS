@@ -10,6 +10,7 @@ struct RoutinePlan: Identifiable, Hashable, Codable {
     let lastPerformed: String
     let coverAssetName: String
     let isRecommended: Bool
+    var serverRoutineId: String?
 
     var exercises: [RoutineExercise] = []
     var muscleGroups: [String] = []
@@ -73,6 +74,13 @@ final class RoutineStore {
     func routine(id: String) -> RoutinePlan? { routines.first { $0.id == id } }
 
     @discardableResult
+    func storeServerRoutineID(_ serverRoutineId: String, for localRoutineID: String) -> Bool {
+        guard let index = routines.firstIndex(where: { $0.id == localRoutineID }) else { return false }
+        routines[index].serverRoutineId = serverRoutineId
+        return true
+    }
+
+    @discardableResult
     func duplicateRoutine(id: String) -> String? {
         guard let originalIndex = routines.firstIndex(where: { $0.id == id }) else { return nil }
         let original = routines[originalIndex]
@@ -110,6 +118,7 @@ final class RoutineStore {
             routines[index].exerciseCount = exercises.count
             routines[index].exercises = exercises
             routines[index].summarySetCount = nil
+            routines[index].serverRoutineId = nil
             return routineID
         }
 

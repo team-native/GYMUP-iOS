@@ -86,6 +86,7 @@ final class WorkoutSessionAPIServiceTests: NetworkingTestCase {
         XCTAssertEqual(createdSet.rest, .object(["durationSeconds": .integer(60)]))
     }
     func testWorkoutStartUsesCreatedStatusAndOpaqueSnapshot() async throws {
+        var capturedRequest: URLRequest?
         installJSONResponse(
             [
                 "workoutId": "workout-1",
@@ -94,7 +95,8 @@ final class WorkoutSessionAPIServiceTests: NetworkingTestCase {
                 "currentExercise": ["exerciseId": "exercise-1"],
                 "startedAt": "2026-10-31T09:00:00Z"
             ],
-            statusCode: 201
+            statusCode: 201,
+            recordRequest: { capturedRequest = $0 }
         )
 
         let request = StartWorkoutRequest(
@@ -105,6 +107,11 @@ final class WorkoutSessionAPIServiceTests: NetworkingTestCase {
         let service = try WorkoutSessionAPIService(client: makeClient(token: "test-token"))
         let response = try await service.startWorkout(request: request)
 
+        XCTAssertEqual(capturedRequest?.httpMethod, "POST")
+        XCTAssertEqual(capturedRequest?.url?.path, "/api/v1/workouts")
+        let body = try XCTUnwrap(capturedRequest?.httpBody)
+        XCTAssertEqual(try JSONDecoder().decode(StartWorkoutRequest.self, from: body), request)
+        XCTAssertEqual(response.workoutId, "workout-1")
         XCTAssertEqual(response.status, .inProgress)
         XCTAssertEqual(response.routineSnapshot, .object(["routineId": .string("routine-1")]))
     }
