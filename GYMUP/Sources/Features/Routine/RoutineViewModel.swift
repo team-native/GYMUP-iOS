@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 enum RoutineListMode: String, CaseIterable, Identifiable {
