@@ -80,6 +80,10 @@ struct StartWorkoutResponse: Codable, Equatable {
     let startedAt: String
 }
 
+protocol WorkoutStarting {
+    func startWorkout(request: StartWorkoutRequest) async throws -> StartWorkoutResponse
+}
+
 struct WorkoutSessionAPIService {
     private let client: APIClient
 
@@ -144,3 +148,5 @@ struct WorkoutSessionAPIService {
         return try await client.send(endpoint, body: request, as: StartWorkoutResponse.self)
     }
 }
+
+extension WorkoutSessionAPIService: WorkoutStarting {}

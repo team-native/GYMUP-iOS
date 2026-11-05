@@ -37,12 +37,19 @@ struct WorkoutSessionView: View {
     }
 
     @MainActor
-    init(plan: WorkoutSessionPlan, historyStore: HistoryStore) {
+    init(
+        plan: WorkoutSessionPlan,
+        historyStore: HistoryStore,
+        serverWorkoutID: String? = nil,
+        startedAt: Date = .now
+    ) {
         _viewModel = State(
             initialValue: WorkoutSessionViewModel(
                 plan: plan,
+                startedAt: startedAt,
                 historyStore: historyStore,
-                previousRecordService: Self.makePreviousRecordService()
+                previousRecordService: Self.makePreviousRecordService(),
+                serverWorkoutID: serverWorkoutID
             )
         )
         self.historyStore = historyStore

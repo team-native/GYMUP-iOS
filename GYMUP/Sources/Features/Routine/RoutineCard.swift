@@ -2,6 +2,8 @@ import SwiftUI
 
 struct RoutineCard: View {
     let routine: RoutinePlan
+    var isStarting = false
+    var isStartDisabled = false
     let onOpen: () -> Void
     let onStart: () -> Void
 
@@ -50,14 +52,24 @@ struct RoutineCard: View {
             .buttonStyle(.plain)
             .accessibilityIdentifier("routine.card.\(routine.id)")
             Button(action: onStart) {
+                if isStarting {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(.white)
+                        .frame(width: 14.76, height: 14.76)
+                        .frame(width: 36.08, height: 36.08)
+                        .background(GymupColors.accent, in: Circle())
+                } else {
                     Image("R1IconPlay")
                         .resizable()
                         .frame(width: 14.76, height: 14.76)
                         .frame(width: 36.08, height: 36.08)
                         .background(GymupColors.accent, in: Circle())
                 }
+            }
                 .buttonStyle(.plain)
-                .accessibilityLabel("\(routine.title) 운동 시작")
+                .disabled(isStartDisabled)
+                .accessibilityLabel(isStarting ? "\(routine.title) 서버 저장 중" : "\(routine.title) 운동 시작")
                 .accessibilityIdentifier("routine.start.\(routine.id)")
                 .padding(.trailing, 24)
                 .padding(.bottom, 24)

@@ -5,17 +5,21 @@ struct RoutineDetailView: View {
     let onDuplicate: (String) -> Void
     let onDelete: () -> Void
     let onStart: () -> Void
+    let isStarting: Bool
+    let isStartDisabled: Bool
     @Environment(\.dismiss) private var dismiss
     @State private var viewModel: RoutineDetailViewModel
 
     init(store: RoutineStore, routineID: String, onEdit: @escaping () -> Void,
          onDuplicate: @escaping (String) -> Void, onDelete: @escaping () -> Void,
-         onStart: @escaping () -> Void) {
+         onStart: @escaping () -> Void, isStarting: Bool = false, isStartDisabled: Bool = false) {
         _viewModel = State(initialValue: RoutineDetailViewModel(store: store, routineID: routineID))
         self.onEdit = onEdit
         self.onDuplicate = onDuplicate
         self.onDelete = onDelete
         self.onStart = onStart
+        self.isStarting = isStarting
+        self.isStartDisabled = isStartDisabled
     }
 
     var body: some View {
@@ -153,7 +157,8 @@ struct RoutineDetailView: View {
             GymupButton(title: "편집", variant: .elevated, font: GymupTypography.sectionTitle,
                         height: 50, cornerRadius: 999, action: onEdit)
                 .frame(width: 80)
-            GymupButton(title: "운동 시작", font: GymupTypography.sectionTitle,
+            GymupButton(title: isStarting ? "서버 저장 중…" : "운동 시작", isEnabled: !isStartDisabled,
+                        font: GymupTypography.sectionTitle,
                         height: 50, cornerRadius: 999, action: onStart)
         }
         .padding(.horizontal, 36)

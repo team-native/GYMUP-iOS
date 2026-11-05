@@ -7,6 +7,7 @@ enum RoutineRoute: Hashable {
     case editAndAddExercise(String)
     case emptyStart(String)
     case workout(String)
+    case serverWorkout(String, serverWorkoutID: String, startedAt: Date)
 
     var title: String {
         switch self {
@@ -16,6 +17,7 @@ enum RoutineRoute: Hashable {
         case .editAndAddExercise: "루틴 편집"
         case .emptyStart: "빈 루틴"
         case .workout: "운동"
+        case .serverWorkout: "운동"
         }
     }
 }

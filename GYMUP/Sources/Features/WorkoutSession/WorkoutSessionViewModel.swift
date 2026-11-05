@@ -9,6 +9,7 @@ final class WorkoutSessionViewModel {
     private(set) var now: Date
     private(set) var finishedAt: Date?
     private(set) var notice: String?
+    private(set) var serverWorkoutID: String?
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: ExerciseReadAPIService?
@@ -35,6 +36,7 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        serverWorkoutID = nil
     }
 
     init(
@@ -43,7 +45,8 @@ final class WorkoutSessionViewModel {
         startsImmediately: Bool = true,
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
-        previousRecordService: ExerciseReadAPIService? = nil
+        previousRecordService: ExerciseReadAPIService? = nil,
+        serverWorkoutID: String? = nil
     ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
@@ -51,6 +54,7 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.serverWorkoutID = serverWorkoutID
     }
 
     var currentExercise: WorkoutSessionExercise? {
