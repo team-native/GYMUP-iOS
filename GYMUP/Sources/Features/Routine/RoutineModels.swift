@@ -10,7 +10,7 @@ struct RoutinePlan: Identifiable, Hashable, Codable {
     let lastPerformed: String
     let coverAssetName: String
     let isRecommended: Bool
-    var serverRoutineId: String? = nil
+    var serverRoutineId: String?
 
     var exercises: [RoutineExercise] = []
     var muscleGroups: [String] = []

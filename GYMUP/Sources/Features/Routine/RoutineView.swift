@@ -185,7 +185,10 @@ struct RoutineView: View {
         .onChange(of: requestedExerciseAddRoutineID) { _, _ in openRequestedExerciseAdd() }
     }
 
-    private func startWorkout(_ id: String) {
+}
+
+private extension RoutineView {
+    func startWorkout(_ id: String) {
         guard let routine = viewModel.store.routine(id: id) else { return }
         guard !viewModel.isPreparingServerRoutineID else { return }
         if routine.isEmpty || routine.exercises.isEmpty {
@@ -210,26 +213,26 @@ struct RoutineView: View {
         }
     }
 
-    private func startLocalWorkout(_ id: String) {
+    func startLocalWorkout(_ id: String) {
         guard viewModel.store.routine(id: id) != nil else { return }
         path.append(.workout(id))
     }
 
-    private var isRoutineSyncFailurePresented: Binding<Bool> {
+    var isRoutineSyncFailurePresented: Binding<Bool> {
         Binding(
             get: { routineSyncFailure != nil },
             set: { if !$0 { routineSyncFailure = nil } }
         )
     }
 
-    private var isWorkoutStartFailurePresented: Binding<Bool> {
+    var isWorkoutStartFailurePresented: Binding<Bool> {
         Binding(
             get: { workoutStartFailure != nil },
             set: { if !$0 { workoutStartFailure = nil } }
         )
     }
 
-    private static func makeRoutineCreator() -> RoutineCreating? {
+    static func makeRoutineCreator() -> RoutineCreating? {
 #if DEBUG
         DebugOnboardingNetworking.makeRoutineService()
 #else
@@ -237,7 +240,7 @@ struct RoutineView: View {
 #endif
     }
 
-    private static func makeWorkoutStarter() -> WorkoutStarting? {
+    static func makeWorkoutStarter() -> WorkoutStarting? {
 #if DEBUG
         DebugOnboardingNetworking.makeWorkoutSessionService()
 #else
@@ -245,20 +248,20 @@ struct RoutineView: View {
 #endif
     }
 
-    private func openRequestedRoutine() {
+    func openRequestedRoutine() {
         guard let id = requestedRoutineID else { return }
         requestedRoutineID = nil
         if viewModel.store.routine(id: id) != nil { path.append(.detail(id)) }
     }
 
-    private func openRequestedExerciseAdd() {
+    func openRequestedExerciseAdd() {
         guard let id = requestedExerciseAddRoutineID else { return }
         requestedExerciseAddRoutineID = nil
         guard viewModel.store.routine(id: id) != nil else { return }
         path = [.editAndAddExercise(id)]
     }
 
-    private func routineEditor(routineID: String?, opensAddExerciseOnAppear: Bool = false) -> some View {
+    func routineEditor(routineID: String?, opensAddExerciseOnAppear: Bool = false) -> some View {
         RoutineEditorView(
             store: viewModel.store,
             routineID: routineID,
@@ -270,7 +273,7 @@ struct RoutineView: View {
         )
     }
 
-    private var header: some View {
+    var header: some View {
         HStack {
             Text("루틴")
                 .font(GymupTypography.homeTitle)
