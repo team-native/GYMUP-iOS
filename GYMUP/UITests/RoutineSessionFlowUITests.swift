@@ -4,11 +4,9 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testSelectedRoutineOpensItsFirstExercise() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
-        app.launchArguments += ["--uitest-ephemeral"]
+        app.launchArguments += ["--uitest-ephemeral", "--uitest-disable-routine-server"]
         app.launch()
-        let routineTab = app.buttons["루틴"]
-        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
-        routineTab.tap()
+        openRoutineTab(in: app)
         let start = app.buttons["routine.start.upper-a"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
@@ -23,12 +21,12 @@ final class RoutineSessionFlowUITests: XCTestCase {
 
     func testUnavailableExerciseVideoExplainsStatusAndReturnsToWorkout() {
         let app = XCUIApplication()
-        app.launchArguments = ["-onboarding.completed", "YES", "--uitest-ephemeral"]
+        app.launchArguments = [
+            "-onboarding.completed", "YES", "--uitest-ephemeral", "--uitest-disable-routine-server"
+        ]
         app.launch()
 
-        let routineTab = app.buttons["루틴"]
-        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
-        routineTab.tap()
+        openRoutineTab(in: app)
 
         let start = app.buttons["routine.start.upper-a"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
@@ -51,11 +49,9 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testRoutineContainingTimedExerciseCanStart() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
-        app.launchArguments += ["--uitest-ephemeral"]
+        app.launchArguments += ["--uitest-ephemeral", "--uitest-disable-routine-server"]
         app.launch()
-        let routineTab = app.buttons["루틴"]
-        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
-        routineTab.tap()
+        openRoutineTab(in: app)
         let start = app.buttons["routine.start.lower-b"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
@@ -66,11 +62,9 @@ final class RoutineSessionFlowUITests: XCTestCase {
     func testTimedPlankCompletesRestAndSavesHistory() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
-        app.launchArguments += ["--uitest-ephemeral"]
+        app.launchArguments += ["--uitest-ephemeral", "--uitest-disable-routine-server"]
         app.launch()
-        let routineTab = app.buttons["루틴"]
-        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
-        routineTab.tap()
+        openRoutineTab(in: app)
 
         let start = app.buttons["routine.start.lower-b"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
@@ -143,6 +137,20 @@ final class RoutineSessionFlowUITests: XCTestCase {
         if start.waitForExistence(timeout: 5) {
             start.tap()
         }
+    }
+
+    private func openRoutineTab(in app: XCUIApplication) {
+        let routineTab = app.buttons["루틴"]
+        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
+        routineTab.tap()
+
+        let selectedRoutineTab = app.buttons.matching(
+            NSPredicate(format: "label == %@ AND selected == true", "루틴")
+        ).firstMatch
+        if !selectedRoutineTab.waitForExistence(timeout: 3) {
+            routineTab.tap()
+        }
+        XCTAssertTrue(selectedRoutineTab.waitForExistence(timeout: 5))
     }
 
     private func tapSetCompletion(_ setNumber: Int, expectsRest: Bool, in app: XCUIApplication) {

@@ -197,14 +197,18 @@ private extension RoutineView {
             isUnsupportedWorkoutPresented = true
         } else {
 #if DEBUG
-            Task { @MainActor in
-                switch await viewModel.startServerWorkout(for: id) {
-                case let .started(serverWorkoutID, startedAt):
-                    path.append(.serverWorkout(id, serverWorkoutID: serverWorkoutID, startedAt: startedAt))
-                case let .routineSyncFailed(message):
-                    routineSyncFailure = RoutineSyncFailure(localRoutineID: id, message: message)
-                case let .workoutStartFailed(message):
-                    workoutStartFailure = RoutineSyncFailure(localRoutineID: id, message: message)
+            if ProcessInfo.processInfo.arguments.contains("--uitest-disable-routine-server") {
+                startLocalWorkout(id)
+            } else {
+                Task { @MainActor in
+                    switch await viewModel.startServerWorkout(for: id) {
+                    case let .started(serverWorkoutID, startedAt):
+                        path.append(.serverWorkout(id, serverWorkoutID: serverWorkoutID, startedAt: startedAt))
+                    case let .routineSyncFailed(message):
+                        routineSyncFailure = RoutineSyncFailure(localRoutineID: id, message: message)
+                    case let .workoutStartFailed(message):
+                        workoutStartFailure = RoutineSyncFailure(localRoutineID: id, message: message)
+                    }
                 }
             }
 #else

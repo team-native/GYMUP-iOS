@@ -4,10 +4,9 @@ final class PlateCalculatorFlowUITests: XCTestCase {
     func testRestScreenOpensAndClosesPlateCalculator() {
         let app = XCUIApplication()
         app.launchArguments = ["-onboarding.completed", "YES"]
-        app.launchArguments += ["--uitest-ephemeral"]
+        app.launchArguments += ["--uitest-ephemeral", "--uitest-disable-routine-server"]
         app.launch()
-        XCTAssertTrue(app.buttons["루틴"].waitForExistence(timeout: 15))
-        app.buttons["루틴"].tap()
+        openRoutineTab(in: app)
         let start = app.buttons["routine.start.upper-a"]
         XCTAssertTrue(start.waitForExistence(timeout: 5))
         start.tap()
@@ -31,5 +30,19 @@ final class PlateCalculatorFlowUITests: XCTestCase {
         add(screenshot)
         close.tap()
         XCTAssertTrue(app.buttons["workout.rest.skip"].waitForExistence(timeout: 5))
+    }
+
+    private func openRoutineTab(in app: XCUIApplication) {
+        let routineTab = app.buttons["루틴"]
+        XCTAssertTrue(routineTab.waitForExistence(timeout: 15))
+        routineTab.tap()
+
+        let selectedRoutineTab = app.buttons.matching(
+            NSPredicate(format: "label == %@ AND selected == true", "루틴")
+        ).firstMatch
+        if !selectedRoutineTab.waitForExistence(timeout: 3) {
+            routineTab.tap()
+        }
+        XCTAssertTrue(selectedRoutineTab.waitForExistence(timeout: 5))
     }
 }
