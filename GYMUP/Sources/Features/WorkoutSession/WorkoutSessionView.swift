@@ -18,6 +18,7 @@ struct WorkoutSessionView: View {
     @State var isShowingFirstExercisePrompt = false
     @State var promptedExerciseIDs: Set<String> = []
     @State var isShowingWorkoutProcessing = false
+    @State var isShowingServerActionError = false
     @State var isShowingWeightInput = false
     @State var weightInputSetIndex: Int?
     @State var liveActivitySessionID = UUID().uuidString
@@ -49,7 +50,8 @@ struct WorkoutSessionView: View {
                 startedAt: startedAt,
                 historyStore: historyStore,
                 previousRecordService: Self.makePreviousRecordService(),
-                serverWorkoutID: serverWorkoutID
+                serverWorkoutID: serverWorkoutID,
+                progressService: serverWorkoutID == nil ? nil : Self.makeProgressService()
             )
         )
         self.historyStore = historyStore
@@ -159,10 +161,30 @@ struct WorkoutSessionView: View {
         .onReceive(clock) { date in
             Task { @MainActor in await handleRestTick(at: date) }
         }
-        .alert("휴식 시간이 끝났어요", isPresented: $isShowingRestFinishedAlert) {
-            Button("다음 세트 진행", role: .cancel) {}
+        .alert(
+            isShowingServerActionError ? "서버 요청을 처리하지 못했어요" : "휴식 시간이 끝났어요",
+            isPresented: Binding(
+                get: { isShowingRestFinishedAlert || isShowingServerActionError },
+                set: { isPresented in
+                    if !isPresented {
+                        isShowingRestFinishedAlert = false
+                        isShowingServerActionError = false
+                    }
+                }
+            )
+        ) {
+            if isShowingServerActionError {
+                Button("재시도") { retryFailedServerAction() }
+                Button("취소", role: .cancel) { viewModel.dismissServerActionError() }
+            } else {
+                Button("다음 세트 진행", role: .cancel) {}
+            }
         } message: {
-            Text("준비가 되면 다음 세트를 시작해 주세요.")
+            if isShowingServerActionError {
+                Text(viewModel.serverActionErrorMessage ?? "다시 시도해 주세요.")
+            } else {
+                Text("준비가 되면 다음 세트를 시작해 주세요.")
+            }
         }
         .onChange(of: viewModel.currentExerciseIndex) { _, _ in
             isShowingCurrentGuide = false

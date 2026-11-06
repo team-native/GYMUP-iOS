@@ -32,11 +32,25 @@ extension WorkoutSessionView {
 
     func completeCurrentSet(at date: Date) {
         guard let currentSetIndex = viewModel.currentSetIndex else { return }
-        viewModel.toggleSetCompletion(
-            exerciseIndex: viewModel.currentExerciseIndex,
-            setIndex: currentSetIndex,
-            at: date
-        )
+        Task {
+            await completeSet(
+                exerciseIndex: viewModel.currentExerciseIndex,
+                setIndex: currentSetIndex,
+                at: date
+            )
+        }
+    }
+
+    func completeSet(exerciseIndex: Int, setIndex: Int, at date: Date) async {
+        let didComplete = await viewModel.completeSet(exerciseIndex: exerciseIndex, setIndex: setIndex, at: date)
+        guard didComplete else {
+            isShowingServerActionError = viewModel.serverActionErrorMessage != nil
+            return
+        }
+        completeSetSideEffects()
+    }
+
+    private func completeSetSideEffects() {
         if settings.preferences.hapticsEnabled {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
@@ -44,6 +58,27 @@ extension WorkoutSessionView {
         if viewModel.currentExerciseIndex == viewModel.plan.exercises.count - 1,
            viewModel.currentExercise?.isComplete == true {
             showWorkoutProcessing()
+        }
+    }
+
+    func retryFailedServerAction() {
+        let failedAction = viewModel.failedServerAction
+        Task {
+            let didRetry = await viewModel.retryFailedServerAction()
+            guard didRetry else {
+                isShowingServerActionError = viewModel.serverActionErrorMessage != nil
+                return
+            }
+            if let failedAction, case .recordSet = failedAction {
+                completeSetSideEffects()
+            }
+        }
+    }
+
+    func advanceToNextExercise() {
+        Task {
+            let didAdvance = await viewModel.advanceToNextExercise()
+            isShowingServerActionError = !didAdvance && viewModel.serverActionErrorMessage != nil
         }
     }
 
@@ -131,6 +166,14 @@ extension WorkoutSessionView {
     static func makePreviousRecordService() -> ExerciseReadAPIService? {
 #if DEBUG
         DebugOnboardingNetworking.makeExerciseReadService()
+#else
+        nil
+#endif
+    }
+
+    static func makeProgressService() -> WorkoutSessionProgressing? {
+#if DEBUG
+        DebugOnboardingNetworking.makeWorkoutSessionService()
 #else
         nil
 #endif
