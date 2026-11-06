@@ -13,6 +13,7 @@ final class WorkoutSessionViewModel {
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: ExerciseReadAPIService?
+    let exerciseGuidance: WorkoutExerciseGuidanceViewModel
     let nextSetService: WorkoutNextSetReading?
     let progressService: WorkoutSessionProgressing?
     private(set) var previousRecordErrors: [String: String] = [:]
@@ -44,6 +45,7 @@ final class WorkoutSessionViewModel {
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
+        exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         progressService: WorkoutSessionProgressing? = nil,
         nextSetService: WorkoutNextSetReading? = nil
     ) {
@@ -53,6 +55,7 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        exerciseGuidance = WorkoutExerciseGuidanceViewModel(service: exerciseGuidanceService)
         self.progressService = progressService
         self.nextSetService = nextSetService
         serverWorkoutID = nil
@@ -65,6 +68,7 @@ final class WorkoutSessionViewModel {
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
+        exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         serverWorkoutID: String? = nil,
         progressService: WorkoutSessionProgressing? = nil,
         nextSetService: WorkoutNextSetReading? = nil
@@ -75,6 +79,7 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        exerciseGuidance = WorkoutExerciseGuidanceViewModel(service: exerciseGuidanceService)
         self.serverWorkoutID = serverWorkoutID
         self.progressService = progressService
         self.nextSetService = nextSetService
