@@ -11,9 +11,14 @@ extension WorkoutSessionView {
     func handleRestTick(at date: Date) async {
         if let activityState = WorkoutRestActivityController.shared.currentState(sessionID: liveActivitySessionID) {
             if activityState.isSkipped {
-                viewModel.skipRest()
-                settings.cancelRestNotification(sessionID: liveActivitySessionID)
-                await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+                let didSkip = await viewModel.requestServerRestSkip()
+                if didSkip {
+                    settings.cancelRestNotification(sessionID: liveActivitySessionID)
+                    await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+                } else {
+                    isShowingServerActionError = viewModel.serverActionErrorMessage != nil
+                    syncRestActivity()
+                }
                 return
             }
             viewModel.synchronizeRestTimer(
@@ -71,8 +76,64 @@ extension WorkoutSessionView {
             }
             if let failedAction, case .recordSet = failedAction {
                 completeSetSideEffects()
+            } else if let failedAction, case .startRest = failedAction {
+                syncRestActivity()
+            } else if let failedAction, case .skipRest = failedAction {
+                settings.cancelRestNotification(sessionID: liveActivitySessionID)
+                await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+            } else if let failedAction, case .extendRest = failedAction {
+                syncRestActivity()
+            } else if let failedAction, case .refreshRest = failedAction {
+                syncRestActivity()
             }
         }
+    }
+
+    func skipCurrentRest() {
+        Task {
+            let didSkip = await viewModel.requestServerRestSkip()
+            guard didSkip else {
+                isShowingServerActionError = viewModel.serverActionErrorMessage != nil
+                syncRestActivity()
+                return
+            }
+            settings.cancelRestNotification(sessionID: liveActivitySessionID)
+            await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
+        }
+    }
+
+    func extendCurrentRest(by seconds: Int) {
+        Task {
+            let didExtend = await viewModel.requestServerRestExtension(by: seconds)
+            guard didExtend else {
+                isShowingServerActionError = viewModel.serverActionErrorMessage != nil
+                syncRestActivity()
+                return
+            }
+            syncRestActivity()
+        }
+    }
+
+    func refreshRestOnForeground() {
+        guard viewModel.isServerManagedRest else { return }
+        if viewModel.refreshClock(at: Date()) {
+            syncRestActivity()
+            return
+        }
+        guard viewModel.isResting else { return }
+        Task {
+            let didRefresh = await viewModel.refreshActiveServerRest(at: Date())
+            guard didRefresh else {
+                isShowingServerActionError = viewModel.serverActionErrorMessage != nil
+                return
+            }
+            syncRestActivity()
+        }
+    }
+
+    func skipPendingRestStart() {
+        guard viewModel.skipPendingRestStart() else { return }
+        syncRestActivity()
     }
 
     func advanceToNextExercise() {

@@ -4,6 +4,7 @@ import UIKit
 
 struct WorkoutSessionView: View {
     @Environment(\.dismiss) var dismiss
+    @Environment(\.scenePhase) var scenePhase
     @State var viewModel: WorkoutSessionViewModel
     @State var settings = WorkoutSettings.shared
     @State var didSaveHistoryRecord = false
@@ -161,6 +162,10 @@ struct WorkoutSessionView: View {
         .onReceive(clock) { date in
             Task { @MainActor in await handleRestTick(at: date) }
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            refreshRestOnForeground()
+        }
         .alert(
             isShowingServerActionError ? "서버 요청을 처리하지 못했어요" : "휴식 시간이 끝났어요",
             isPresented: Binding(
@@ -175,7 +180,11 @@ struct WorkoutSessionView: View {
         ) {
             if isShowingServerActionError {
                 Button("재시도") { retryFailedServerAction() }
-                Button("취소", role: .cancel) { viewModel.dismissServerActionError() }
+                if viewModel.failedServerAction == .startRest {
+                    Button("휴식 건너뛰기", role: .cancel) { skipPendingRestStart() }
+                } else {
+                    Button("취소", role: .cancel) { viewModel.dismissServerActionError() }
+                }
             } else {
                 Button("다음 세트 진행", role: .cancel) {}
             }

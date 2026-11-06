@@ -32,15 +32,8 @@ extension WorkoutSessionView {
                     nextSetIndex: nextSetIndex,
                     remainingSeconds: viewModel.restSecondsRemaining,
                     totalSeconds: viewModel.activeRestDurationSeconds,
-                    onExtend: {
-                        viewModel.extendRest(by: 15)
-                        syncRestActivity()
-                    },
-                    onSkip: {
-                        viewModel.skipRest()
-                        settings.cancelRestNotification(sessionID: liveActivitySessionID)
-                        Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
-                    },
+                    onExtend: { extendCurrentRest(by: 15) },
+                    onSkip: skipCurrentRest,
                     previousRecordError: viewModel.previousRecordError(for: exercise.id),
                     isLoadingPreviousRecord: viewModel.isLoadingPreviousRecord(for: exercise.id),
                     onRetryPreviousRecord: { Task { await loadPreviousRecord(for: exercise.id) } }
@@ -53,6 +46,8 @@ extension WorkoutSessionView {
                     exerciseIndex: viewModel.currentExerciseIndex,
                     totalExerciseCount: viewModel.plan.exercises.count,
                     currentSetIndex: viewModel.currentSetIndex,
+                    canPerformPrimaryAction: viewModel.pendingRestStart == nil &&
+                        !viewModel.isSubmittingWorkoutAction,
                     isResting: viewModel.isResting || viewModel.isPaused,
                     isPaused: viewModel.isPaused,
                     restSecondsRemaining: viewModel.restSecondsRemaining,
@@ -83,7 +78,9 @@ extension WorkoutSessionView {
                     },
                     canToggleSet: { setIndex in
                         viewModel.serverWorkoutID == nil ||
-                            (setIndex == viewModel.currentSetIndex && !viewModel.isSubmittingWorkoutAction)
+                            (viewModel.pendingRestStart == nil &&
+                             setIndex == viewModel.currentSetIndex &&
+                             !viewModel.isSubmittingWorkoutAction)
                     },
                     onAdjustWeight: viewModel.adjustCurrentWeight,
                     onInputWeight: {
@@ -92,10 +89,7 @@ extension WorkoutSessionView {
                     },
                     onAdjustRepetitions: viewModel.adjustCurrentRepetitions,
                     onSetDone: { completeCurrentSet(at: Date()) },
-                    onSkipRest: {
-                        viewModel.skipRest()
-                        syncRestActivity()
-                    },
+                    onSkipRest: skipCurrentRest,
                     onNextExercise: advanceToNextExercise,
                     onFinish: { isConfirmingFinish = true },
                     previousRecordError: viewModel.previousRecordError(for: exercise.id),

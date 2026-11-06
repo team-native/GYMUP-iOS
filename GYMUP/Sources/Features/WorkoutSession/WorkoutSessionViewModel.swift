@@ -22,8 +22,10 @@ final class WorkoutSessionViewModel {
 
     var pendingSetSubmission: PendingWorkoutSetSubmission?
     var pendingExerciseAdvance: AdvanceWorkoutExerciseRequest?
+    var pendingRestStart: PendingWorkoutRestStart?
 
     var hasPendingServerSetSubmission: Bool { pendingSetSubmission != nil }
+    var isServerManagedRest = false
 
     private(set) var startedAt: Date?
     private var pausedAt: Date?
@@ -120,6 +122,7 @@ final class WorkoutSessionViewModel {
         if didRestEnd {
             self.restEndsAt = nil
             activeRestDurationSeconds = 0
+            isServerManagedRest = false
         }
         return didRestEnd
     }
@@ -182,12 +185,24 @@ final class WorkoutSessionViewModel {
         markSetCompleted(exerciseIndex: exerciseIndex, setIndex: setIndex, at: date)
     }
 
-    func markSetCompleted(exerciseIndex: Int, setIndex: Int, at date: Date?) {
+    func markSetCompleted(
+        exerciseIndex: Int,
+        setIndex: Int,
+        at date: Date?,
+        startsLocalRest: Bool = true
+    ) {
         guard plan.exercises.indices.contains(exerciseIndex),
               plan.exercises[exerciseIndex].sets.indices.contains(setIndex),
               !plan.exercises[exerciseIndex].sets[setIndex].isCompleted else { return }
         plan.exercises[exerciseIndex].sets[setIndex].isCompleted = true
         notice = nil
+
+        guard startsLocalRest else {
+            restEndsAt = nil
+            activeRestDurationSeconds = 0
+            isServerManagedRest = false
+            return
+        }
 
         let hasMoreSets = plan.exercises[exerciseIndex].sets.contains { !$0.isCompleted }
         if hasMoreSets, let date {
@@ -201,11 +216,13 @@ final class WorkoutSessionViewModel {
             restEndsAt = nil
             activeRestDurationSeconds = 0
         }
+        isServerManagedRest = false
     }
 
     func skipRest() {
         restEndsAt = nil
         activeRestDurationSeconds = 0
+        isServerManagedRest = false
     }
 
     func extendRest(by seconds: Int) {
@@ -243,6 +260,7 @@ final class WorkoutSessionViewModel {
         finishedAt = date
         restEndsAt = nil
         activeRestDurationSeconds = 0
+        isServerManagedRest = false
         notice = nil
     }
 }

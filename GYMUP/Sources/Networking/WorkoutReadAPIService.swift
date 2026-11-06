@@ -41,25 +41,6 @@ struct NextWorkoutSetResponse: Codable, Equatable {
     let restEndsAt: String
 }
 
-struct CurrentRestResponse: Codable, Equatable {
-    let restId: String
-    let status: String
-    let startedAt: String
-    let endsAt: String
-    let remainingSeconds: Int
-    let notificationAt: String
-}
-
-struct ExtendCurrentRestRequest: Codable, Equatable {
-    let seconds: Int
-}
-
-struct ExtendCurrentRestResponse: Codable, Equatable {
-    let restId: String
-    let endsAt: String
-    let remainingSeconds: Int
-}
-
 struct WorkoutReadAPIService {
     private let client: APIClient
 
@@ -86,25 +67,4 @@ struct WorkoutReadAPIService {
         return try await client.send(endpoint, as: NextWorkoutSetResponse.self)
     }
 
-    func currentRest(workoutId: String) async throws -> CurrentRestResponse {
-        let endpoint = APIEndpoint(
-            method: .get,
-            path: "/api/v1/workouts/\(workoutId)/rests/current",
-            expectedStatusCode: 200
-        )
-        return try await client.send(endpoint, as: CurrentRestResponse.self)
-    }
-
-    func extendCurrentRest(workoutId: String, by seconds: Int) async throws -> ExtendCurrentRestResponse {
-        let endpoint = APIEndpoint(
-            method: .patch,
-            path: "/api/v1/workouts/\(workoutId)/rests/current/extend",
-            expectedStatusCode: 200
-        )
-        return try await client.send(
-            endpoint,
-            body: ExtendCurrentRestRequest(seconds: seconds),
-            as: ExtendCurrentRestResponse.self
-        )
-    }
 }
