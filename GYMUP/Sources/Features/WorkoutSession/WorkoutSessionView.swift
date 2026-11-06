@@ -52,7 +52,8 @@ struct WorkoutSessionView: View {
                 historyStore: historyStore,
                 previousRecordService: Self.makePreviousRecordService(),
                 serverWorkoutID: serverWorkoutID,
-                progressService: serverWorkoutID == nil ? nil : Self.makeProgressService()
+                progressService: serverWorkoutID == nil ? nil : Self.makeProgressService(),
+                nextSetService: serverWorkoutID == nil ? nil : Self.makeWorkoutReadService()
             )
         )
         self.historyStore = historyStore

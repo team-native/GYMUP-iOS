@@ -11,6 +11,10 @@ struct WorkoutSessionRestTimerScreen: View {
     let previousRecordError: String?
     let isLoadingPreviousRecord: Bool
     let onRetryPreviousRecord: () -> Void
+    let nextSetPreview: NextWorkoutSetResponse?
+    let nextSetPreviewError: String?
+    let isLoadingNextSetPreview: Bool
+    let onRetryNextSetPreview: () -> Void
     @State private var isPlateCalculatorPresented = false
 
     private var nextSet: WorkoutSessionSet { exercise.sets[nextSetIndex] }
@@ -35,6 +39,16 @@ struct WorkoutSessionRestTimerScreen: View {
                             message: previousRecordError,
                             isLoading: isLoadingPreviousRecord,
                             onRetry: onRetryPreviousRecord
+                        )
+                        .padding(.top, 12)
+                    }
+                    if let nextSetPreviewError {
+                        WorkoutSessionRecordRetryBanner(
+                            message: nextSetPreviewError,
+                            isLoading: isLoadingNextSetPreview,
+                            retryAccessibilityLabel: "다음 세트 정보 다시 시도",
+                            retryAccessibilityIdentifier: "workout.next-set.retry",
+                            onRetry: onRetryNextSetPreview
                         )
                         .padding(.top, 12)
                     }
@@ -163,17 +177,17 @@ struct WorkoutSessionRestTimerScreen: View {
                     .clipShape(RoundedRectangle(cornerRadius: 10))
 
                 VStack(alignment: .leading, spacing: 0) {
-                    Text("NEXT · SET \(nextSetIndex + 1) / \(exercise.sets.count)")
+                    Text("NEXT · SET \(nextSetPreview?.setIndex ?? nextSetIndex + 1) / \(exercise.sets.count)")
                         .font(GymupTypography.label)
                         .tracking(0.16)
                         .foregroundStyle(GymupColors.secondaryText)
-                    Text("\(nextSet.weightKilograms.formatted(.number.precision(.fractionLength(0...1)))) KG × "
-                         + "\(nextSet.repetitions)\(exercise.measure == .seconds ? "초" : "")")
+                    Text("\((nextSetPreview?.weight ?? nextSet.weightKilograms).formatted(.number.precision(.fractionLength(0...1)))) KG × "
+                         + "\(nextSetPreview?.reps ?? nextSet.repetitions)\(exercise.measure == .seconds ? "초" : "")")
                         .font(GymupTypography.display)
                         .foregroundStyle(GymupColors.primaryText)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)
-                    Text("\(exercise.name) · 이전 \(exercise.previousPerformance(for: nextSetIndex) ?? "—")")
+                    Text("\(nextSetPreview?.exerciseName ?? exercise.name) · 이전 \(exercise.previousPerformance(for: nextSetIndex) ?? "—")")
                         .font(GymupTypography.uiCaption)
                         .foregroundStyle(GymupColors.secondaryText)
                         .lineLimit(1)

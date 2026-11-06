@@ -60,6 +60,7 @@ extension WorkoutSessionView {
             UIImpactFeedbackGenerator(style: .light).impactOccurred()
         }
         syncRestActivity()
+        refreshNextSetPreviewIfServerResting()
         if viewModel.currentExerciseIndex == viewModel.plan.exercises.count - 1,
            viewModel.currentExercise?.isComplete == true {
             showWorkoutProcessing()
@@ -78,6 +79,7 @@ extension WorkoutSessionView {
                 completeSetSideEffects()
             } else if let failedAction, case .startRest = failedAction {
                 syncRestActivity()
+                refreshNextSetPreviewIfServerResting()
             } else if let failedAction, case .skipRest = failedAction {
                 settings.cancelRestNotification(sessionID: liveActivitySessionID)
                 await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID)
@@ -85,6 +87,7 @@ extension WorkoutSessionView {
                 syncRestActivity()
             } else if let failedAction, case .refreshRest = failedAction {
                 syncRestActivity()
+                refreshNextSetPreviewIfServerResting()
             }
         }
     }
@@ -114,6 +117,11 @@ extension WorkoutSessionView {
         }
     }
 
+    private func refreshNextSetPreviewIfServerResting() {
+        guard viewModel.isServerManagedRest else { return }
+        Task { await viewModel.loadNextSetPreview() }
+    }
+
     func refreshRestOnForeground() {
         guard viewModel.isServerManagedRest else { return }
         if viewModel.refreshClock(at: Date()) {
@@ -128,6 +136,7 @@ extension WorkoutSessionView {
                 return
             }
             syncRestActivity()
+            await viewModel.loadNextSetPreview()
         }
     }
 
@@ -235,6 +244,14 @@ extension WorkoutSessionView {
     static func makeProgressService() -> WorkoutSessionProgressing? {
 #if DEBUG
         DebugOnboardingNetworking.makeWorkoutSessionService()
+#else
+        nil
+#endif
+    }
+
+    static func makeWorkoutReadService() -> WorkoutNextSetReading? {
+#if DEBUG
+        DebugOnboardingNetworking.makeWorkoutReadService()
 #else
         nil
 #endif

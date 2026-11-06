@@ -2,7 +2,7 @@ import Foundation
 @testable import GYMUP
 
 @MainActor
-final class MockWorkoutSessionRestService: WorkoutSessionProgressing {
+final class MockWorkoutSessionRestService: WorkoutSessionProgressing, WorkoutNextSetReading {
     struct SetRequest {
         let workoutId: String
         let request: CreateWorkoutSetRequest
@@ -17,6 +17,7 @@ final class MockWorkoutSessionRestService: WorkoutSessionProgressing {
     var setRequests: [SetRequest] = []
     var restRequests: [RestRequest] = []
     var currentRestRequests: [String] = []
+    var nextSetRequests: [String] = []
     var skipRequests: [String] = []
     var extendRequests: [(String, Int)] = []
     var nextRestStartError: Error?
@@ -26,6 +27,8 @@ final class MockWorkoutSessionRestService: WorkoutSessionProgressing {
     var restStartCommitsBeforeThrow = false
     var currentRestResponse: CurrentRestResponse?
     var nextExtendResponse: ExtendCurrentRestResponse?
+    var nextSetResponse: NextWorkoutSetResponse?
+    var nextSetError: Error?
     private let startDate: Date
 
     init(startDate: Date) {
@@ -84,6 +87,16 @@ final class MockWorkoutSessionRestService: WorkoutSessionProgressing {
         }
         guard let currentRestResponse else { throw APIClientError.invalidResponse }
         return currentRestResponse
+    }
+
+    func nextSet(workoutId: String) async throws -> NextWorkoutSetResponse {
+        nextSetRequests.append(workoutId)
+        if let error = nextSetError {
+            nextSetError = nil
+            throw error
+        }
+        guard let nextSetResponse else { throw APIClientError.invalidResponse }
+        return nextSetResponse
     }
 
     func skipCurrentRest(workoutId: String) async throws -> SkipCurrentRestResponse {

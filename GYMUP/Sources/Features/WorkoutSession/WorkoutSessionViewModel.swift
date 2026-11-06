@@ -13,9 +13,13 @@ final class WorkoutSessionViewModel {
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: ExerciseReadAPIService?
+    let nextSetService: WorkoutNextSetReading?
     let progressService: WorkoutSessionProgressing?
     private(set) var previousRecordErrors: [String: String] = [:]
     private(set) var loadingPreviousRecordExerciseIDs: Set<String> = []
+    private(set) var nextSetPreview: NextWorkoutSetResponse?
+    private(set) var nextSetPreviewError: String?
+    private(set) var isLoadingNextSetPreview = false
     var isSubmittingWorkoutAction = false
     var serverActionErrorMessage: String?
     var failedServerAction: FailedWorkoutServerAction?
@@ -40,7 +44,8 @@ final class WorkoutSessionViewModel {
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
-        progressService: WorkoutSessionProgressing? = nil
+        progressService: WorkoutSessionProgressing? = nil,
+        nextSetService: WorkoutNextSetReading? = nil
     ) {
         plan = .sample(for: routineID)
         self.startedAt = startsImmediately ? startedAt : nil
@@ -49,6 +54,7 @@ final class WorkoutSessionViewModel {
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
         self.progressService = progressService
+        self.nextSetService = nextSetService
         serverWorkoutID = nil
     }
 
@@ -60,7 +66,8 @@ final class WorkoutSessionViewModel {
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
         serverWorkoutID: String? = nil,
-        progressService: WorkoutSessionProgressing? = nil
+        progressService: WorkoutSessionProgressing? = nil,
+        nextSetService: WorkoutNextSetReading? = nil
     ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
@@ -70,6 +77,7 @@ final class WorkoutSessionViewModel {
         self.previousRecordService = previousRecordService
         self.serverWorkoutID = serverWorkoutID
         self.progressService = progressService
+        self.nextSetService = nextSetService
     }
 
     var isPaused: Bool { pausedAt != nil }

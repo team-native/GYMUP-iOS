@@ -3,7 +3,23 @@ import SwiftUI
 struct WorkoutSessionRecordRetryBanner: View {
     let message: String
     let isLoading: Bool
+    let retryAccessibilityLabel: String
+    let retryAccessibilityIdentifier: String
     let onRetry: () -> Void
+
+    init(
+        message: String,
+        isLoading: Bool,
+        retryAccessibilityLabel: String = "이전 운동 기록 다시 시도",
+        retryAccessibilityIdentifier: String = "workout.previous-record.retry",
+        onRetry: @escaping () -> Void
+    ) {
+        self.message = message
+        self.isLoading = isLoading
+        self.retryAccessibilityLabel = retryAccessibilityLabel
+        self.retryAccessibilityIdentifier = retryAccessibilityIdentifier
+        self.onRetry = onRetry
+    }
 
     var body: some View {
         HStack(spacing: GymupSpacing.small) {
@@ -34,8 +50,8 @@ struct WorkoutSessionRecordRetryBanner: View {
             }
             .buttonStyle(.plain)
             .disabled(isLoading)
-            .accessibilityLabel("이전 운동 기록 다시 시도")
-            .accessibilityIdentifier("workout.previous-record.retry")
+            .accessibilityLabel(retryAccessibilityLabel)
+            .accessibilityIdentifier(retryAccessibilityIdentifier)
         }
         .padding(.horizontal, GymupSpacing.medium)
         .padding(.vertical, GymupSpacing.xSmall)
