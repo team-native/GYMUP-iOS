@@ -10,10 +10,10 @@ final class WorkoutSessionGuidanceAPITests: XCTestCase {
         let exercise = try XCTUnwrap(viewModel.plan.exercises.first)
 
         XCTAssertTrue(exercise.hasPreviousPerformance)
-        await viewModel.loadFirstTimeStatus(for: exercise.id)
+        await viewModel.exerciseGuidance.loadFirstTimeStatus(for: exercise.id, in: viewModel.plan)
 
         XCTAssertEqual(service.firstTimeStatusRequests, [exercise.id])
-        XCTAssertTrue(viewModel.shouldShowFirstExercisePrompt(for: exercise))
+        XCTAssertTrue(viewModel.exerciseGuidance.shouldShowFirstExercisePrompt(for: exercise))
     }
 
     @MainActor
@@ -24,10 +24,10 @@ final class WorkoutSessionGuidanceAPITests: XCTestCase {
         let exercise = try XCTUnwrap(viewModel.plan.exercises.dropFirst().first)
 
         XCTAssertFalse(exercise.hasPreviousPerformance)
-        await viewModel.loadFirstTimeStatus(for: exercise.id)
+        await viewModel.exerciseGuidance.loadFirstTimeStatus(for: exercise.id, in: viewModel.plan)
 
-        XCTAssertFalse(viewModel.shouldShowFirstExercisePrompt(for: exercise))
-        XCTAssertNil(viewModel.firstTimeStatusErrors[exercise.id])
+        XCTAssertFalse(viewModel.exerciseGuidance.shouldShowFirstExercisePrompt(for: exercise))
+        XCTAssertNil(viewModel.exerciseGuidance.firstTimeStatusErrors[exercise.id])
     }
 
     @MainActor
@@ -41,9 +41,9 @@ final class WorkoutSessionGuidanceAPITests: XCTestCase {
         let viewModel = makeViewModel(service: service)
         let exercise = try XCTUnwrap(viewModel.plan.exercises.dropFirst().first)
 
-        await viewModel.loadFirstTimeStatus(for: exercise.id)
+        await viewModel.exerciseGuidance.loadFirstTimeStatus(for: exercise.id, in: viewModel.plan)
 
-        XCTAssertFalse(viewModel.shouldShowFirstExercisePrompt(for: exercise))
+        XCTAssertFalse(viewModel.exerciseGuidance.shouldShowFirstExercisePrompt(for: exercise))
     }
 
     @MainActor
@@ -53,11 +53,11 @@ final class WorkoutSessionGuidanceAPITests: XCTestCase {
         let viewModel = makeViewModel(service: service)
         let exercise = try XCTUnwrap(viewModel.plan.exercises.dropFirst().first)
 
-        await viewModel.loadFirstTimeStatus(for: exercise.id)
+        await viewModel.exerciseGuidance.loadFirstTimeStatus(for: exercise.id, in: viewModel.plan)
 
-        XCTAssertNil(viewModel.firstTimeStatuses[exercise.id])
-        XCTAssertEqual(viewModel.firstTimeStatusErrors[exercise.id], "상태 조회 실패")
-        XCTAssertTrue(viewModel.shouldShowFirstExercisePrompt(for: exercise))
+        XCTAssertNil(viewModel.exerciseGuidance.firstTimeStatuses[exercise.id])
+        XCTAssertEqual(viewModel.exerciseGuidance.firstTimeStatusErrors[exercise.id], "상태 조회 실패")
+        XCTAssertTrue(viewModel.exerciseGuidance.shouldShowFirstExercisePrompt(for: exercise))
     }
 
     @MainActor
@@ -66,13 +66,13 @@ final class WorkoutSessionGuidanceAPITests: XCTestCase {
         service.guideResponse = guide(exerciseID: "bench-press")
         let viewModel = makeViewModel(service: service)
 
-        await viewModel.loadExerciseGuide(for: "bench-press")
+        await viewModel.exerciseGuidance.loadExerciseGuide(for: "bench-press", in: viewModel.plan)
 
         XCTAssertEqual(service.guideRequests, ["bench-press"])
-        XCTAssertEqual(viewModel.exerciseGuide(for: "bench-press")?.targetMuscles, ["chest"])
-        XCTAssertEqual(viewModel.exerciseGuide(for: "bench-press")?.keyPoints, ["brace"])
-        XCTAssertEqual(viewModel.exerciseGuide(for: "bench-press")?.commonMistakes, ["bounce"])
-        XCTAssertNil(viewModel.exerciseGuideError(for: "bench-press"))
+        XCTAssertEqual(viewModel.exerciseGuidance.exerciseGuide(for: "bench-press")?.targetMuscles, ["chest"])
+        XCTAssertEqual(viewModel.exerciseGuidance.exerciseGuide(for: "bench-press")?.keyPoints, ["brace"])
+        XCTAssertEqual(viewModel.exerciseGuidance.exerciseGuide(for: "bench-press")?.commonMistakes, ["bounce"])
+        XCTAssertNil(viewModel.exerciseGuidance.exerciseGuideError(for: "bench-press"))
     }
 
     @MainActor
@@ -81,17 +81,17 @@ final class WorkoutSessionGuidanceAPITests: XCTestCase {
         service.nextGuideError = serverError(message: "가이드 조회 실패")
         let viewModel = makeViewModel(service: service)
 
-        await viewModel.loadExerciseGuide(for: "bench-press")
+        await viewModel.exerciseGuidance.loadExerciseGuide(for: "bench-press", in: viewModel.plan)
 
-        XCTAssertNil(viewModel.exerciseGuide(for: "bench-press"))
-        XCTAssertEqual(viewModel.exerciseGuideError(for: "bench-press"), "가이드 조회 실패")
+        XCTAssertNil(viewModel.exerciseGuidance.exerciseGuide(for: "bench-press"))
+        XCTAssertEqual(viewModel.exerciseGuidance.exerciseGuideError(for: "bench-press"), "가이드 조회 실패")
         XCTAssertFalse(try XCTUnwrap(viewModel.plan.exercises.first).formSteps.isEmpty)
 
         service.guideResponse = guide(exerciseID: "bench-press")
-        await viewModel.loadExerciseGuide(for: "bench-press")
+        await viewModel.exerciseGuidance.loadExerciseGuide(for: "bench-press", in: viewModel.plan)
 
-        XCTAssertEqual(viewModel.exerciseGuide(for: "bench-press")?.keyPoints, ["brace"])
-        XCTAssertNil(viewModel.exerciseGuideError(for: "bench-press"))
+        XCTAssertEqual(viewModel.exerciseGuidance.exerciseGuide(for: "bench-press")?.keyPoints, ["brace"])
+        XCTAssertNil(viewModel.exerciseGuidance.exerciseGuideError(for: "bench-press"))
         XCTAssertEqual(service.guideRequests, ["bench-press", "bench-press"])
     }
 
@@ -101,10 +101,10 @@ final class WorkoutSessionGuidanceAPITests: XCTestCase {
         service.guideResponse = guide(exerciseID: "incline-press")
         let viewModel = makeViewModel(service: service)
 
-        await viewModel.loadExerciseGuide(for: "bench-press")
+        await viewModel.exerciseGuidance.loadExerciseGuide(for: "bench-press", in: viewModel.plan)
 
-        XCTAssertNil(viewModel.exerciseGuide(for: "bench-press"))
-        XCTAssertEqual(viewModel.exerciseGuideError(for: "bench-press"), "자세 가이드를 불러오지 못했어요.")
+        XCTAssertNil(viewModel.exerciseGuidance.exerciseGuide(for: "bench-press"))
+        XCTAssertEqual(viewModel.exerciseGuidance.exerciseGuideError(for: "bench-press"), "자세 가이드를 불러오지 못했어요.")
     }
 
     @MainActor

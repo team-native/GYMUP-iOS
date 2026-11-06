@@ -4,7 +4,10 @@ import UIKit
 extension WorkoutSessionView {
     func loadPreviousRecord(for exerciseID: String) async {
         async let previousRecord: Void = viewModel.loadPreviousRecord(for: exerciseID)
-        async let firstTimeStatus: Void = viewModel.loadFirstTimeStatus(for: exerciseID)
+        async let firstTimeStatus: Void = viewModel.exerciseGuidance.loadFirstTimeStatus(
+            for: exerciseID,
+            in: viewModel.plan
+        )
         _ = await (previousRecord, firstTimeStatus)
         guard viewModel.currentExercise?.id == exerciseID else { return }
         showFirstExercisePromptIfNeeded()
@@ -229,7 +232,7 @@ extension WorkoutSessionView {
 
     func showFirstExercisePromptIfNeeded() {
         guard let exercise = viewModel.currentExercise,
-              viewModel.shouldShowFirstExercisePrompt(for: exercise),
+              viewModel.exerciseGuidance.shouldShowFirstExercisePrompt(for: exercise),
               !promptedExerciseIDs.contains(exercise.id) else { return }
         promptedExerciseIDs.insert(exercise.id)
         isShowingFirstExercisePrompt = true

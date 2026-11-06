@@ -146,10 +146,14 @@ struct WorkoutSessionView: View {
             if let exercise = viewModel.currentExercise {
                 WorkoutExerciseGuideScreen(
                     exercise: exercise,
-                    guide: viewModel.exerciseGuide(for: exercise.id),
-                    guideError: viewModel.exerciseGuideError(for: exercise.id),
-                    isLoadingGuide: viewModel.isLoadingExerciseGuide(for: exercise.id),
-                    onRetryGuide: { Task { await viewModel.loadExerciseGuide(for: exercise.id) } },
+                    guide: viewModel.exerciseGuidance.exerciseGuide(for: exercise.id),
+                    guideError: viewModel.exerciseGuidance.exerciseGuideError(for: exercise.id),
+                    isLoadingGuide: viewModel.exerciseGuidance.isLoadingExerciseGuide(for: exercise.id),
+                    onRetryGuide: {
+                        Task {
+                            await viewModel.exerciseGuidance.loadExerciseGuide(for: exercise.id, in: viewModel.plan)
+                        }
+                    },
                     onClose: { isShowingCurrentGuide = false }
                 )
             }
@@ -209,7 +213,7 @@ struct WorkoutSessionView: View {
         }
         .onChange(of: isShowingCurrentGuide) { _, isShowing in
             guard isShowing, let exerciseID = viewModel.currentExercise?.id else { return }
-            Task { await viewModel.loadExerciseGuide(for: exerciseID) }
+            Task { await viewModel.exerciseGuidance.loadExerciseGuide(for: exerciseID, in: viewModel.plan) }
         }
         .onChange(of: viewModel.finishedAt) { _, finishedAt in
             guard finishedAt != nil else { return }
