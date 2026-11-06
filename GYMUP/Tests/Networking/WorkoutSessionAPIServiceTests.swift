@@ -31,9 +31,20 @@ final class WorkoutSessionAPIServiceTests: NetworkingTestCase {
         )
 
         XCTAssertEqual(requests.map(\.httpMethod), ["POST", "POST"])
+        XCTAssertEqual(
+            requests.map { $0.url?.path },
+            [
+                "/api/v1/workouts/workout-1/rests/current/skip",
+                "/api/v1/workouts/workout-1/rests"
+            ]
+        )
         XCTAssertEqual(skipped.status, .skipped)
         XCTAssertEqual(rest.durationSeconds, 60)
         XCTAssertEqual(rest.nextSet, .object(["exerciseId": .string("exercise-2")]))
+        XCTAssertEqual(
+            try JSONDecoder().decode(StartRestRequest.self, from: try XCTUnwrap(requests.last?.httpBody)),
+            StartRestRequest(setId: "set-1", durationSeconds: 60)
+        )
     }
     func testExerciseAdvanceAndSetCreationPreserveOpaqueResponses() async throws {
         let paths = [

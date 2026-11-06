@@ -157,7 +157,7 @@ final class WorkoutAPIServiceTests: NetworkingTestCase {
         ]
         var requests: [URLRequest] = []
         installJSONResponses(paths, recordRequest: { requests.append($0) })
-        let service = try WorkoutReadAPIService(client: makeClient(token: "test-token"))
+        let service = try WorkoutSessionAPIService(client: makeClient(token: "test-token"))
 
         let current = try await service.currentRest(workoutId: "workout-1")
         let extended = try await service.extendCurrentRest(workoutId: "workout-1", by: 15)

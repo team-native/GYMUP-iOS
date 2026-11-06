@@ -50,6 +50,7 @@ extension WorkoutSessionViewModel {
     @discardableResult
     func advanceToNextExercise() async -> Bool {
         guard let serverWorkoutID else { return moveToNextExerciseLocally() }
+        guard pendingRestStart == nil else { return false }
         guard hasStarted, !isPaused, !isFinished,
               let currentExercise,
               plan.exercises.indices.contains(currentExerciseIndex + 1) else { return false }
@@ -94,6 +95,14 @@ extension WorkoutSessionViewModel {
             return await completeSet(exerciseIndex: exerciseIndex, setIndex: setIndex)
         case .advanceExercise:
             return await advanceToNextExercise()
+        case .startRest:
+            return await reconcilePendingRestStart()
+        case .skipRest:
+            return await requestServerRestSkip()
+        case let .extendRest(seconds):
+            return await requestServerRestExtension(by: seconds)
+        case .refreshRest:
+            return await refreshActiveServerRest(at: Date())
         }
     }
 
@@ -103,6 +112,7 @@ extension WorkoutSessionViewModel {
 
     private func canCompleteSet(exerciseIndex: Int, setIndex: Int) -> Bool {
         guard hasStarted, !isPaused, !isFinished,
+              pendingRestStart == nil,
               plan.exercises.indices.contains(exerciseIndex),
               plan.exercises[exerciseIndex].sets.indices.contains(setIndex) else { return false }
         return !plan.exercises[exerciseIndex].sets[setIndex].isCompleted
@@ -139,9 +149,16 @@ extension WorkoutSessionViewModel {
                 idempotencyKey: pendingSetSubmission.idempotencyKey
             )
             try validateCreatedSet(response, workoutID: workoutID, exercise: exercise, setIndex: setIndex)
-            markSetCompleted(exerciseIndex: exerciseIndex, setIndex: setIndex, at: date)
+            markSetCompleted(exerciseIndex: exerciseIndex, setIndex: setIndex, at: date, startsLocalRest: false)
             self.pendingSetSubmission = nil
-            return true
+            let hasMoreSets = exercise.sets.dropFirst(setIndex + 1).contains { !$0.isCompleted }
+            let restDuration = min(max(exercise.restDurationSeconds, 0), 600)
+            guard hasMoreSets, restDuration > 0 else { return true }
+            pendingRestStart = PendingWorkoutRestStart(
+                workoutID: workoutID,
+                request: StartRestRequest(setId: response.setId, durationSeconds: restDuration)
+            )
+            return await startPendingRest()
         } catch {
             failServerAction(.recordSet(exerciseIndex: exerciseIndex, setIndex: setIndex), error: error)
             return false
@@ -184,7 +201,8 @@ extension WorkoutSessionViewModel {
     ) throws {
         guard response.workoutId == workoutID,
               response.exerciseId == exercise.id,
-              response.setIndex == setIndex + 1 else {
+              response.setIndex == setIndex + 1,
+              !response.setId.isEmpty else {
             throw APIClientError.invalidResponse
         }
     }
@@ -236,6 +254,10 @@ extension WorkoutSessionViewModel {
 enum FailedWorkoutServerAction: Equatable {
     case recordSet(exerciseIndex: Int, setIndex: Int)
     case advanceExercise
+    case startRest
+    case skipRest
+    case extendRest(seconds: Int)
+    case refreshRest
 }
 
 struct PendingWorkoutSetSubmission {
@@ -243,4 +265,9 @@ struct PendingWorkoutSetSubmission {
     let setIndex: Int
     let request: CreateWorkoutSetRequest
     let idempotencyKey: String
+}
+
+struct PendingWorkoutRestStart: Equatable {
+    let workoutID: String
+    let request: StartRestRequest
 }

@@ -7,6 +7,7 @@ struct WorkoutTrainModeScreen: View {
     let exerciseIndex: Int
     let totalExerciseCount: Int
     let currentSetIndex: Int?
+    let canPerformPrimaryAction: Bool
     let isResting: Bool
     let isPaused: Bool
     let restSecondsRemaining: Int
@@ -250,6 +251,7 @@ struct WorkoutTrainModeScreen: View {
                 .background(GymupColors.accent, in: Capsule())
         }
         .buttonStyle(.plain)
+        .disabled(!canPerformPrimaryAction)
         .accessibilityIdentifier("workout.train.primary-action")
     }
 }

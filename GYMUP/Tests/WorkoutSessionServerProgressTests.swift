@@ -196,4 +196,33 @@ private final class MockWorkoutSessionProgressService: WorkoutSessionProgressing
             status: "IN_PROGRESS"
         )
     }
+
+    func startRest(workoutId: String, request: StartRestRequest) async throws -> StartRestResponse {
+        StartRestResponse(
+            restId: "rest-1",
+            startedAt: "2026-10-31T09:00:00Z",
+            endsAt: "2026-10-31T09:01:00Z",
+            durationSeconds: request.durationSeconds,
+            nextSet: .object([:])
+        )
+    }
+
+    func currentRest(workoutId: String) async throws -> CurrentRestResponse {
+        CurrentRestResponse(
+            restId: "rest-1",
+            status: "ACTIVE",
+            startedAt: "2026-10-31T09:00:00Z",
+            endsAt: "2026-10-31T09:01:00Z",
+            remainingSeconds: 60,
+            notificationAt: "2026-10-31T09:00:50Z"
+        )
+    }
+
+    func skipCurrentRest(workoutId: String) async throws -> SkipCurrentRestResponse {
+        SkipCurrentRestResponse(restId: "rest-1", status: .skipped, nextSet: .object([:]))
+    }
+
+    func extendCurrentRest(workoutId: String, by seconds: Int) async throws -> ExtendCurrentRestResponse {
+        ExtendCurrentRestResponse(restId: "rest-1", endsAt: "2026-10-31T09:01:15Z", remainingSeconds: 75)
+    }
 }
