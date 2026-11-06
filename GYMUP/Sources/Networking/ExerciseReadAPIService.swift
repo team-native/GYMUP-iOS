@@ -31,9 +31,11 @@ struct PreviousExerciseRecordResponse: Codable, Equatable {
     let performedAt: String
 }
 
-@MainActor
 protocol ExerciseGuidanceReading {
+    @MainActor
     func firstTimeStatus(exerciseId: String) async throws -> ExerciseFirstTimeStatusResponse
+
+    @MainActor
     func guide(exerciseId: String) async throws -> ExerciseGuideResponse
 }
 
@@ -44,6 +46,7 @@ struct ExerciseReadAPIService: ExerciseGuidanceReading {
         self.client = client
     }
 
+    @MainActor
     func firstTimeStatus(exerciseId: String) async throws -> ExerciseFirstTimeStatusResponse {
         let endpoint = APIEndpoint(
             method: .get,
@@ -53,6 +56,7 @@ struct ExerciseReadAPIService: ExerciseGuidanceReading {
         return try await client.send(endpoint, as: ExerciseFirstTimeStatusResponse.self)
     }
 
+    @MainActor
     func guide(exerciseId: String) async throws -> ExerciseGuideResponse {
         let endpoint = APIEndpoint(
             method: .get,
