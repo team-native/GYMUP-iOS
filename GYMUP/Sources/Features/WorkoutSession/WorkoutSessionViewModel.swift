@@ -13,9 +13,13 @@ final class WorkoutSessionViewModel {
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: ExerciseReadAPIService?
+    let nextSetService: WorkoutNextSetReading?
     let progressService: WorkoutSessionProgressing?
     private(set) var previousRecordErrors: [String: String] = [:]
     private(set) var loadingPreviousRecordExerciseIDs: Set<String> = []
+    private(set) var nextSetPreview: NextWorkoutSetResponse?
+    private(set) var nextSetPreviewError: String?
+    private(set) var isLoadingNextSetPreview = false
     var isSubmittingWorkoutAction = false
     var serverActionErrorMessage: String?
     var failedServerAction: FailedWorkoutServerAction?
@@ -40,7 +44,8 @@ final class WorkoutSessionViewModel {
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
-        progressService: WorkoutSessionProgressing? = nil
+        progressService: WorkoutSessionProgressing? = nil,
+        nextSetService: WorkoutNextSetReading? = nil
     ) {
         plan = .sample(for: routineID)
         self.startedAt = startsImmediately ? startedAt : nil
@@ -49,6 +54,7 @@ final class WorkoutSessionViewModel {
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
         self.progressService = progressService
+        self.nextSetService = nextSetService
         serverWorkoutID = nil
     }
 
@@ -60,7 +66,8 @@ final class WorkoutSessionViewModel {
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
         serverWorkoutID: String? = nil,
-        progressService: WorkoutSessionProgressing? = nil
+        progressService: WorkoutSessionProgressing? = nil,
+        nextSetService: WorkoutNextSetReading? = nil
     ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
@@ -70,6 +77,7 @@ final class WorkoutSessionViewModel {
         self.previousRecordService = previousRecordService
         self.serverWorkoutID = serverWorkoutID
         self.progressService = progressService
+        self.nextSetService = nextSetService
     }
 
     var isPaused: Bool { pausedAt != nil }
@@ -303,5 +311,65 @@ extension WorkoutSessionViewModel {
                 previousRecordErrors[exerciseID] = "이전 기록을 불러오지 못했어요."
             }
         }
+    }
+}
+
+extension WorkoutSessionViewModel {
+    func loadNextSetPreview() async {
+        guard !isLoadingNextSetPreview,
+              isServerManagedRest,
+              let workoutID = serverWorkoutID,
+              let nextSetService,
+              let exercise = currentExercise,
+              exercise.measure == .repetitions,
+              let localSetIndex = currentSetIndex else { return }
+
+        let expectedSetIndex = localSetIndex + 1
+        isLoadingNextSetPreview = true
+        nextSetPreview = nil
+        nextSetPreviewError = nil
+        defer { isLoadingNextSetPreview = false }
+
+        do {
+            let response = try await nextSetService.nextSet(workoutId: workoutID)
+            guard isCurrentNextSetRequest(
+                workoutID: workoutID,
+                exerciseID: exercise.id,
+                setIndex: localSetIndex
+            ) else { return }
+            guard response.exerciseId == exercise.id,
+                  response.setIndex == expectedSetIndex,
+                  !response.exerciseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                  response.weight.isFinite,
+                  response.weight >= 0,
+                  response.reps >= 0 else {
+                throw APIClientError.invalidResponse
+            }
+
+            nextSetPreview = response
+        } catch {
+            guard !Task.isCancelled,
+                  isCurrentNextSetRequest(
+                    workoutID: workoutID,
+                    exerciseID: exercise.id,
+                    setIndex: localSetIndex
+                  ) else { return }
+            nextSetPreviewError = Self.nextSetPreviewMessage(for: error)
+        }
+    }
+
+    private func isCurrentNextSetRequest(workoutID: String, exerciseID: String, setIndex: Int) -> Bool {
+        serverWorkoutID == workoutID &&
+            isServerManagedRest &&
+            currentExercise?.id == exerciseID &&
+            currentSetIndex == setIndex
+    }
+
+    private static func nextSetPreviewMessage(for error: Error) -> String {
+        if let apiError = error as? APIClientError,
+           case let .server(_, detail) = apiError {
+            return detail.message
+        }
+        return "다음 세트 정보를 불러오지 못했어요."
     }
 }

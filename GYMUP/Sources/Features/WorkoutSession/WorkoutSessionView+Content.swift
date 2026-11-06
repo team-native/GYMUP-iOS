@@ -36,7 +36,11 @@ extension WorkoutSessionView {
                     onSkip: skipCurrentRest,
                     previousRecordError: viewModel.previousRecordError(for: exercise.id),
                     isLoadingPreviousRecord: viewModel.isLoadingPreviousRecord(for: exercise.id),
-                    onRetryPreviousRecord: { Task { await loadPreviousRecord(for: exercise.id) } }
+                    onRetryPreviousRecord: { Task { await loadPreviousRecord(for: exercise.id) } },
+                    nextSetPreview: viewModel.nextSetPreview,
+                    nextSetPreviewError: viewModel.nextSetPreviewError,
+                    isLoadingNextSetPreview: viewModel.isLoadingNextSetPreview,
+                    onRetryNextSetPreview: { Task { await viewModel.loadNextSetPreview() } }
                 )
             } else if let exercise = viewModel.currentExercise {
                 WorkoutTrainModeScreen(

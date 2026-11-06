@@ -41,7 +41,11 @@ struct NextWorkoutSetResponse: Codable, Equatable {
     let restEndsAt: String
 }
 
-struct WorkoutReadAPIService {
+protocol WorkoutNextSetReading {
+    func nextSet(workoutId: String) async throws -> NextWorkoutSetResponse
+}
+
+struct WorkoutReadAPIService: WorkoutNextSetReading {
     private let client: APIClient
 
     init(client: APIClient) {

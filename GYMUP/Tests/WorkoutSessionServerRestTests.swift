@@ -225,6 +225,11 @@ final class WorkoutSessionServerRestTests: XCTestCase {
         XCTAssertFalse(viewModel.isServerManagedRest)
         XCTAssertTrue(service.setRequests.isEmpty)
         XCTAssertTrue(service.restRequests.isEmpty)
+
+        await viewModel.loadNextSetPreview()
+
+        XCTAssertTrue(service.nextSetRequests.isEmpty)
+        XCTAssertNil(viewModel.nextSetPreviewError)
     }
 
     @MainActor
@@ -269,7 +274,8 @@ final class WorkoutSessionServerRestTests: XCTestCase {
             plan: plan,
             startedAt: start,
             serverWorkoutID: "workout-1",
-            progressService: service
+            progressService: service,
+            nextSetService: service
         )
     }
 
