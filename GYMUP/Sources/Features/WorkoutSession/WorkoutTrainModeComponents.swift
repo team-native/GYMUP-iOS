@@ -41,6 +41,7 @@ struct WorkoutSessionSetTable: View {
     let exercise: WorkoutSessionExercise
     let currentSetIndex: Int?
     let onToggleSet: (Int) -> Void
+    let canToggleSet: (Int) -> Bool
     let onAdjustWeight: (Double) -> Void
     let onInputWeight: () -> Void
     let onAdjustRepetitions: (Int) -> Void
@@ -103,6 +104,7 @@ struct WorkoutSessionSetTable: View {
 
     private func setRow(_ set: WorkoutSessionSet, index: Int) -> some View {
         let isCurrent = currentSetIndex == index
+        let isToggleEnabled = canToggleSet(index)
         let valueColor = set.isCompleted || isCurrent ? GymupColors.primaryText : GymupColors.tertiaryText
         return HStack(spacing: 8) {
             Text(String(index + 1))
@@ -130,7 +132,17 @@ struct WorkoutSessionSetTable: View {
                     .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityLabel(set.isCompleted ? "세트 \(index + 1) 완료 취소" : "세트 \(index + 1) 완료")
+            .disabled(!isToggleEnabled)
+            .accessibilityLabel(
+                set.isCompleted && isToggleEnabled
+                    ? "세트 \(index + 1) 완료 취소"
+                    : "세트 \(index + 1) 완료"
+            )
+            .accessibilityHint(
+                isToggleEnabled ? "" : (
+                    set.isCompleted ? "서버에 기록된 세트는 취소할 수 없어요." : "현재 세트만 완료할 수 있어요."
+                )
+            )
             .accessibilityIdentifier("workout.set.\(index + 1).complete")
         }
         .padding(.horizontal, 4)

@@ -20,7 +20,7 @@ extension WorkoutSessionView {
                     nextExercise: viewModel.plan.exercises[viewModel.currentExerciseIndex + 1],
                     nextExerciseIndex: viewModel.currentExerciseIndex + 1,
                     totalExerciseCount: viewModel.plan.exercises.count,
-                    onContinue: { _ = viewModel.moveToNextExercise() },
+                    onContinue: advanceToNextExercise,
                     onFinish: { isConfirmingFinish = true }
                 )
             } else if viewModel.isResting,
@@ -64,12 +64,26 @@ extension WorkoutSessionView {
                         }
                     },
                     onToggleSet: { setIndex in
-                        viewModel.toggleSetCompletion(
-                            exerciseIndex: viewModel.currentExerciseIndex,
-                            setIndex: setIndex,
-                            at: Date()
-                        )
-                        syncRestActivity()
+                        if viewModel.serverWorkoutID == nil {
+                            viewModel.toggleSetCompletion(
+                                exerciseIndex: viewModel.currentExerciseIndex,
+                                setIndex: setIndex,
+                                at: Date()
+                            )
+                            syncRestActivity()
+                        } else {
+                            Task {
+                                await completeSet(
+                                    exerciseIndex: viewModel.currentExerciseIndex,
+                                    setIndex: setIndex,
+                                    at: Date()
+                                )
+                            }
+                        }
+                    },
+                    canToggleSet: { setIndex in
+                        viewModel.serverWorkoutID == nil ||
+                            (setIndex == viewModel.currentSetIndex && !viewModel.isSubmittingWorkoutAction)
                     },
                     onAdjustWeight: viewModel.adjustCurrentWeight,
                     onInputWeight: {
@@ -82,14 +96,18 @@ extension WorkoutSessionView {
                         viewModel.skipRest()
                         syncRestActivity()
                     },
-                    onNextExercise: { _ = viewModel.moveToNextExercise() },
+                    onNextExercise: advanceToNextExercise,
                     onFinish: { isConfirmingFinish = true },
                     previousRecordError: viewModel.previousRecordError(for: exercise.id),
                     isLoadingPreviousRecord: viewModel.isLoadingPreviousRecord(for: exercise.id),
                     onRetryPreviousRecord: { Task { await loadPreviousRecord(for: exercise.id) } }
                 )
             } else {
-                GymupEmptyState(symbol: "dumbbell", title: "운동을 찾을 수 없어요", message: "루틴으로 돌아가 운동을 확인해 주세요.")
+                GymupEmptyState(
+                    symbol: "dumbbell",
+                    title: "운동을 찾을 수 없어요",
+                    message: "루틴으로 돌아가 운동을 확인해 주세요."
+                )
             }
         }
     }

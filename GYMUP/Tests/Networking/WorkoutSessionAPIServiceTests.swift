@@ -79,7 +79,7 @@ final class WorkoutSessionAPIServiceTests: NetworkingTestCase {
             request: setRequest,
             idempotencyKey: "set-request-1"
         )
-        XCTAssertEqual(requests[1].value(forHTTPHeaderField: "Idempotency-Key"), "set-request-1")
+        try assertProgressRequests(requests, setRequest: setRequest)
         XCTAssertEqual(advanced.currentExercise, .object(["exerciseId": .string("exercise-2")]))
         XCTAssertFalse(createdSet.isPersonalRecord)
         XCTAssertEqual(createdSet.nextAction, .object(["type": .string("REST")]))
@@ -114,5 +114,26 @@ final class WorkoutSessionAPIServiceTests: NetworkingTestCase {
         XCTAssertEqual(response.workoutId, "workout-1")
         XCTAssertEqual(response.status, .inProgress)
         XCTAssertEqual(response.routineSnapshot, .object(["routineId": .string("routine-1")]))
+    }
+
+    private func assertProgressRequests(_ requests: [URLRequest], setRequest: CreateWorkoutSetRequest) throws {
+        XCTAssertEqual(requests[0].httpMethod, "PATCH")
+        XCTAssertEqual(requests[0].url?.path, "/api/v1/workouts/workout-1/current-exercise")
+        XCTAssertEqual(requests[1].httpMethod, "POST")
+        XCTAssertEqual(requests[1].url?.path, "/api/v1/workouts/workout-1/sets")
+        XCTAssertEqual(requests[1].value(forHTTPHeaderField: "Idempotency-Key"), "set-request-1")
+        XCTAssertEqual(
+            try advanceRequest(in: requests[0]),
+            AdvanceWorkoutExerciseRequest(completedExerciseId: "exercise-1")
+        )
+        XCTAssertEqual(try decodeSetRequest(in: requests[1]), setRequest)
+    }
+
+    private func advanceRequest(in request: URLRequest) throws -> AdvanceWorkoutExerciseRequest {
+        try JSONDecoder().decode(AdvanceWorkoutExerciseRequest.self, from: XCTUnwrap(request.httpBody))
+    }
+
+    private func decodeSetRequest(in request: URLRequest) throws -> CreateWorkoutSetRequest {
+        try JSONDecoder().decode(CreateWorkoutSetRequest.self, from: XCTUnwrap(request.httpBody))
     }
 }

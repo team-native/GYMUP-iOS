@@ -5,22 +5,31 @@ import Observation
 @MainActor
 final class WorkoutSessionViewModel {
     private(set) var plan: WorkoutSessionPlan
-    private(set) var currentExerciseIndex = 0
+    var currentExerciseIndex = 0
     private(set) var now: Date
     private(set) var finishedAt: Date?
-    private(set) var notice: String?
+    var notice: String?
     private(set) var serverWorkoutID: String?
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: ExerciseReadAPIService?
+    let progressService: WorkoutSessionProgressing?
     private(set) var previousRecordErrors: [String: String] = [:]
     private(set) var loadingPreviousRecordExerciseIDs: Set<String> = []
+    var isSubmittingWorkoutAction = false
+    var serverActionErrorMessage: String?
+    var failedServerAction: FailedWorkoutServerAction?
+
+    var pendingSetSubmission: PendingWorkoutSetSubmission?
+    var pendingExerciseAdvance: AdvanceWorkoutExerciseRequest?
+
+    var hasPendingServerSetSubmission: Bool { pendingSetSubmission != nil }
 
     private(set) var startedAt: Date?
     private var pausedAt: Date?
     private var accumulatedPauseSeconds: TimeInterval = 0
-    private var restEndsAt: Date?
-    private(set) var activeRestDurationSeconds = 0
+    var restEndsAt: Date?
+    var activeRestDurationSeconds = 0
 
     init(
         routineID: String,
@@ -28,7 +37,8 @@ final class WorkoutSessionViewModel {
         startsImmediately: Bool = true,
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
-        previousRecordService: ExerciseReadAPIService? = nil
+        previousRecordService: ExerciseReadAPIService? = nil,
+        progressService: WorkoutSessionProgressing? = nil
     ) {
         plan = .sample(for: routineID)
         self.startedAt = startsImmediately ? startedAt : nil
@@ -36,6 +46,7 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.progressService = progressService
         serverWorkoutID = nil
     }
 
@@ -46,7 +57,8 @@ final class WorkoutSessionViewModel {
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
-        serverWorkoutID: String? = nil
+        serverWorkoutID: String? = nil,
+        progressService: WorkoutSessionProgressing? = nil
     ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
@@ -55,15 +67,7 @@ final class WorkoutSessionViewModel {
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
         self.serverWorkoutID = serverWorkoutID
-    }
-
-    var currentExercise: WorkoutSessionExercise? {
-        guard plan.exercises.indices.contains(currentExerciseIndex) else { return nil }
-        return plan.exercises[currentExerciseIndex]
-    }
-
-    var currentSetIndex: Int? {
-        currentExercise?.sets.firstIndex(where: { !$0.isCompleted })
+        self.progressService = progressService
     }
 
     var isPaused: Bool { pausedAt != nil }
@@ -124,6 +128,8 @@ final class WorkoutSessionViewModel {
         guard hasStarted,
               !isPaused,
               !isFinished,
+              !isSubmittingWorkoutAction,
+              !isPendingServerSet(exerciseIndex: exerciseIndex, setIndex: setIndex),
               plan.exercises.indices.contains(exerciseIndex),
               plan.exercises[exerciseIndex].sets.indices.contains(setIndex) else { return }
         plan.exercises[exerciseIndex].sets[setIndex].weightKilograms = min(max(weight, 0), 999)
@@ -134,28 +140,20 @@ final class WorkoutSessionViewModel {
         guard hasStarted,
               !isPaused,
               !isFinished,
+              !isSubmittingWorkoutAction,
+              !isPendingServerSet(exerciseIndex: exerciseIndex, setIndex: setIndex),
               plan.exercises.indices.contains(exerciseIndex),
               plan.exercises[exerciseIndex].sets.indices.contains(setIndex) else { return }
         plan.exercises[exerciseIndex].sets[setIndex].repetitions = min(max(repetitions, 0), 999)
         notice = nil
     }
 
-    func adjustCurrentWeight(by increment: Double) {
-        guard let currentSetIndex, let currentExercise else { return }
-        let weight = currentExercise.sets[currentSetIndex].weightKilograms + increment
-        updateWeight(weight, exerciseIndex: currentExerciseIndex, setIndex: currentSetIndex)
-    }
-
-    func adjustCurrentRepetitions(by increment: Int) {
-        guard let currentSetIndex, let currentExercise else { return }
-        let repetitions = currentExercise.sets[currentSetIndex].repetitions + increment
-        updateRepetitions(repetitions, exerciseIndex: currentExerciseIndex, setIndex: currentSetIndex)
-    }
-
     func addSet(to exerciseIndex: Int) {
         guard hasStarted,
               !isPaused,
               !isFinished,
+              !isSubmittingWorkoutAction,
+              pendingSetSubmission == nil,
               plan.exercises.indices.contains(exerciseIndex) else { return }
         let lastSet = plan.exercises[exerciseIndex].sets.last
         let newSet = WorkoutSessionSet(
@@ -170,18 +168,26 @@ final class WorkoutSessionViewModel {
         guard hasStarted,
               !isPaused,
               !isFinished,
+              serverWorkoutID == nil,
               plan.exercises.indices.contains(exerciseIndex),
               plan.exercises[exerciseIndex].sets.indices.contains(setIndex) else { return }
 
-        let wasCompleted = plan.exercises[exerciseIndex].sets[setIndex].isCompleted
-        plan.exercises[exerciseIndex].sets[setIndex].isCompleted.toggle()
-        notice = nil
-
-        guard !wasCompleted else {
+        if plan.exercises[exerciseIndex].sets[setIndex].isCompleted {
+            plan.exercises[exerciseIndex].sets[setIndex].isCompleted = false
             restEndsAt = nil
             activeRestDurationSeconds = 0
             return
         }
+
+        markSetCompleted(exerciseIndex: exerciseIndex, setIndex: setIndex, at: date)
+    }
+
+    func markSetCompleted(exerciseIndex: Int, setIndex: Int, at date: Date?) {
+        guard plan.exercises.indices.contains(exerciseIndex),
+              plan.exercises[exerciseIndex].sets.indices.contains(setIndex),
+              !plan.exercises[exerciseIndex].sets[setIndex].isCompleted else { return }
+        plan.exercises[exerciseIndex].sets[setIndex].isCompleted = true
+        notice = nil
 
         let hasMoreSets = plan.exercises[exerciseIndex].sets.contains { !$0.isCompleted }
         if hasMoreSets, let date {
@@ -195,23 +201,6 @@ final class WorkoutSessionViewModel {
             restEndsAt = nil
             activeRestDurationSeconds = 0
         }
-    }
-
-    @discardableResult
-    func moveToNextExercise() -> Bool {
-        guard hasStarted, !isPaused, !isFinished else { return false }
-        guard let currentExercise else { return false }
-        guard currentExercise.isComplete else {
-            notice = "현재 운동의 세트를 모두 완료한 뒤 다음으로 이동할 수 있어요."
-            return false
-        }
-        guard plan.exercises.indices.contains(currentExerciseIndex + 1) else { return false }
-
-        currentExerciseIndex += 1
-        restEndsAt = nil
-        activeRestDurationSeconds = 0
-        notice = nil
-        return true
     }
 
     func skipRest() {

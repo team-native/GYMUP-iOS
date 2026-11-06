@@ -14,6 +14,7 @@ struct WorkoutTrainModeScreen: View {
     let onMusic: () -> Void
     let onToggleGuide: () -> Void
     let onToggleSet: (Int) -> Void
+    let canToggleSet: (Int) -> Bool
     let onAdjustWeight: (Double) -> Void
     let onInputWeight: () -> Void
     let onAdjustRepetitions: (Int) -> Void
@@ -47,6 +48,7 @@ struct WorkoutTrainModeScreen: View {
                         exercise: exercise,
                         currentSetIndex: currentSetIndex,
                         onToggleSet: onToggleSet,
+                        canToggleSet: canToggleSet,
                         onAdjustWeight: onAdjustWeight,
                         onInputWeight: onInputWeight,
                         onAdjustRepetitions: onAdjustRepetitions

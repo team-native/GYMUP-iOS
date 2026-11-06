@@ -233,4 +233,5 @@ final class WorkoutSessionViewModelTests: XCTestCase {
         XCTAssertTrue(viewModel.hasStarted)
         XCTAssertEqual(viewModel.elapsedSeconds(at: start.addingTimeInterval(150)), 30)
     }
+
 }

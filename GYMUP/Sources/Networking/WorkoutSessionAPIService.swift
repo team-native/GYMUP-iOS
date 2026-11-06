@@ -84,6 +84,19 @@ protocol WorkoutStarting {
     func startWorkout(request: StartWorkoutRequest) async throws -> StartWorkoutResponse
 }
 
+protocol WorkoutSessionProgressing {
+    func createSet(
+        workoutId: String,
+        request: CreateWorkoutSetRequest,
+        idempotencyKey: String?
+    ) async throws -> CreateWorkoutSetResponse
+
+    func advanceExercise(
+        workoutId: String,
+        request: AdvanceWorkoutExerciseRequest
+    ) async throws -> AdvanceWorkoutExerciseResponse
+}
+
 struct WorkoutSessionAPIService {
     private let client: APIClient
 
@@ -150,3 +163,4 @@ struct WorkoutSessionAPIService {
 }
 
 extension WorkoutSessionAPIService: WorkoutStarting {}
+extension WorkoutSessionAPIService: WorkoutSessionProgressing {}
