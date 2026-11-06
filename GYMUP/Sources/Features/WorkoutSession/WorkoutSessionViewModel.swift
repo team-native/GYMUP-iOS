@@ -13,10 +13,17 @@ final class WorkoutSessionViewModel {
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: ExerciseReadAPIService?
+    private let exerciseGuidanceService: ExerciseGuidanceReading?
     let nextSetService: WorkoutNextSetReading?
     let progressService: WorkoutSessionProgressing?
     private(set) var previousRecordErrors: [String: String] = [:]
     private(set) var loadingPreviousRecordExerciseIDs: Set<String> = []
+    private(set) var firstTimeStatuses: [String: ExerciseFirstTimeStatusResponse] = [:]
+    private(set) var firstTimeStatusErrors: [String: String] = [:]
+    private(set) var loadingFirstTimeStatusExerciseIDs: Set<String> = []
+    private(set) var exerciseGuides: [String: ExerciseGuideResponse] = [:]
+    private(set) var exerciseGuideErrors: [String: String] = [:]
+    private(set) var loadingExerciseGuideIDs: Set<String> = []
     private(set) var nextSetPreview: NextWorkoutSetResponse?
     private(set) var nextSetPreviewError: String?
     private(set) var isLoadingNextSetPreview = false
@@ -44,6 +51,7 @@ final class WorkoutSessionViewModel {
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
+        exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         progressService: WorkoutSessionProgressing? = nil,
         nextSetService: WorkoutNextSetReading? = nil
     ) {
@@ -53,6 +61,7 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.exerciseGuidanceService = exerciseGuidanceService
         self.progressService = progressService
         self.nextSetService = nextSetService
         serverWorkoutID = nil
@@ -65,6 +74,7 @@ final class WorkoutSessionViewModel {
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
         previousRecordService: ExerciseReadAPIService? = nil,
+        exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         serverWorkoutID: String? = nil,
         progressService: WorkoutSessionProgressing? = nil,
         nextSetService: WorkoutNextSetReading? = nil
@@ -75,6 +85,7 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.exerciseGuidanceService = exerciseGuidanceService
         self.serverWorkoutID = serverWorkoutID
         self.progressService = progressService
         self.nextSetService = nextSetService
@@ -270,6 +281,85 @@ final class WorkoutSessionViewModel {
         activeRestDurationSeconds = 0
         isServerManagedRest = false
         notice = nil
+    }
+}
+
+extension WorkoutSessionViewModel {
+    func shouldShowFirstExercisePrompt(for exercise: WorkoutSessionExercise) -> Bool {
+        guard let status = firstTimeStatuses[exercise.id], status.exerciseId == exercise.id else {
+            return !exercise.hasPreviousPerformance
+        }
+        return status.isFirstTime && status.guideAvailable
+    }
+
+    func loadFirstTimeStatus(for exerciseID: String) async {
+        guard let exerciseGuidanceService,
+              plan.exercises.contains(where: { $0.id == exerciseID }),
+              !loadingFirstTimeStatusExerciseIDs.contains(exerciseID) else { return }
+
+        loadingFirstTimeStatusExerciseIDs.insert(exerciseID)
+        defer { loadingFirstTimeStatusExerciseIDs.remove(exerciseID) }
+
+        do {
+            let response = try await exerciseGuidanceService.firstTimeStatus(exerciseId: exerciseID)
+            guard response.exerciseId == exerciseID else {
+                throw APIClientError.invalidResponse
+            }
+
+            firstTimeStatuses[exerciseID] = response
+            firstTimeStatusErrors.removeValue(forKey: exerciseID)
+        } catch {
+            guard !Task.isCancelled else { return }
+            firstTimeStatusErrors[exerciseID] = Self.exerciseGuidanceErrorMessage(
+                for: error,
+                fallback: "첫 기록 상태를 불러오지 못했어요."
+            )
+        }
+    }
+
+    func exerciseGuide(for exerciseID: String) -> ExerciseGuideResponse? {
+        exerciseGuides[exerciseID]
+    }
+
+    func exerciseGuideError(for exerciseID: String) -> String? {
+        exerciseGuideErrors[exerciseID]
+    }
+
+    func isLoadingExerciseGuide(for exerciseID: String) -> Bool {
+        loadingExerciseGuideIDs.contains(exerciseID)
+    }
+
+    func loadExerciseGuide(for exerciseID: String) async {
+        guard let exerciseGuidanceService,
+              plan.exercises.contains(where: { $0.id == exerciseID }),
+              !loadingExerciseGuideIDs.contains(exerciseID) else { return }
+
+        loadingExerciseGuideIDs.insert(exerciseID)
+        defer { loadingExerciseGuideIDs.remove(exerciseID) }
+
+        do {
+            let response = try await exerciseGuidanceService.guide(exerciseId: exerciseID)
+            guard response.exerciseId == exerciseID else {
+                throw APIClientError.invalidResponse
+            }
+
+            exerciseGuides[exerciseID] = response
+            exerciseGuideErrors.removeValue(forKey: exerciseID)
+        } catch {
+            guard !Task.isCancelled else { return }
+            exerciseGuideErrors[exerciseID] = Self.exerciseGuidanceErrorMessage(
+                for: error,
+                fallback: "자세 가이드를 불러오지 못했어요."
+            )
+        }
+    }
+
+    private static func exerciseGuidanceErrorMessage(for error: Error, fallback: String) -> String {
+        if let apiError = error as? APIClientError,
+           case let .server(_, detail) = apiError {
+            return detail.message
+        }
+        return fallback
     }
 }
 

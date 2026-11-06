@@ -28,11 +28,13 @@ struct WorkoutSessionView: View {
 
     @MainActor
     init(routineID: String, historyStore: HistoryStore) {
+        let exerciseReadService = Self.makePreviousRecordService()
         _viewModel = State(
             initialValue: WorkoutSessionViewModel(
                 routineID: routineID,
                 historyStore: historyStore,
-                previousRecordService: Self.makePreviousRecordService()
+                previousRecordService: exerciseReadService,
+                exerciseGuidanceService: exerciseReadService
             )
         )
         self.historyStore = historyStore
@@ -45,12 +47,14 @@ struct WorkoutSessionView: View {
         serverWorkoutID: String? = nil,
         startedAt: Date = .now
     ) {
+        let exerciseReadService = Self.makePreviousRecordService()
         _viewModel = State(
             initialValue: WorkoutSessionViewModel(
                 plan: plan,
                 startedAt: startedAt,
                 historyStore: historyStore,
-                previousRecordService: Self.makePreviousRecordService(),
+                previousRecordService: exerciseReadService,
+                exerciseGuidanceService: exerciseReadService,
                 serverWorkoutID: serverWorkoutID,
                 progressService: serverWorkoutID == nil ? nil : Self.makeProgressService(),
                 nextSetService: serverWorkoutID == nil ? nil : Self.makeWorkoutReadService()
@@ -142,6 +146,10 @@ struct WorkoutSessionView: View {
             if let exercise = viewModel.currentExercise {
                 WorkoutExerciseGuideScreen(
                     exercise: exercise,
+                    guide: viewModel.exerciseGuide(for: exercise.id),
+                    guideError: viewModel.exerciseGuideError(for: exercise.id),
+                    isLoadingGuide: viewModel.isLoadingExerciseGuide(for: exercise.id),
+                    onRetryGuide: { Task { await viewModel.loadExerciseGuide(for: exercise.id) } },
                     onClose: { isShowingCurrentGuide = false }
                 )
             }
@@ -198,14 +206,16 @@ struct WorkoutSessionView: View {
         }
         .onChange(of: viewModel.currentExerciseIndex) { _, _ in
             isShowingCurrentGuide = false
-            showFirstExercisePromptIfNeeded()
+        }
+        .onChange(of: isShowingCurrentGuide) { _, isShowing in
+            guard isShowing, let exerciseID = viewModel.currentExercise?.id else { return }
+            Task { await viewModel.loadExerciseGuide(for: exerciseID) }
         }
         .onChange(of: viewModel.finishedAt) { _, finishedAt in
             guard finishedAt != nil else { return }
             settings.cancelRestNotification(sessionID: liveActivitySessionID)
             Task { await WorkoutRestActivityController.shared.end(sessionID: liveActivitySessionID) }
         }
-        .task { showFirstExercisePromptIfNeeded() }
         .task(id: "\(viewModel.hasStarted)-\(viewModel.currentExercise?.id ?? "")") {
             guard viewModel.hasStarted, let exerciseID = viewModel.currentExercise?.id else { return }
             await loadPreviousRecord(for: exerciseID)

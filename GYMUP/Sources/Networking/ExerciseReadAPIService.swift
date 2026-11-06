@@ -31,7 +31,13 @@ struct PreviousExerciseRecordResponse: Codable, Equatable {
     let performedAt: String
 }
 
-struct ExerciseReadAPIService {
+@MainActor
+protocol ExerciseGuidanceReading {
+    func firstTimeStatus(exerciseId: String) async throws -> ExerciseFirstTimeStatusResponse
+    func guide(exerciseId: String) async throws -> ExerciseGuideResponse
+}
+
+struct ExerciseReadAPIService: ExerciseGuidanceReading {
     private let client: APIClient
 
     init(client: APIClient) {

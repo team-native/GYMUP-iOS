@@ -1,8 +1,29 @@
+import AVKit
 import SwiftUI
 
 struct WorkoutExerciseGuideScreen: View {
     let exercise: WorkoutSessionExercise
+    let guide: ExerciseGuideResponse?
+    let guideError: String?
+    let isLoadingGuide: Bool
+    let onRetryGuide: () -> Void
     let onClose: () -> Void
+
+    init(
+        exercise: WorkoutSessionExercise,
+        guide: ExerciseGuideResponse? = nil,
+        guideError: String? = nil,
+        isLoadingGuide: Bool = false,
+        onRetryGuide: @escaping () -> Void = {},
+        onClose: @escaping () -> Void
+    ) {
+        self.exercise = exercise
+        self.guide = guide
+        self.guideError = guideError
+        self.isLoadingGuide = isLoadingGuide
+        self.onRetryGuide = onRetryGuide
+        self.onClose = onClose
+    }
 
     var body: some View {
         ScrollView(showsIndicators: false) {
@@ -19,21 +40,29 @@ struct WorkoutExerciseGuideScreen: View {
 
     private var videoHero: some View {
         ZStack {
-            Image(exercise.imageAssetName)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity)
-                .frame(height: 300)
-                .clipped()
+            if let mediaURL = validMediaURL {
+                WorkoutGuideVideoPlayer(url: mediaURL)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 300)
+                    .clipped()
+                    .accessibilityIdentifier("workout.guide.video-player")
+            } else {
+                Image(exercise.imageAssetName)
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 300)
+                    .clipped()
 
-            Text("영상 준비 중")
-                .font(GymupTypography.uiBold)
-                .foregroundStyle(GymupColors.primaryText)
-                .padding(.horizontal, 16)
-                .padding(.vertical, 10)
-                .background(GymupColors.canvas.opacity(0.85), in: Capsule())
-                .accessibilityLabel("자세 영상은 준비 중이에요. 아래 자세 설명을 확인해 주세요.")
-                .accessibilityIdentifier("workout.guide.video-unavailable")
+                Text("영상 준비 중")
+                    .font(GymupTypography.uiBold)
+                    .foregroundStyle(GymupColors.primaryText)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(GymupColors.canvas.opacity(0.85), in: Capsule())
+                    .accessibilityLabel("자세 영상은 준비 중이에요. 아래 자세 설명을 확인해 주세요.")
+                    .accessibilityIdentifier("workout.guide.video-unavailable")
+            }
         }
         .frame(height: 300)
         .overlay(alignment: .topTrailing) {
@@ -63,6 +92,16 @@ struct WorkoutExerciseGuideScreen: View {
                     .foregroundStyle(GymupColors.secondaryText)
             }
 
+            if let guideError {
+                WorkoutSessionRecordRetryBanner(
+                    message: guideError,
+                    isLoading: isLoadingGuide,
+                    retryAccessibilityLabel: "자세 가이드 다시 시도",
+                    retryAccessibilityIdentifier: "workout.guide.retry",
+                    onRetry: onRetryGuide
+                )
+            }
+
             muscleChips
             keySteps
             commonMistakes
@@ -74,7 +113,7 @@ struct WorkoutExerciseGuideScreen: View {
 
     private var muscleChips: some View {
         HStack(spacing: 8) {
-            ForEach(Array(exercise.guideMuscleGroups.enumerated()), id: \.offset) { index, muscle in
+            ForEach(Array(displayedMuscles.enumerated()), id: \.offset) { index, muscle in
                 Text(muscle)
                     .font(GymupTypography.uiMedium)
                     .foregroundStyle(index == 0 ? .white : GymupColors.primaryText)
@@ -96,7 +135,7 @@ struct WorkoutExerciseGuideScreen: View {
 
     private var keySteps: some View {
         VStack(spacing: 0) {
-            ForEach(Array(exercise.formSteps.prefix(3).enumerated()), id: \.offset) { index, step in
+            ForEach(Array(displayedKeyPoints.prefix(3).enumerated()), id: \.offset) { index, step in
                 HStack(alignment: .center, spacing: 14) {
                     Text(String(format: "%02d", index + 1))
                         .font(.custom("BarlowCondensed-ExtraBold", size: 18))
@@ -122,7 +161,7 @@ struct WorkoutExerciseGuideScreen: View {
                 .tracking(0.16)
                 .foregroundStyle(GymupColors.critical)
 
-            ForEach(Array(exercise.commonMistakes.prefix(2).enumerated()), id: \.offset) { _, mistake in
+            ForEach(Array(displayedCommonMistakes.prefix(2).enumerated()), id: \.offset) { _, mistake in
                 HStack(spacing: 10) {
                     Image("R3IconClose")
                         .resizable()
@@ -148,5 +187,50 @@ struct WorkoutExerciseGuideScreen: View {
         .padding(.horizontal, 36)
         .accessibilityIdentifier("workout.guide.confirm")
         .background(GymupColors.canvas)
+    }
+
+    private var validMediaURL: URL? {
+        guard let value = guide?.mediaUrl,
+              let url = URL(string: value),
+              url.scheme?.lowercased() == "https",
+              url.host != nil else { return nil }
+        return url
+    }
+
+    private var displayedMuscles: [String] {
+        guide?.targetMuscles.isEmpty == false ? guide?.targetMuscles ?? [] : exercise.guideMuscleGroups
+    }
+
+    private var displayedKeyPoints: [String] {
+        guide?.keyPoints.isEmpty == false ? guide?.keyPoints ?? [] : exercise.formSteps
+    }
+
+    private var displayedCommonMistakes: [String] {
+        guide?.commonMistakes.isEmpty == false ? guide?.commonMistakes ?? [] : exercise.commonMistakes
+    }
+}
+
+private struct WorkoutGuideVideoPlayer: View {
+    let url: URL
+    @State private var player: AVPlayer?
+
+    var body: some View {
+        Group {
+            if let player {
+                VideoPlayer(player: player)
+            } else {
+                GymupColors.canvas
+                    .overlay { ProgressView().tint(GymupColors.primaryText) }
+            }
+        }
+        .onAppear {
+            guard player == nil else { return }
+            player = AVPlayer(url: url)
+        }
+        .onChange(of: url) { _, newURL in
+            player?.pause()
+            player = AVPlayer(url: newURL)
+        }
+        .onDisappear { player?.pause() }
     }
 }
