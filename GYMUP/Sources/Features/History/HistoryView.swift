@@ -3,6 +3,7 @@ import SwiftUI
 struct HistoryView: View {
     let store: HistoryStore
     @Bindable private var listViewModel: HistoryListViewModel
+    let workoutDetailService: WorkoutDetailReading?
     let onOpenRoutines: () -> Void
     let onComparisonPresented: (Bool) -> Void
     let onGrowthPresented: (Bool) -> Void
@@ -16,12 +17,14 @@ struct HistoryView: View {
     init(
         store: HistoryStore,
         listViewModel: HistoryListViewModel? = nil,
+        workoutDetailService: WorkoutDetailReading? = nil,
         onOpenRoutines: @escaping () -> Void = {},
         onComparisonPresented: @escaping (Bool) -> Void = { _ in },
         onGrowthPresented: @escaping (Bool) -> Void = { _ in }
     ) {
         self.store = store
         _listViewModel = Bindable(wrappedValue: listViewModel ?? HistoryListViewModel(service: nil, routineStore: nil))
+        self.workoutDetailService = workoutDetailService
         self.onOpenRoutines = onOpenRoutines
         self.onComparisonPresented = onComparisonPresented
         self.onGrowthPresented = onGrowthPresented
@@ -147,20 +150,14 @@ struct HistoryView: View {
     private var workoutSection: some View {
         VStack(spacing: 8) {
             ForEach(monthRecords) { record in
-                if let localRecordID = record.localRecordID {
-                    Button {
-                        path.append(.detail(localRecordID))
-                    } label: {
-                        HistoryWorkoutRow(record: record, isServerSummary: false)
-                    }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("history.record.\(localRecordID.uuidString)")
-                    .id(record.id)
-                } else {
-                    HistoryWorkoutRow(record: record, isServerSummary: true)
-                        .accessibilityIdentifier("history.serverRecord.\(record.id)")
-                        .id(record.id)
+                Button {
+                    path.append(record.detailRoute)
+                } label: {
+                    HistoryWorkoutRow(record: record, isServerSummary: record.serverWorkout != nil)
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier(record.detailAccessibilityIdentifier)
+                .id(record.id)
             }
         }
         .scrollTargetLayout()
@@ -189,6 +186,8 @@ struct HistoryView: View {
                 ?? HistorySampleData.record(with: id) {
                 HistoryDetailView(record: record, onOpenAlbum: { path.append(.album) })
             }
+        case let .serverDetail(workout):
+            HistoryServerWorkoutDetailScreen(workout: workout, service: workoutDetailService)
         case .calendar:
             HistoryCalendarView(store: store, onOpenDetail: { path.append(.detail($0)) })
         case .growth:

@@ -83,6 +83,14 @@ final class HistoryListViewModelTests: XCTestCase {
         XCTAssertNil(entry.localRecordID)
         XCTAssertNil(entry.personalRecordCount)
         XCTAssertEqual(entry.routineName, "UPPER A / 胸")
+        XCTAssertEqual(entry.serverWorkout, parsed)
+        XCTAssertEqual(entry.detailRoute, .serverDetail(parsed))
+        XCTAssertEqual(entry.detailAccessibilityIdentifier, "history.serverRecord.workout-offset")
+
+        let localRecord = try XCTUnwrap(HistorySampleData.records.first)
+        let localEntry = HistoryListEntry(localRecord: localRecord)
+        XCTAssertEqual(localEntry.detailRoute, .detail(localRecord.id))
+        XCTAssertEqual(localEntry.detailAccessibilityIdentifier, "history.record.\(localRecord.id.uuidString)")
     }
 
     @MainActor
