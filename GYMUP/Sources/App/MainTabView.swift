@@ -23,6 +23,7 @@ struct MainTabView: View {
     private let completionTestData: WorkoutCompletionData?
     private let restTimeService: ProfileRestTimeUpdating?
     private let workoutDetailService: WorkoutDetailReading?
+    private let photosService: PhotosListing?
 
     @MainActor
     init(restTimeService: ProfileRestTimeUpdating? = nil) {
@@ -39,11 +40,14 @@ struct MainTabView: View {
 #if DEBUG
         let workoutReadService = DebugOnboardingNetworking.makeWorkoutReadService()
         let workoutDetailService = DebugOnboardingNetworking.makeWorkoutHistoryService()
+        let photosService = DebugOnboardingNetworking.makePhotosService()
 #else
         let workoutReadService: WorkoutReadAPIService? = nil
         let workoutDetailService: WorkoutDetailReading? = nil
+        let photosService: PhotosListing? = nil
 #endif
         self.workoutDetailService = workoutDetailService
+        self.photosService = photosService
         _historyListViewModel = State(initialValue: HistoryListViewModel(
             service: workoutReadService,
             routineStore: routineStore
@@ -89,6 +93,7 @@ struct MainTabView: View {
                         store: historyStore,
                         listViewModel: historyListViewModel,
                         workoutDetailService: workoutDetailService,
+                        photosService: photosService,
                         onOpenRoutines: { selection = .routine },
                         onComparisonPresented: { isHistoryComparisonPresented = $0 },
                         onGrowthPresented: { isHistoryGrowthPresented = $0 }
