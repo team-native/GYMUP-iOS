@@ -114,3 +114,9 @@ struct WorkoutHistoryAPIService {
         return try await client.send(endpoint, body: request, as: CompleteWorkoutResponse.self)
     }
 }
+
+protocol WorkoutDetailReading {
+    func detail(workoutId: String) async throws -> WorkoutDetailResponse
+}
+
+extension WorkoutHistoryAPIService: WorkoutDetailReading {}

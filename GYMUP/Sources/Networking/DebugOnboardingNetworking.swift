@@ -191,5 +191,17 @@ enum DebugOnboardingNetworking {
         let client = APIClient(environment: environment, tokenProvider: tokenProvider)
         return WorkoutReadAPIService(client: client)
     }
+
+    static func makeWorkoutHistoryService() -> WorkoutHistoryAPIService? {
+        guard let baseURL = URL(string: "http://localhost:8000"),
+              let environment = try? APIEnvironment(baseURL: baseURL)
+        else {
+            return nil
+        }
+
+        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
+        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
+        return WorkoutHistoryAPIService(client: client)
+    }
 }
 #endif

@@ -22,6 +22,7 @@ struct MainTabView: View {
     @State private var isHistoryGrowthPresented = false
     private let completionTestData: WorkoutCompletionData?
     private let restTimeService: ProfileRestTimeUpdating?
+    private let workoutDetailService: WorkoutDetailReading?
 
     @MainActor
     init(restTimeService: ProfileRestTimeUpdating? = nil) {
@@ -37,9 +38,12 @@ struct MainTabView: View {
         ))
 #if DEBUG
         let workoutReadService = DebugOnboardingNetworking.makeWorkoutReadService()
+        let workoutDetailService = DebugOnboardingNetworking.makeWorkoutHistoryService()
 #else
         let workoutReadService: WorkoutReadAPIService? = nil
+        let workoutDetailService: WorkoutDetailReading? = nil
 #endif
+        self.workoutDetailService = workoutDetailService
         _historyListViewModel = State(initialValue: HistoryListViewModel(
             service: workoutReadService,
             routineStore: routineStore
@@ -84,6 +88,7 @@ struct MainTabView: View {
                     HistoryView(
                         store: historyStore,
                         listViewModel: historyListViewModel,
+                        workoutDetailService: workoutDetailService,
                         onOpenRoutines: { selection = .routine },
                         onComparisonPresented: { isHistoryComparisonPresented = $0 },
                         onGrowthPresented: { isHistoryGrowthPresented = $0 }
