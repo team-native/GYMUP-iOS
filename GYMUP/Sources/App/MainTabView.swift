@@ -13,6 +13,7 @@ struct MainTabView: View {
     @State private var inventory = BarbellCustomizationViewModel()
     @State private var routineStore = RoutineStore()
     @State private var historyStore = HistoryStore()
+    @State private var historyListViewModel: HistoryListViewModel
     @State private var requestedRoutineID: String?
     @State private var requestedExerciseAddRoutineID: String?
     @State private var emptyStartRoutineID: String?
@@ -26,12 +27,22 @@ struct MainTabView: View {
     init(restTimeService: ProfileRestTimeUpdating? = nil) {
         self.restTimeService = restTimeService
         let storage: UserDefaults? = ProcessInfo.processInfo.arguments.contains("--uitest-ephemeral") ? nil : .standard
-        _routineStore = State(initialValue: RoutineStore(defaults: storage))
+        let routineStore = RoutineStore(defaults: storage)
+        _routineStore = State(initialValue: routineStore)
         let isGrowthUITest = ProcessInfo.processInfo.arguments.contains("--uitest-g5-growth")
         _selection = State(initialValue: isGrowthUITest ? .history : .home)
         _historyStore = State(initialValue: HistoryStore(
             records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : [],
             defaults: isGrowthUITest ? nil : storage
+        ))
+#if DEBUG
+        let workoutReadService = DebugOnboardingNetworking.makeWorkoutReadService()
+#else
+        let workoutReadService: WorkoutReadAPIService? = nil
+#endif
+        _historyListViewModel = State(initialValue: HistoryListViewModel(
+            service: workoutReadService,
+            routineStore: routineStore
         ))
 #if DEBUG
         completionTestData = ProcessInfo.processInfo.arguments.contains("--uitest-e1-completion")
@@ -72,6 +83,7 @@ struct MainTabView: View {
                 case .history:
                     HistoryView(
                         store: historyStore,
+                        listViewModel: historyListViewModel,
                         onOpenRoutines: { selection = .routine },
                         onComparisonPresented: { isHistoryComparisonPresented = $0 },
                         onGrowthPresented: { isHistoryGrowthPresented = $0 }

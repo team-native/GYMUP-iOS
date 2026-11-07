@@ -2,22 +2,26 @@ import SwiftUI
 
 struct HistoryView: View {
     let store: HistoryStore
+    @Bindable private var listViewModel: HistoryListViewModel
     let onOpenRoutines: () -> Void
     let onComparisonPresented: (Bool) -> Void
     let onGrowthPresented: (Bool) -> Void
     @State private var path: [HistoryRoute] = []
     @State private var selectedMonth: Date
     @State private var selectedDate: Date
-    @State private var visibleWorkoutID: UUID?
+    @State private var visibleWorkoutID: String?
+    @State private var hasManuallySelectedDate = false
 
     @MainActor
     init(
         store: HistoryStore,
+        listViewModel: HistoryListViewModel? = nil,
         onOpenRoutines: @escaping () -> Void = {},
         onComparisonPresented: @escaping (Bool) -> Void = { _ in },
         onGrowthPresented: @escaping (Bool) -> Void = { _ in }
     ) {
         self.store = store
+        _listViewModel = Bindable(wrappedValue: listViewModel ?? HistoryListViewModel(service: nil, routineStore: nil))
         self.onOpenRoutines = onOpenRoutines
         self.onComparisonPresented = onComparisonPresented
         self.onGrowthPresented = onGrowthPresented
@@ -26,7 +30,7 @@ struct HistoryView: View {
         let initialMonth = Calendar.current.dateInterval(of: .month, for: initialDate)?.start ?? initialDate
         _selectedMonth = State(initialValue: initialMonth)
         _selectedDate = State(initialValue: initialDate)
-        _visibleWorkoutID = State(initialValue: initialRecord?.id)
+        _visibleWorkoutID = State(initialValue: initialRecord.map { "local-\($0.id.uuidString)" })
     }
 
     var body: some View {
@@ -41,6 +45,7 @@ struct HistoryView: View {
         .onAppear {
             onComparisonPresented(isComparisonPresented)
             onGrowthPresented(path.contains(.growth))
+            Task { await listViewModel.refresh() }
         }
         .onChange(of: path) { _, _ in
             onComparisonPresented(isComparisonPresented)
@@ -52,7 +57,7 @@ struct HistoryView: View {
         GeometryReader { geometry in
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
-                    if store.records.isEmpty {
+                    if allRecords.isEmpty {
                         emptyHistoryContent
                             .frame(minHeight: max(geometry.size.height - 36, 0))
                             .padding(.horizontal, 20)
@@ -68,11 +73,11 @@ struct HistoryView: View {
                 .scrollPosition(id: $visibleWorkoutID, anchor: .top)
                 .background(GymupColors.canvas.ignoresSafeArea())
                 .onChange(of: store.records.map(\.id)) { _, _ in
-                    guard let latestRecord = store.records.first else { return }
-                    selectedMonth = Calendar.current.dateInterval(of: .month, for: latestRecord.date)?.start
-                        ?? latestRecord.date
-                    selectedDate = latestRecord.date
-                    visibleWorkoutID = latestRecord.id
+                    selectLatestRecord()
+                }
+                .onChange(of: listViewModel.serverRecords.map(\.id)) { _, _ in
+                    guard !hasManuallySelectedDate else { return }
+                    selectLatestRecord()
                 }
             }
         }
@@ -81,132 +86,81 @@ struct HistoryView: View {
     private var emptyHistoryContent: some View {
         VStack(spacing: 0) {
             header(showsCalendarButton: false)
-            Spacer(minLength: 24)
-            HistoryEmptyContent(onOpenRoutines: onOpenRoutines)
-            Spacer(minLength: 24)
+            if listViewModel.isLoading {
+                Spacer(minLength: 24)
+                ProgressView()
+                    .tint(GymupColors.accent)
+                    .accessibilityLabel("운동 기록 불러오는 중")
+                Spacer(minLength: 24)
+            } else {
+                Spacer(minLength: 24)
+                HistoryEmptyContent(onOpenRoutines: onOpenRoutines)
+                Spacer(minLength: 24)
+            }
+            if let errorMessage = listViewModel.errorMessage {
+                HistoryServerErrorNotice(message: errorMessage) {
+                    Task { await listViewModel.retry() }
+                }
+                    .padding(.bottom, 16)
+            }
         }
         .frame(maxWidth: .infinity)
     }
 
     private func populatedHistoryContent(using proxy: ScrollViewProxy) -> some View {
         VStack(alignment: .leading, spacing: 8) {
-            header(showsCalendarButton: true)
-            weekSelector(using: proxy)
-            monthlySummary
+            header(showsCalendarButton: !store.records.isEmpty)
+            if listViewModel.isLoading {
+                ProgressView()
+                    .tint(GymupColors.accent)
+                    .frame(maxWidth: .infinity, minHeight: 28)
+                    .accessibilityLabel("운동 기록 새로고침 중")
+            }
+            if let errorMessage = listViewModel.errorMessage {
+                HistoryServerErrorNotice(message: errorMessage) {
+                    Task { await listViewModel.retry() }
+                }
+            }
+            HistoryWeekSelector(
+                dates: weekDates,
+                selectedDate: selectedDate,
+                workoutDates: monthRecords.map(\.date),
+                onSelect: { select($0, using: proxy) }
+            )
+            HistoryMonthlySummary(
+                count: monthRecords.count,
+                selectedMonth: selectedMonth,
+                duration: formattedDuration,
+                volume: formattedVolume,
+                monthOptions: monthOptions,
+                onSelectMonth: selectMonth
+            )
             if !monthRecords.isEmpty {
                 workoutSection
             }
-            growthLink
-        }
-    }
-
-    private func weekSelector(using proxy: ScrollViewProxy) -> some View {
-        HStack(spacing: 0) {
-            ForEach(weekDates, id: \.self) { date in
-                let isSelected = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                let hasWorkout = monthRecords.contains { Calendar.current.isDate($0.date, inSameDayAs: date) }
-                Button {
-                    select(date, using: proxy)
-                } label: {
-                    VStack(spacing: 4) {
-                        VStack(spacing: 2) {
-                            Text(date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).weekday(.narrow)))
-                                .font(GymupTypography.uiCaption)
-                                .foregroundStyle(isSelected ? .white : GymupColors.secondaryText)
-                            Text(date.formatted(.dateTime.day()))
-                                .font(GymupTypography.uiStrong)
-                                .foregroundStyle(GymupColors.primaryText)
-                        }
-                        .frame(width: 36, height: 40)
-                        .background(
-                            isSelected ? GymupColors.accent : .clear,
-                            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-                        )
-                        Circle()
-                            .fill(hasWorkout ? GymupColors.accent : .clear)
-                            .frame(width: 4, height: 4)
-                    }
-                    .frame(maxWidth: .infinity)
-                    .frame(height: 52)
-                    .contentShape(Rectangle())
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(accessibilityLabel(for: date, hasWorkout: hasWorkout))
-                .accessibilityAddTraits(isSelected ? .isSelected : [])
-                .accessibilityIdentifier("history.date.\(HistoryDateText.string(date, format: "yyyy-MM-dd"))")
+            if !store.records.isEmpty {
+                growthLink
             }
         }
-        .padding(.horizontal, 2)
-        .accessibilityElement(children: .contain)
-        .accessibilityLabel("주간 날짜 선택")
-    }
-
-    private var monthlySummary: some View {
-        HStack(spacing: 8) {
-            Menu {
-                ForEach(monthOptions, id: \.self) { month in
-                    Button(HistoryDateText.string(month, format: "M월")) {
-                        selectMonth(month)
-                    }
-                }
-            } label: {
-                VStack(alignment: .leading, spacing: 6) {
-                    HStack(alignment: .firstTextBaseline, spacing: 3) {
-                        Text("\(monthRecords.count)")
-                            .font(GymupTypography.metric)
-                            .foregroundStyle(GymupColors.primaryText)
-                            .minimumScaleFactor(0.8)
-                            .lineLimit(1)
-                        Text("회")
-                            .font(GymupTypography.uiCaption)
-                            .foregroundStyle(GymupColors.secondaryText)
-                        Spacer(minLength: 0)
-                        Image(systemName: "chevron.down")
-                            .font(.system(size: 9, weight: .bold))
-                            .foregroundStyle(GymupColors.secondaryText)
-                    }
-                    Text("\(HistoryDateText.string(selectedMonth, format: "M월")) 운동")
-                        .font(GymupTypography.uiCaption)
-                        .foregroundStyle(GymupColors.secondaryText)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.8)
-                }
-                .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                .contentShape(Rectangle())
-            }
-            .accessibilityLabel(
-                "기록 월 선택, \(monthRecords.count)회, \(HistoryDateText.string(selectedMonth, format: "M월")) 운동"
-            )
-            .accessibilityIdentifier("history.selectMonth")
-
-            metricDivider
-            HistoryMetricCell(value: formattedDuration, unit: "", title: "총 시간")
-            metricDivider
-            HistoryMetricCell(value: formattedVolume, unit: "T", title: "총 볼륨")
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 8)
-        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-    }
-
-    private var metricDivider: some View {
-        Rectangle()
-            .fill(GymupColors.separator)
-            .frame(width: 1, height: 36)
-            .accessibilityHidden(true)
     }
 
     private var workoutSection: some View {
         VStack(spacing: 8) {
             ForEach(monthRecords) { record in
-                Button {
-                    path.append(.detail(record.id))
-                } label: {
-                    HistoryWorkoutRow(record: record)
+                if let localRecordID = record.localRecordID {
+                    Button {
+                        path.append(.detail(localRecordID))
+                    } label: {
+                        HistoryWorkoutRow(record: record, isServerSummary: false)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("history.record.\(localRecordID.uuidString)")
+                    .id(record.id)
+                } else {
+                    HistoryWorkoutRow(record: record, isServerSummary: true)
+                        .accessibilityIdentifier("history.serverRecord.\(record.id)")
+                        .id(record.id)
                 }
-                .buttonStyle(.plain)
-                .accessibilityIdentifier("history.record.\(record.id.uuidString)")
-                .id(record.id)
             }
         }
         .scrollTargetLayout()
@@ -261,8 +215,13 @@ private extension HistoryView {
 }
 
 private extension HistoryView {
-    var monthRecords: [WorkoutRecord] {
-        store.records(inMonthOf: selectedMonth)
+    var monthRecords: [HistoryListEntry] {
+        guard let month = Calendar.current.dateInterval(of: .month, for: selectedMonth) else { return [] }
+        return allRecords.filter { $0.date >= month.start && $0.date < month.end }
+    }
+
+    var allRecords: [HistoryListEntry] {
+        listViewModel.entries(localRecords: store.records)
     }
 
     var formattedDuration: String {
@@ -276,6 +235,7 @@ private extension HistoryView {
     }
 
     func select(_ date: Date, using proxy: ScrollViewProxy) {
+        hasManuallySelectedDate = true
         selectedDate = date
         guard let record = monthRecords.first(where: { Calendar.current.isDate($0.date, inSameDayAs: date) }) else { return }
         withAnimation(.easeInOut(duration: 0.25)) {
@@ -285,15 +245,30 @@ private extension HistoryView {
     }
 
     func selectMonth(_ month: Date) {
+        hasManuallySelectedDate = true
         selectedMonth = month
-        let monthRecords = store.records(inMonthOf: month)
+        let monthRecords = allRecords.filter { record in
+            guard let interval = Calendar.current.dateInterval(of: .month, for: month) else { return false }
+            return record.date >= interval.start && record.date < interval.end
+        }
         selectedDate = monthRecords.first?.date ?? month
         visibleWorkoutID = monthRecords.first?.id
     }
 
+    func selectLatestRecord() {
+        guard let latestRecord = allRecords.first else { return }
+        selectedMonth = Calendar.current.dateInterval(of: .month, for: latestRecord.date)?.start
+            ?? latestRecord.date
+        selectedDate = latestRecord.date
+        visibleWorkoutID = latestRecord.id
+    }
+
     var monthOptions: [Date] {
-        let previousMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth) ?? selectedMonth
-        return [selectedMonth, previousMonth]
+        let calendar = Calendar.current
+        let selectedMonthStart = calendar.dateInterval(of: .month, for: selectedMonth)?.start ?? selectedMonth
+        let previousMonth = calendar.date(byAdding: .month, value: -1, to: selectedMonthStart) ?? selectedMonthStart
+        let recordMonths = allRecords.compactMap { calendar.dateInterval(of: .month, for: $0.date)?.start }
+        return Array(Set(recordMonths + [selectedMonthStart, previousMonth])).sorted(by: >)
     }
 
     var weekDates: [Date] {
@@ -333,59 +308,6 @@ private extension HistoryView {
     func accessibilityLabel(for date: Date, hasWorkout: Bool) -> String {
         let day = date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).month().day().weekday(.wide))
         return hasWorkout ? "\(day), 운동 기록 있음" : day
-    }
-}
-
-private struct HistoryWorkoutRow: View {
-    let record: WorkoutRecord
-
-    var body: some View {
-        HStack(spacing: 12) {
-            VStack(spacing: 1) {
-                Text(record.date.formatted(.dateTime.day()))
-                    .font(GymupTypography.uiStrong)
-                    .foregroundStyle(GymupColors.primaryText)
-                Text(record.date.formatted(.dateTime.locale(Locale(identifier: "ko_KR")).weekday(.narrow)))
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
-            }
-            .frame(width: 36, height: 36)
-            .background(GymupColors.elevatedSurface, in: RoundedRectangle(cornerRadius: 10, style: .continuous))
-            .accessibilityHidden(true)
-
-            VStack(alignment: .leading, spacing: 5) {
-                HStack(spacing: 8) {
-                    Text(record.routineName)
-                        .font(GymupTypography.uiStrong)
-                        .foregroundStyle(GymupColors.primaryText)
-                        .lineLimit(1)
-                    if record.growth > 0 {
-                        Text("PR \(record.growth)")
-                            .font(GymupTypography.uiCaption)
-                            .foregroundStyle(GymupColors.accent)
-                            .padding(.horizontal, 6)
-                            .padding(.vertical, 2)
-                            .background(GymupColors.accent.opacity(0.12), in: Capsule())
-                    }
-                    Spacer(minLength: 0)
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 11, weight: .semibold))
-                        .foregroundStyle(GymupColors.secondaryText)
-                        .accessibilityHidden(true)
-                }
-                Text("\(record.durationMinutes)분 · \(record.setCount)세트 · \(record.volumeKilograms.formatted())kg")
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.8)
-            }
-        }
-        .padding(.horizontal, 12)
-        .padding(.vertical, 9)
-        .frame(maxWidth: .infinity, minHeight: 54, alignment: .leading)
-        .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-        .accessibilityElement(children: .combine)
-        .accessibilityLabel(record.accessibilityDescription)
     }
 }
 
