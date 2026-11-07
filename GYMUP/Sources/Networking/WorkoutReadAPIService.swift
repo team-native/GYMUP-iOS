@@ -1,20 +1,23 @@
 import Foundation
 
 struct ListWorkoutsQuery {
-    let cursor: String
+    let cursor: String?
     let size: Int
     let from: String
     let endDate: String
     let routineId: String
 
     var queryItems: [URLQueryItem] {
-        [
-            URLQueryItem(name: "cursor", value: cursor),
+        var items = [
             URLQueryItem(name: "size", value: String(size)),
             URLQueryItem(name: "from", value: from),
             URLQueryItem(name: "to", value: endDate),
             URLQueryItem(name: "routineId", value: routineId)
         ]
+        if let cursor {
+            items.insert(URLQueryItem(name: "cursor", value: cursor), at: 0)
+        }
+        return items
     }
 }
 
@@ -29,7 +32,7 @@ struct WorkoutListItem: Codable, Equatable {
 
 struct ListWorkoutsResponse: Codable, Equatable {
     let items: [WorkoutListItem]
-    let nextCursor: String
+    let nextCursor: String?
 }
 
 struct NextWorkoutSetResponse: Codable, Equatable {
