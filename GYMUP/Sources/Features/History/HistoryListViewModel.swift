@@ -111,16 +111,28 @@ struct HistoryListEntry: Identifiable {
 @Observable
 @MainActor
 final class HistoryListViewModel {
-    private let service: WorkoutReadAPIService?
+    private let service: WorkoutListReading?
     private let routineStore: RoutineStore?
+    private let nowProvider: () -> Date
 
     private(set) var serverRecords: [HistoryServerWorkout] = []
     private(set) var isLoading = false
     private(set) var errorMessage: String?
 
-    init(service: WorkoutReadAPIService?, routineStore: RoutineStore?) {
+    init(
+        service: WorkoutListReading?,
+        routineStore: RoutineStore?,
+        nowProvider: @escaping () -> Date = { .now }
+    ) {
         self.service = service
         self.routineStore = routineStore
+        self.nowProvider = nowProvider
+    }
+
+    func entries(localRecords: [WorkoutRecord]) -> [HistoryListEntry] {
+        let entries = localRecords.map(HistoryListEntry.init(localRecord:))
+            + serverRecords.map(HistoryListEntry.init(serverRecord:))
+        return entries.sorted { $0.date > $1.date }
     }
 
     func refresh() async {
@@ -142,7 +154,7 @@ final class HistoryListViewModel {
         Set(routineStore?.routines.compactMap(\.serverRoutineId).filter { !$0.isEmpty } ?? [])
     }
 
-    private func load(routineIDs: Set<String>, using service: WorkoutReadAPIService) async {
+    private func load(routineIDs: Set<String>, using service: WorkoutListReading) async {
         guard !isLoading else { return }
         isLoading = true
         errorMessage = nil
@@ -158,10 +170,10 @@ final class HistoryListViewModel {
 
     private func fetchRecords(
         for routineIDs: Set<String>,
-        using service: WorkoutReadAPIService
+        using service: WorkoutListReading
     ) async throws -> [HistoryServerWorkout] {
         var recordsByID: [String: HistoryServerWorkout] = [:]
-        let dateRange = Self.dateRange()
+        let dateRange = Self.dateRange(now: nowProvider())
 
         for routineID in routineIDs.sorted() {
             var cursor: String?

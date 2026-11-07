@@ -92,6 +92,7 @@ final class WorkoutAPIServiceTests: NetworkingTestCase {
         let body = try XCTUnwrap(capturedRequest?.httpBody)
         XCTAssertEqual(try JSONDecoder().decode(CompleteWorkoutRequest.self, from: body), request)
     }
+    @MainActor
     func testWorkoutListDecodesPagedItemsAndNextSet() async throws {
         let paths = [
             "/api/v1/workouts": (
@@ -137,6 +138,37 @@ final class WorkoutAPIServiceTests: NetworkingTestCase {
         XCTAssertEqual(list.nextCursor, "cursor-2")
         XCTAssertEqual(nextSet.setIndex, 2)
     }
+
+    @MainActor
+    func testWorkoutListOmitsFirstPageCursorAndDecodesNullNextCursor() async throws {
+        var capturedRequest: URLRequest?
+        installJSONResponse(
+            ["items": [], "nextCursor": NSNull()],
+            recordRequest: { capturedRequest = $0 }
+        )
+        let service = try WorkoutReadAPIService(client: makeClient(token: "test-token"))
+        let query = ListWorkoutsQuery(
+            cursor: nil,
+            size: 100,
+            from: "1970-01-01",
+            endDate: "2026-11-06",
+            routineId: "routine-1"
+        )
+
+        let response = try await service.list(query)
+
+        let requestURL = try XCTUnwrap(capturedRequest?.url)
+        let queryItems = try XCTUnwrap(
+            URLComponents(url: requestURL, resolvingAgainstBaseURL: false)?.queryItems
+        )
+        XCTAssertNil(queryItems.first { $0.name == "cursor" })
+        XCTAssertEqual(
+            Set(queryItems.map(\.name)),
+            Set(["size", "from", "to", "routineId"])
+        )
+        XCTAssertNil(response.nextCursor)
+    }
+
     func testCurrentRestAndExtensionDecodeResponses() async throws {
         let paths = [
             "/api/v1/workouts/workout-1/rests/current": (

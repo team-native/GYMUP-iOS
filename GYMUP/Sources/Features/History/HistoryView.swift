@@ -155,11 +155,12 @@ struct HistoryView: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("history.record.\(localRecordID.uuidString)")
+                    .id(record.id)
                 } else {
                     HistoryWorkoutRow(record: record, isServerSummary: true)
                         .accessibilityIdentifier("history.serverRecord.\(record.id)")
+                        .id(record.id)
                 }
-                .id(record.id)
             }
         }
         .scrollTargetLayout()
@@ -220,9 +221,7 @@ private extension HistoryView {
     }
 
     var allRecords: [HistoryListEntry] {
-        let localRecords = store.records.map(HistoryListEntry.init(localRecord:))
-        let serverRecords = listViewModel.serverRecords.map(HistoryListEntry.init(serverRecord:))
-        return (localRecords + serverRecords).sorted { $0.date > $1.date }
+        listViewModel.entries(localRecords: store.records)
     }
 
     var formattedDuration: String {

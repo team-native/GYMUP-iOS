@@ -48,13 +48,19 @@ protocol WorkoutNextSetReading {
     func nextSet(workoutId: String) async throws -> NextWorkoutSetResponse
 }
 
-struct WorkoutReadAPIService: WorkoutNextSetReading {
+protocol WorkoutListReading {
+    @MainActor
+    func list(_ query: ListWorkoutsQuery) async throws -> ListWorkoutsResponse
+}
+
+struct WorkoutReadAPIService: WorkoutNextSetReading, WorkoutListReading {
     private let client: APIClient
 
     init(client: APIClient) {
         self.client = client
     }
 
+    @MainActor
     func list(_ query: ListWorkoutsQuery) async throws -> ListWorkoutsResponse {
         let endpoint = APIEndpoint(
             method: .get,
