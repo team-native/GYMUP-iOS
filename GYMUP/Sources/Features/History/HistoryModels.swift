@@ -3,6 +3,7 @@ import Observation
 
 enum HistoryRoute: Hashable {
     case detail(UUID)
+    case serverDetail(HistoryServerWorkout)
     case calendar
     case growth
     case album

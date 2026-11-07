@@ -1,7 +1,7 @@
 import Foundation
 import Observation
 
-struct HistoryServerWorkout: Identifiable {
+struct HistoryServerWorkout: Identifiable, Hashable {
     let id: String
     let date: Date
     let routineName: String
@@ -77,6 +77,8 @@ struct HistoryListEntry: Identifiable {
     let volumeKilograms: Int
     let personalRecordCount: Int?
     let localRecordID: UUID?
+    let serverWorkout: HistoryServerWorkout?
+    let detailRoute: HistoryRoute
 
     init(localRecord: WorkoutRecord) {
         id = "local-\(localRecord.id.uuidString)"
@@ -87,6 +89,8 @@ struct HistoryListEntry: Identifiable {
         volumeKilograms = localRecord.volumeKilograms
         personalRecordCount = localRecord.growth
         localRecordID = localRecord.id
+        serverWorkout = nil
+        detailRoute = .detail(localRecord.id)
     }
 
     init(serverRecord: HistoryServerWorkout) {
@@ -98,6 +102,18 @@ struct HistoryListEntry: Identifiable {
         volumeKilograms = serverRecord.volumeKilograms
         personalRecordCount = nil
         localRecordID = nil
+        serverWorkout = serverRecord
+        detailRoute = .serverDetail(serverRecord)
+    }
+
+    var detailAccessibilityIdentifier: String {
+        if let localRecordID {
+            return "history.record.\(localRecordID.uuidString)"
+        }
+        if let serverWorkout {
+            return "history.serverRecord.\(serverWorkout.id)"
+        }
+        return "history.record.\(id)"
     }
 
     var accessibilityDescription: String {

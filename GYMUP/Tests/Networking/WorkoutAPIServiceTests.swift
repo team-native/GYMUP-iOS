@@ -29,18 +29,24 @@ final class WorkoutAPIServiceTests: NetworkingTestCase {
         XCTAssertEqual(response.summary, .object(["average": .number(625.25), "trend": .string("up")]))
     }
     func testWorkoutDetailDecodesTypedSetsAndOpaqueRoutine() async throws {
-        installJSONResponse([
-            "workoutId": "workout-1",
-            "routine": ["routineId": "routine-1"],
-            "duration": 1800,
-            "totalSets": 10,
-            "volume": 3200.0,
-            "exercises": [["sets": [["reps": 8, "weight": 40.0, "pr": false]]]]
-        ])
+        var capturedRequest: URLRequest?
+        installJSONResponse(
+            [
+                "workoutId": "workout-1",
+                "routine": ["routineId": "routine-1"],
+                "duration": 1800,
+                "totalSets": 10,
+                "volume": 3200.0,
+                "exercises": [["sets": [["reps": 8, "weight": 40.0, "pr": false]]]]
+            ],
+            recordRequest: { capturedRequest = $0 }
+        )
 
         let service = try WorkoutHistoryAPIService(client: makeClient(token: "test-token"))
         let detail = try await service.detail(workoutId: "workout-1")
 
+        XCTAssertEqual(capturedRequest?.httpMethod, "GET")
+        XCTAssertEqual(capturedRequest?.url?.path, "/api/v1/workouts/workout-1")
         XCTAssertEqual(detail.routine, .object(["routineId": .string("routine-1")]))
         XCTAssertEqual(detail.exercises.first?.sets.first?.reps, 8)
         XCTAssertFalse(detail.exercises[0].sets[0].isPersonalRecord)
