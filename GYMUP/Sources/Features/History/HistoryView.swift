@@ -4,6 +4,7 @@ struct HistoryView: View {
     let store: HistoryStore
     @Bindable private var listViewModel: HistoryListViewModel
     let workoutDetailService: WorkoutDetailReading?
+    let photosService: PhotosListing?
     let onOpenRoutines: () -> Void
     let onComparisonPresented: (Bool) -> Void
     let onGrowthPresented: (Bool) -> Void
@@ -18,6 +19,7 @@ struct HistoryView: View {
         store: HistoryStore,
         listViewModel: HistoryListViewModel? = nil,
         workoutDetailService: WorkoutDetailReading? = nil,
+        photosService: PhotosListing? = nil,
         onOpenRoutines: @escaping () -> Void = {},
         onComparisonPresented: @escaping (Bool) -> Void = { _ in },
         onGrowthPresented: @escaping (Bool) -> Void = { _ in }
@@ -25,6 +27,7 @@ struct HistoryView: View {
         self.store = store
         _listViewModel = Bindable(wrappedValue: listViewModel ?? HistoryListViewModel(service: nil, routineStore: nil))
         self.workoutDetailService = workoutDetailService
+        self.photosService = photosService
         self.onOpenRoutines = onOpenRoutines
         self.onComparisonPresented = onComparisonPresented
         self.onGrowthPresented = onGrowthPresented
@@ -195,6 +198,7 @@ struct HistoryView: View {
         case .album:
             HistoryAlbumView(
                 store: store,
+                photosService: photosService,
                 onOpenRoutines: onOpenRoutines,
                 onOpenDetail: { path.append(.detail($0)) },
                 onCompare: { path.append(.comparison($0)) }

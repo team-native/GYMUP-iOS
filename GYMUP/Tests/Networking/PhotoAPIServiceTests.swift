@@ -52,6 +52,39 @@ final class PhotoAPIServiceTests: NetworkingTestCase {
         XCTAssertEqual(response.nextCursor, "cursor-2")
     }
 
+    func testPhotosListOmitsFirstCursorAndDecodesNullThumbnailAndTerminalCursor() async throws {
+        var capturedRequest: URLRequest?
+        installJSONResponse(
+            [
+                "items": [[
+                    "photoId": "photo-1",
+                    "workoutId": "workout-1",
+                    "capturedAt": "2026-11-08T09:00:00Z",
+                    "thumbnailUrl": NSNull()
+                ]],
+                "nextCursor": NSNull()
+            ],
+            recordRequest: { capturedRequest = $0 }
+        )
+
+        let response = try await PhotosAPIService(client: makeClient(token: "test-token")).list(
+            ListPhotosQuery(
+                cursor: nil,
+                size: 100,
+                from: "1970-01-01",
+                endDate: "2026-11-08",
+                sort: "recent"
+            )
+        )
+
+        let requestURL = try XCTUnwrap(capturedRequest?.url)
+        let queryItems = try XCTUnwrap(URLComponents(url: requestURL, resolvingAgainstBaseURL: false)?.queryItems)
+        XCTAssertNil(queryItems.first { $0.name == "cursor" })
+        XCTAssertEqual(Set(queryItems.map(\.name)), Set(["size", "from", "to", "sort"]))
+        XCTAssertNil(response.nextCursor)
+        XCTAssertNil(response.items.first?.thumbnailUrl)
+    }
+
     func testPhotoDownloadURLServiceUsesDocumentedRoute() async throws {
         var capturedRequest: URLRequest?
         StubURLProtocol.install { request in

@@ -1,20 +1,23 @@
 import Foundation
 
 struct ListPhotosQuery {
-    let cursor: String
+    let cursor: String?
     let size: Int
     let from: String
     let endDate: String
     let sort: String
 
     var queryItems: [URLQueryItem] {
-        [
-            URLQueryItem(name: "cursor", value: cursor),
+        var items = [
             URLQueryItem(name: "size", value: String(size)),
             URLQueryItem(name: "from", value: from),
             URLQueryItem(name: "to", value: endDate),
             URLQueryItem(name: "sort", value: sort)
         ]
+        if let cursor {
+            items.insert(URLQueryItem(name: "cursor", value: cursor), at: 0)
+        }
+        return items
     }
 }
 
@@ -22,12 +25,12 @@ struct PhotoListItem: Codable, Equatable {
     let photoId: String
     let workoutId: String
     let capturedAt: String
-    let thumbnailUrl: String
+    let thumbnailUrl: String?
 }
 
 struct ListPhotosResponse: Codable, Equatable {
     let items: [PhotoListItem]
-    let nextCursor: String
+    let nextCursor: String?
 }
 
 struct PhotoDownloadURLResponse: Codable, Equatable {
@@ -133,3 +136,9 @@ struct PhotosAPIService {
         return try await client.send(endpoint, body: request, as: RequestWorkoutPhotoUploadResponse.self)
     }
 }
+
+protocol PhotosListing {
+    func list(_ query: ListPhotosQuery) async throws -> ListPhotosResponse
+}
+
+extension PhotosAPIService: PhotosListing {}
