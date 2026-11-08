@@ -6,11 +6,13 @@ The Notion table contains 25 endpoint rows. This implementation follows the user
 
 ## Networking foundation scope
 
-`APIEnvironment(baseURL:)`, the API client, and endpoint services provide the networking foundation, but app composition does not create or use them yet; no real server requests are connected to app flows. Supplying the base URL from app configuration and wiring services into the app are follow-up work.
+`APIEnvironment(baseURL:)`, the API client, and endpoint services provide the networking foundation. In debug builds, onboarding profile/goal submission and Growth progress use the development server at `http://localhost:8000`. Production base URL configuration and app wiring for the remaining endpoint services are follow-up work.
 
 | Method | Path | Success | Query | Request body | Headers | Response fields |
 | --- | --- | ---: | --- | --- | --- | --- |
 | `PUT` | `/api/v1/users/me/onboarding` | 200 | — | `experienceLevel`, `goalType`, `weeklyWorkoutTarget` | `Authorization` | `userId`, `profileCompleted`, `experienceLevel`, `goalType`, `weeklyWorkoutTarget` |
+| `POST` | `/api/v1/goals` | 201 | — | `goalType`, `startDate`, `endDate`, `weeklyWorkoutTarget` | `Authorization` | `goalId`, `status`, `growth`, `weeklyGoal(weekStart,targetCount,completedCount)` |
+| `GET` | `/api/v1/goals/active/progress` | 200 | — | — | `Authorization` | `goalId`, `growth`, `previousGrowth`, `stage`, `factors` (`JSONValue`), `updatedAt` |
 | `PATCH` | `/api/v1/users/me/settings/rest-time` | 200 | — | `defaultRestSeconds` | `Authorization` | `defaultRestSeconds`, `updatedAt` |
 | `PUT` | `/api/v1/routines/{routineId}/playlist` | 200 | — | `provider`, `playlistId`, `playlistName`, `externalUrl` | `Authorization` | `routineId`, `playlist(provider,playlistId,playlistName,externalUrl)`, `updatedAt` |
 | `GET` | `/api/v1/photos` | 200 | `cursor`, `size`, `from`, `to`, `sort` | — | `Authorization` | `items(photoId,workoutId,capturedAt,thumbnailUrl)`, `nextCursor` |

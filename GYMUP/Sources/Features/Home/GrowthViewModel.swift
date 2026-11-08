@@ -44,14 +44,22 @@ final class GrowthViewModel {
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let now: Date
+    private let serverGrowth: Int?
 
-    init(historyStore: HistoryStore? = nil, goalSettings: OnboardingStoredSettings? = .load(), now: Date = .now) {
+    init(
+        historyStore: HistoryStore? = nil,
+        goalSettings: OnboardingStoredSettings? = .load(),
+        now: Date = .now,
+        serverGrowth: Int? = nil
+    ) {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.now = now
+        self.serverGrowth = serverGrowth
     }
 
     var growth: Int {
+        if let serverGrowth { return serverGrowth }
         guard goalSettings != nil else { return 0 }
         let workoutPoints = Double(goalRecords.count)
         let weeklyGoalPoints = Double(achievedGoalWeekCount * 2)

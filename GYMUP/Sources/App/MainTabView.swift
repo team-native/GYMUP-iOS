@@ -26,6 +26,7 @@ struct MainTabView: View {
     private let restTimeService: ProfileRestTimeUpdating?
     private let workoutDetailService: WorkoutDetailReading?
     private let photosService: PhotosListing?
+    private let activeGoalProgressService: ActiveGoalProgressReading?
 
     @MainActor
     init(restTimeService: ProfileRestTimeUpdating? = nil) {
@@ -33,9 +34,14 @@ struct MainTabView: View {
 #if DEBUG
         let levelService = DebugOnboardingNetworking.makeLevelService()
         let weeklyStreakService = DebugOnboardingNetworking.makeWeeklyStreakService()
+        let arguments = ProcessInfo.processInfo.arguments
+        activeGoalProgressService = arguments.contains("--uitest-ephemeral") || arguments.contains("--uitest-no-onboarding-service")
+            ? nil
+            : DebugOnboardingNetworking.makeGoalProgressService()
 #else
         let levelService: UserLevelReading? = nil
         let weeklyStreakService: WeeklyStreakReading? = nil
+        activeGoalProgressService = nil
 #endif
         _levelViewModel = State(initialValue: LevelViewModel(service: levelService))
         _weeklyStreakViewModel = State(initialValue: WeeklyStreakViewModel(service: weeklyStreakService))
@@ -94,6 +100,7 @@ struct MainTabView: View {
                         routineStore: routineStore,
                         levelViewModel: levelViewModel,
                         weeklyStreakViewModel: weeklyStreakViewModel,
+                        activeGoalProgressService: activeGoalProgressService,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:

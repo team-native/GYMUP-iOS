@@ -41,7 +41,7 @@ struct OnboardingFlowView: View {
                     canRetry: submissionViewModel.canRetry,
                     onSubmit: submit,
                     onRetry: submit,
-                    onContinueLocally: finishLocally
+                    onContinueLocally: { finishLocally(goalStartedAt: submissionViewModel.submittedGoalStartedAt) }
                 )
             }
         }.preferredColorScheme(.dark)
@@ -52,14 +52,14 @@ struct OnboardingFlowView: View {
         isSubmissionStarted = true
         Task {
             if await submissionViewModel.submit(draft: draft) {
-                finishLocally()
+                finishLocally(goalStartedAt: submissionViewModel.submittedGoalStartedAt)
             } else {
                 isSubmissionStarted = false
             }
         }
     }
 
-    private func finishLocally() {
+    private func finishLocally(goalStartedAt: Date? = nil) {
         guard !hasFinished else { return }
         hasFinished = true
         savedExperience = draft.experience ?? -1
@@ -67,7 +67,7 @@ struct OnboardingFlowView: View {
         savedFrequency = draft.frequency
         savedGoal = draft.goal
         savedWeeks = draft.weeks
-        savedGoalStartedAt = ISO8601DateFormatter().string(from: .now)
+        savedGoalStartedAt = ISO8601DateFormatter().string(from: goalStartedAt ?? .now)
         onFinish()
     }
 }
