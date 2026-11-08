@@ -27,6 +27,16 @@ struct LevelView: View {
                         .frame(height: 55)
                     experienceSummary
                     experienceProgress
+                    if let lastLevelUpDateText = viewModel.lastLevelUpDateText {
+                        HStack {
+                            Text("마지막 레벨업")
+                                .foregroundStyle(GymupColors.secondaryText)
+                            Spacer(minLength: 8)
+                            Text(lastLevelUpDateText)
+                                .foregroundStyle(GymupColors.primaryText)
+                        }
+                        .font(GymupTypography.uiCaption)
+                    }
                     if viewModel.showsLocalSampleDetails {
                         nextReward
                         sectionLabel("XP 기준")

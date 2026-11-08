@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 struct LevelXPFactor: Identifiable {
@@ -32,6 +33,10 @@ final class LevelViewModel {
     var experience: Int? { serverLevel?.currentXp ?? (service == nil ? 2_340 : nil) }
     var targetExperience: Int? { serverLevel?.nextLevelXp ?? (service == nil ? 3_000 : nil) }
     var showsLocalSampleDetails: Bool { service == nil }
+    var lastLevelUpDateText: String? {
+        guard let value = serverLevel?.lastLevelUpAt, !value.isEmpty else { return nil }
+        return Self.formatLastLevelUpDate(value)
+    }
     let nextReward = "골드 칼라 (바벨 아이템)"
     let factors = [
         LevelXPFactor(title: "운동 완료", value: "+200"),
@@ -88,5 +93,20 @@ final class LevelViewModel {
         } catch {
             errorMessage = "레벨 정보를 불러오지 못했어요. 다시 시도해 주세요."
         }
+    }
+
+    private static func formatLastLevelUpDate(_ value: String) -> String {
+        let options: [ISO8601DateFormatter.Options] = [
+            [.withInternetDateTime, .withFractionalSeconds],
+            [.withInternetDateTime]
+        ]
+        for formatOptions in options {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = formatOptions
+            if let date = formatter.date(from: value) {
+                return HistoryDateText.string(date, format: "yyyy년 M월 d일 a h:mm")
+            }
+        }
+        return value
     }
 }
