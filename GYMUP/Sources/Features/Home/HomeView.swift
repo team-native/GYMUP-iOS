@@ -10,6 +10,7 @@ struct HomeView: View {
     private let historyStore: HistoryStore?
     private let routineStore: RoutineStore?
     @Bindable private var levelViewModel: LevelViewModel
+    @Bindable private var weeklyStreakViewModel: WeeklyStreakViewModel
     @State private var viewModel = HomeViewModel()
     @State private var goalStore = GoalStore.shared
     private var growthViewModel: GrowthViewModel {
@@ -30,6 +31,7 @@ struct HomeView: View {
         historyStore: HistoryStore? = nil,
         routineStore: RoutineStore? = nil,
         levelViewModel: LevelViewModel? = nil,
+        weeklyStreakViewModel: WeeklyStreakViewModel? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
@@ -37,6 +39,7 @@ struct HomeView: View {
         self.historyStore = historyStore
         self.routineStore = routineStore
         _levelViewModel = Bindable(wrappedValue: levelViewModel ?? LevelViewModel())
+        _weeklyStreakViewModel = Bindable(wrappedValue: weeklyStreakViewModel ?? WeeklyStreakViewModel())
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -76,7 +79,10 @@ struct HomeView: View {
             onDetailRouteChanged(!newPath.isEmpty)
         }
         .onAppear { onDetailRouteChanged(!path.isEmpty) }
-        .task { await levelViewModel.loadIfNeeded() }
+        .task {
+            await levelViewModel.loadIfNeeded()
+            await weeklyStreakViewModel.loadIfNeeded()
+        }
     }
 
     private var header: some View {
@@ -130,7 +136,7 @@ struct HomeView: View {
                 )
             }
             NavigationLink(value: HomeRoute.weeklyGoal) {
-                statistic(icon: "H1IconFlame", value: "\(progress.streakWeeks)주", title: "Streak")
+                statistic(icon: "H1IconFlame", value: "\(displayedCurrentStreak)주", title: "Streak")
             }
             NavigationLink(value: HomeRoute.level) {
                 statistic(
@@ -163,6 +169,13 @@ struct HomeView: View {
         .padding(14)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .leading)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var displayedCurrentStreak: String {
+        if let serverValue = weeklyStreakViewModel.response?.currentStreak {
+            return String(serverValue)
+        }
+        return weeklyStreakViewModel.usesServer ? "—" : String(progress.streakWeeks)
     }
 
     private var todayRoutine: some View {
@@ -209,7 +222,8 @@ struct HomeView: View {
             GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) }, historyStore: historyStore)
         case .weeklyGoal:
             WeeklyGoalView(onNavigationStateChanged: { _ in }, onChangeGoal: { path.append(.goalHistory) },
-                           goal: weeklyGoal, records: historyStore?.records ?? [])
+                           goal: weeklyGoal, records: historyStore?.records ?? [],
+                           weeklyStreakViewModel: weeklyStreakViewModel)
         case .level:
             LevelView(onNavigationStateChanged: { _ in }, viewModel: levelViewModel)
         case .goalHistory:

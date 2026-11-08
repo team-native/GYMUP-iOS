@@ -227,5 +227,17 @@ enum DebugOnboardingNetworking {
         let client = APIClient(environment: environment, tokenProvider: tokenProvider)
         return LevelAPIService(client: client)
     }
+
+    static func makeWeeklyStreakService() -> WeeklyStreakAPIService? {
+        guard let baseURL = URL(string: "http://localhost:8000"),
+              let environment = try? APIEnvironment(baseURL: baseURL)
+        else {
+            return nil
+        }
+
+        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
+        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
+        return WeeklyStreakAPIService(client: client)
+    }
 }
 #endif
