@@ -2,30 +2,48 @@ import SwiftUI
 
 struct LevelView: View {
     let onNavigationStateChanged: (Bool) -> Void
+    @Bindable private var viewModel: LevelViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var viewModel = LevelViewModel()
+
+    init(onNavigationStateChanged: @escaping (Bool) -> Void, viewModel: LevelViewModel) {
+        self.onNavigationStateChanged = onNavigationStateChanged
+        self.viewModel = viewModel
+    }
 
     var body: some View {
         VStack(spacing: 0) {
             GymupDetailNavigationBar(title: "레벨", onBack: dismiss.callAsFunction)
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 19) {
+                    serverRequestStatus
                     Text("LEVEL")
                         .font(GymupTypography.label)
                         .foregroundStyle(GymupColors.brandText)
                         .frame(height: 13)
-                    Text("\(viewModel.level)")
+                    Text(viewModel.level.map { String($0) } ?? "—")
                         .font(GymupTypography.score)
                         .tracking(-0.57)
                         .foregroundStyle(GymupColors.primaryText)
                         .frame(height: 55)
                     experienceSummary
                     experienceProgress
-                    nextReward
-                    sectionLabel("XP 기준")
-                    experienceFactors
-                    sectionLabel("최근 획득")
-                    recentExperience
+                    if let lastLevelUpDateText = viewModel.lastLevelUpDateText {
+                        HStack {
+                            Text("마지막 레벨업")
+                                .foregroundStyle(GymupColors.secondaryText)
+                            Spacer(minLength: 8)
+                            Text(lastLevelUpDateText)
+                                .foregroundStyle(GymupColors.primaryText)
+                        }
+                        .font(GymupTypography.uiCaption)
+                    }
+                    if viewModel.showsLocalSampleDetails {
+                        nextReward
+                        sectionLabel("XP 기준")
+                        experienceFactors
+                        sectionLabel("최근 획득")
+                        recentExperience
+                    }
                 }
                 .padding(.horizontal, 20)
                 .padding(.top, 6)
@@ -34,17 +52,41 @@ struct LevelView: View {
         }
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
+        .task { await viewModel.loadIfNeeded() }
         .onAppear { onNavigationStateChanged(true) }
         .onDisappear { onNavigationStateChanged(false) }
     }
 
+    @ViewBuilder
+    private var serverRequestStatus: some View {
+        if viewModel.isLoading {
+            ProgressView()
+                .tint(GymupColors.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel("레벨 정보를 불러오는 중")
+        } else if let errorMessage = viewModel.errorMessage {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(errorMessage)
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.secondaryText)
+                Button("다시 시도") {
+                    Task { await viewModel.retry() }
+                }
+                .font(GymupTypography.uiStrong)
+                .foregroundStyle(GymupColors.primaryText)
+                .accessibilityIdentifier("home.level.retry")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private var experienceSummary: some View {
         HStack {
-            Text("\(viewModel.experience.formatted()) / \(viewModel.targetExperience.formatted()) XP")
+            Text(xpSummary)
                 .font(GymupTypography.uiStrong)
                 .foregroundStyle(GymupColors.primaryText)
             Spacer(minLength: 4)
-            Text("LV.\(viewModel.level + 1)까지 \(viewModel.remainingExperience)")
+            Text(remainingExperienceSummary)
                 .font(GymupTypography.uiCaption)
                 .foregroundStyle(GymupColors.secondaryText)
         }
@@ -55,13 +97,15 @@ struct LevelView: View {
         GeometryReader { geometry in
             ZStack(alignment: .leading) {
                 Capsule().fill(GymupColors.overlay)
-                Capsule()
-                    .fill(GymupColors.accent)
-                    .frame(width: geometry.size.width * viewModel.progress)
+                if let progress = viewModel.progress {
+                    Capsule()
+                        .fill(GymupColors.accent)
+                        .frame(width: geometry.size.width * progress)
+                }
             }
         }
         .frame(height: 6)
-        .accessibilityLabel("다음 레벨 진행률 \(Int(viewModel.progress * 100))퍼센트")
+        .accessibilityLabel(progressAccessibilityLabel)
     }
 
     private var nextReward: some View {
@@ -70,7 +114,7 @@ struct LevelView: View {
                 .resizable()
                 .frame(width: 22, height: 22)
             VStack(alignment: .leading, spacing: 0) {
-                Text("LV.\(viewModel.level + 1) 보상")
+                Text(viewModel.level.map { "LV.\($0 + 1) 보상" } ?? "다음 레벨 보상")
                     .font(GymupTypography.uiCaption)
                     .foregroundStyle(GymupColors.secondaryText)
                     .frame(minHeight: 15)
@@ -84,6 +128,23 @@ struct LevelView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 14)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 16))
+    }
+
+    private var xpSummary: String {
+        guard let experience = viewModel.experience,
+              let targetExperience = viewModel.targetExperience else { return "— / — XP" }
+        return "\(experience.formatted()) / \(targetExperience.formatted()) XP"
+    }
+
+    private var remainingExperienceSummary: String {
+        guard let level = viewModel.level,
+              let remainingExperience = viewModel.remainingExperience else { return "—" }
+        return "LV.\(level + 1)까지 \(remainingExperience)"
+    }
+
+    private var progressAccessibilityLabel: String {
+        guard let progress = viewModel.progress else { return "레벨 진행률 정보 없음" }
+        return "다음 레벨 진행률 \(Int(progress * 100))퍼센트"
     }
 
     private var experienceFactors: some View {
@@ -144,7 +205,7 @@ struct LevelView: View {
 
 #Preview {
     NavigationStack {
-        LevelView(onNavigationStateChanged: { _ in })
+        LevelView(onNavigationStateChanged: { _ in }, viewModel: LevelViewModel())
     }
     .preferredColorScheme(.dark)
 }

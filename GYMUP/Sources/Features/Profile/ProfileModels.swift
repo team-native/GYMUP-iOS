@@ -1,7 +1,7 @@
 import Foundation
 
 struct ProfileSummary {
-    let level: Int
+    let level: Int?
     let stage: String
     let focus: String
     let workoutsPerWeek: Int

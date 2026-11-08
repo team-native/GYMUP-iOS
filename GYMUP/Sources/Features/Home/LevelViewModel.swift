@@ -1,3 +1,4 @@
+import Foundation
 import Observation
 
 struct LevelXPFactor: Identifiable {
@@ -16,9 +17,26 @@ struct LevelXPEntry: Identifiable {
 @Observable
 @MainActor
 final class LevelViewModel {
-    let level = 17
-    let experience = 2_340
-    let targetExperience = 3_000
+    private let service: UserLevelReading?
+    private var hasAttemptedLoad = false
+    private(set) var serverLevel: UserLevelResponse?
+    private(set) var isLoading = false
+    private(set) var errorMessage: String?
+
+    init(service: UserLevelReading? = nil) {
+        self.service = service
+    }
+
+    // Keep the existing local preview values only when no service is configured
+    // (Release and previews). A configured service is the source of truth.
+    var level: Int? { serverLevel?.level ?? (service == nil ? 17 : nil) }
+    var experience: Int? { serverLevel?.currentXp ?? (service == nil ? 2_340 : nil) }
+    var targetExperience: Int? { serverLevel?.nextLevelXp ?? (service == nil ? 3_000 : nil) }
+    var showsLocalSampleDetails: Bool { service == nil }
+    var lastLevelUpDateText: String? {
+        guard let value = serverLevel?.lastLevelUpAt, !value.isEmpty else { return nil }
+        return Self.formatLastLevelUpDate(value)
+    }
     let nextReward = "골드 칼라 (바벨 아이템)"
     let factors = [
         LevelXPFactor(title: "운동 완료", value: "+200"),
@@ -32,6 +50,63 @@ final class LevelViewModel {
         LevelXPEntry(title: "주간 목표 달성", date: "10월 5일", value: 30)
     ]
 
-    var remainingExperience: Int { max(targetExperience - experience, 0) }
-    var progress: Double { Double(experience) / Double(targetExperience) }
+    var remainingExperience: Int? {
+        guard let experience, let targetExperience else { return nil }
+        return max(targetExperience - experience, 0)
+    }
+
+    var progress: Double? {
+        if let serverLevel {
+            return min(max(serverLevel.progressPercent / 100, 0), 1)
+        }
+        guard service == nil,
+              let experience,
+              let targetExperience,
+              targetExperience > 0 else { return nil }
+        return min(max(Double(experience) / Double(targetExperience), 0), 1)
+    }
+
+    func loadIfNeeded() async {
+        guard !hasAttemptedLoad else { return }
+        hasAttemptedLoad = true
+        await load()
+    }
+
+    func retry() async {
+        await load()
+    }
+
+    private func load() async {
+        guard let service, !isLoading else { return }
+        isLoading = true
+        errorMessage = nil
+        defer { isLoading = false }
+
+        do {
+            serverLevel = try await service.fetch()
+        } catch let error as APIClientError {
+            if case let .server(_, detail) = error {
+                errorMessage = detail.message
+            } else {
+                errorMessage = "레벨 정보를 불러오지 못했어요. 다시 시도해 주세요."
+            }
+        } catch {
+            errorMessage = "레벨 정보를 불러오지 못했어요. 다시 시도해 주세요."
+        }
+    }
+
+    private static func formatLastLevelUpDate(_ value: String) -> String {
+        let options: [ISO8601DateFormatter.Options] = [
+            [.withInternetDateTime, .withFractionalSeconds],
+            [.withInternetDateTime]
+        ]
+        for formatOptions in options {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = formatOptions
+            if let date = formatter.date(from: value) {
+                return HistoryDateText.string(date, format: "yyyy년 M월 d일 a h:mm")
+            }
+        }
+        return value
+    }
 }
