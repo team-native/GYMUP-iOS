@@ -41,8 +41,20 @@ struct WeeklyGoalView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     weeklyScore
-                    streakRequestStatus
-                    currentWeeklyGoalRequestStatus
+                    WeeklyGoalRequestStatusView(
+                        isLoading: weeklyStreakViewModel.isLoading,
+                        errorMessage: weeklyStreakViewModel.errorMessage,
+                        loadingAccessibilityLabel: "주간 스트릭을 불러오는 중",
+                        retryAccessibilityIdentifier: "home.weeklyStreak.retry",
+                        onRetry: { Task { await weeklyStreakViewModel.retry() } }
+                    )
+                    WeeklyGoalRequestStatusView(
+                        isLoading: currentWeeklyGoalViewModel.isLoading,
+                        errorMessage: currentWeeklyGoalViewModel.errorMessage,
+                        loadingAccessibilityLabel: "주간 목표를 불러오는 중",
+                        retryAccessibilityIdentifier: "home.weeklyGoal.retry",
+                        onRetry: { Task { await currentWeeklyGoalViewModel.retry() } }
+                    )
                     Text(remainingGoalMessage)
                         .font(GymupTypography.uiMedium)
                         .foregroundStyle(GymupColors.secondaryText)
@@ -68,52 +80,6 @@ struct WeeklyGoalView: View {
         .task {
             await weeklyStreakViewModel.loadIfNeeded()
             await currentWeeklyGoalViewModel.loadIfNeeded()
-        }
-    }
-
-    @ViewBuilder
-    private var streakRequestStatus: some View {
-        if weeklyStreakViewModel.isLoading {
-            ProgressView()
-                .tint(GymupColors.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel("주간 스트릭을 불러오는 중")
-        } else if let errorMessage = weeklyStreakViewModel.errorMessage {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(errorMessage)
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
-                Button("다시 시도") {
-                    Task { await weeklyStreakViewModel.retry() }
-                }
-                .font(GymupTypography.uiStrong)
-                .foregroundStyle(GymupColors.primaryText)
-                .accessibilityIdentifier("home.weeklyStreak.retry")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-        }
-    }
-
-    @ViewBuilder
-    private var currentWeeklyGoalRequestStatus: some View {
-        if currentWeeklyGoalViewModel.isLoading {
-            ProgressView()
-                .tint(GymupColors.secondaryText)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .accessibilityLabel("주간 목표를 불러오는 중")
-        } else if let errorMessage = currentWeeklyGoalViewModel.errorMessage {
-            VStack(alignment: .leading, spacing: 8) {
-                Text(errorMessage)
-                    .font(GymupTypography.uiCaption)
-                    .foregroundStyle(GymupColors.secondaryText)
-                Button("다시 시도") {
-                    Task { await currentWeeklyGoalViewModel.retry() }
-                }
-                .font(GymupTypography.uiStrong)
-                .foregroundStyle(GymupColors.primaryText)
-                .accessibilityIdentifier("home.weeklyGoal.retry")
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
@@ -277,6 +243,35 @@ struct WeeklyGoalView: View {
     private func historyBarColor(for bar: WeeklyProgressBar) -> Color {
         if bar.isMissedGoal { return GymupColors.critical }
         return bar.week < 4 ? GymupColors.overlay : GymupColors.accent
+    }
+}
+
+private struct WeeklyGoalRequestStatusView: View {
+    let isLoading: Bool
+    let errorMessage: String?
+    let loadingAccessibilityLabel: String
+    let retryAccessibilityIdentifier: String
+    let onRetry: () -> Void
+
+    @ViewBuilder
+    var body: some View {
+        if isLoading {
+            ProgressView()
+                .tint(GymupColors.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel(loadingAccessibilityLabel)
+        } else if let errorMessage {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(errorMessage)
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.secondaryText)
+                Button("다시 시도", action: onRetry)
+                    .font(GymupTypography.uiStrong)
+                    .foregroundStyle(GymupColors.primaryText)
+                    .accessibilityIdentifier(retryAccessibilityIdentifier)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 }
 
