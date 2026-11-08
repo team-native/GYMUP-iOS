@@ -85,7 +85,7 @@ struct WeeklyGoalView: View {
 
     private var weeklyScore: some View {
         let counts = displayedGoalCounts
-        HStack(alignment: .firstTextBaseline, spacing: 6) {
+        return HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(counts.completed)
                 .font(GymupTypography.score)
                 .tracking(-0.57)
