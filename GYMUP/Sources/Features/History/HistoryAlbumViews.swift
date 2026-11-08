@@ -7,7 +7,9 @@ struct HistoryAlbumView: View {
     let onCompare: (UUID) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var selectedExercise: String?
+    @State private var selectedServerPhoto: HistoryServerPhoto?
     @State private var viewModel: HistoryAlbumViewModel
+    private let photosDownloadService: PhotosDownloading?
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 6), count: 3)
 
     @MainActor
@@ -22,6 +24,7 @@ struct HistoryAlbumView: View {
         self.onOpenRoutines = onOpenRoutines
         self.onOpenDetail = onOpenDetail
         self.onCompare = onCompare
+        photosDownloadService = photosService as? PhotosDownloading
         _viewModel = State(initialValue: HistoryAlbumViewModel(service: photosService))
     }
 
@@ -69,6 +72,9 @@ struct HistoryAlbumView: View {
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .task { await viewModel.refresh() }
+        .sheet(item: $selectedServerPhoto) { photo in
+            HistoryServerPhotoDetailSheet(photo: photo, service: photosDownloadService)
+        }
     }
 
     private var exerciseFilter: some View {
@@ -132,7 +138,17 @@ struct HistoryAlbumView: View {
                     HistorySectionTitle(title: group.title, subtitle: "\(group.photos.count)장")
                     LazyVGrid(columns: columns, spacing: 6) {
                         ForEach(group.photos) { photo in
-                            HistoryServerPhotoTile(photo: photo)
+                            Button {
+                                selectedServerPhoto = photo
+                            } label: {
+                                HistoryServerPhotoTile(photo: photo)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(
+                                "\(HistoryDateText.string(photo.capturedAt, format: "M월 d일")), 서버 운동 사진"
+                            )
+                            .accessibilityHint("사진 크게 보기")
+                            .accessibilityIdentifier("history.album.serverPhoto.\(photo.id)")
                         }
                     }
                 }
@@ -253,9 +269,6 @@ private struct HistoryServerPhotoTile: View {
         }
         .frame(maxWidth: .infinity)
         .aspectRatio(0.76, contentMode: .fit)
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("\(HistoryDateText.string(photo.capturedAt, format: "M월 d일")), 서버 운동 사진")
-        .accessibilityIdentifier("history.album.serverPhoto.\(photo.id)")
     }
 
     @ViewBuilder

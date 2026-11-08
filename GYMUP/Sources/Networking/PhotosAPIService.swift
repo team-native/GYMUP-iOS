@@ -142,3 +142,9 @@ protocol PhotosListing {
 }
 
 extension PhotosAPIService: PhotosListing {}
+
+protocol PhotosDownloading {
+    func downloadURL(photoId: String) async throws -> PhotoDownloadURLResponse
+}
+
+extension PhotosAPIService: PhotosDownloading {}
