@@ -5,8 +5,23 @@ struct WeeklyGoalView: View {
     var onChangeGoal: (() -> Void)?
     var goal: Int = 3
     var records: [WorkoutRecord]?
+    @Bindable private var weeklyStreakViewModel: WeeklyStreakViewModel
     @Environment(\.dismiss) private var dismiss
     private var viewModel: WeeklyGoalViewModel { WeeklyGoalViewModel(records: records ?? [], goal: goal) }
+
+    init(
+        onNavigationStateChanged: @escaping (Bool) -> Void,
+        onChangeGoal: (() -> Void)? = nil,
+        goal: Int = 3,
+        records: [WorkoutRecord]? = nil,
+        weeklyStreakViewModel: WeeklyStreakViewModel? = nil
+    ) {
+        self.onNavigationStateChanged = onNavigationStateChanged
+        self.onChangeGoal = onChangeGoal
+        self.goal = goal
+        self.records = records
+        _weeklyStreakViewModel = Bindable(wrappedValue: weeklyStreakViewModel ?? WeeklyStreakViewModel())
+    }
 
     private var completedWorkouts: Int { viewModel.completedWorkouts }
     private var completedWeekdays: Set<Int> { viewModel.completedWeekdays }
@@ -23,6 +38,7 @@ struct WeeklyGoalView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 22) {
                     weeklyScore
+                    streakRequestStatus
                     Text("이번 주 목표까지 \(max(goal - completedWorkouts, 0))회 남았어요")
                         .font(GymupTypography.uiMedium)
                         .foregroundStyle(GymupColors.secondaryText)
@@ -45,6 +61,30 @@ struct WeeklyGoalView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { onNavigationStateChanged(true) }
         .onDisappear { onNavigationStateChanged(false) }
+        .task { await weeklyStreakViewModel.loadIfNeeded() }
+    }
+
+    @ViewBuilder
+    private var streakRequestStatus: some View {
+        if weeklyStreakViewModel.isLoading {
+            ProgressView()
+                .tint(GymupColors.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel("주간 스트릭을 불러오는 중")
+        } else if let errorMessage = weeklyStreakViewModel.errorMessage {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(errorMessage)
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.secondaryText)
+                Button("다시 시도") {
+                    Task { await weeklyStreakViewModel.retry() }
+                }
+                .font(GymupTypography.uiStrong)
+                .foregroundStyle(GymupColors.primaryText)
+                .accessibilityIdentifier("home.weeklyStreak.retry")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
     }
 
     private var weeklyScore: some View {
@@ -101,16 +141,26 @@ struct WeeklyGoalView: View {
             Image("H3IconFlame")
                 .resizable()
                 .frame(width: 22, height: 22)
-            Text("\(viewModel.streakWeeks)주 연속 달성")
+            Text("\(displayedCurrentStreak)주 연속 달성")
                 .font(GymupTypography.sectionTitle)
                 .foregroundStyle(GymupColors.primaryText)
                 .frame(minHeight: 22)
             Spacer()
-            Text("최장 \(viewModel.longestStreakWeeks)주")
+            Text("최장 \(displayedLongestStreak)주")
                 .font(GymupTypography.uiCaption)
                 .foregroundStyle(GymupColors.secondaryText)
         }
         .padding(.top, 12)
+    }
+
+    private var displayedCurrentStreak: String {
+        if let value = weeklyStreakViewModel.response?.currentStreak { return String(value) }
+        return weeklyStreakViewModel.usesServer ? "—" : String(viewModel.streakWeeks)
+    }
+
+    private var displayedLongestStreak: String {
+        if let value = weeklyStreakViewModel.response?.longestStreak { return String(value) }
+        return weeklyStreakViewModel.usesServer ? "—" : String(viewModel.longestStreakWeeks)
     }
 
     private var historyChart: some View {

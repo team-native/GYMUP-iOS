@@ -14,6 +14,7 @@ struct MainTabView: View {
     @State private var routineStore = RoutineStore()
     @State private var historyStore = HistoryStore()
     @State private var levelViewModel: LevelViewModel
+    @State private var weeklyStreakViewModel: WeeklyStreakViewModel
     @State private var historyListViewModel: HistoryListViewModel
     @State private var requestedRoutineID: String?
     @State private var requestedExerciseAddRoutineID: String?
@@ -31,10 +32,13 @@ struct MainTabView: View {
         self.restTimeService = restTimeService
 #if DEBUG
         let levelService = DebugOnboardingNetworking.makeLevelService()
+        let weeklyStreakService = DebugOnboardingNetworking.makeWeeklyStreakService()
 #else
         let levelService: UserLevelReading? = nil
+        let weeklyStreakService: WeeklyStreakReading? = nil
 #endif
         _levelViewModel = State(initialValue: LevelViewModel(service: levelService))
+        _weeklyStreakViewModel = State(initialValue: WeeklyStreakViewModel(service: weeklyStreakService))
         let storage: UserDefaults? = ProcessInfo.processInfo.arguments.contains("--uitest-ephemeral") ? nil : .standard
         let routineStore = RoutineStore(defaults: storage)
         _routineStore = State(initialValue: routineStore)
@@ -89,6 +93,7 @@ struct MainTabView: View {
                         historyStore: historyStore,
                         routineStore: routineStore,
                         levelViewModel: levelViewModel,
+                        weeklyStreakViewModel: weeklyStreakViewModel,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:
