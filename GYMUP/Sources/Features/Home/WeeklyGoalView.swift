@@ -6,6 +6,7 @@ struct WeeklyGoalView: View {
     var goal: Int = 3
     var records: [WorkoutRecord]?
     @Bindable private var weeklyStreakViewModel: WeeklyStreakViewModel
+    @Bindable private var currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel
     @Environment(\.dismiss) private var dismiss
     private var viewModel: WeeklyGoalViewModel { WeeklyGoalViewModel(records: records ?? [], goal: goal) }
 
@@ -14,13 +15,15 @@ struct WeeklyGoalView: View {
         onChangeGoal: (() -> Void)? = nil,
         goal: Int = 3,
         records: [WorkoutRecord]? = nil,
-        weeklyStreakViewModel: WeeklyStreakViewModel? = nil
+        weeklyStreakViewModel: WeeklyStreakViewModel? = nil,
+        currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel? = nil
     ) {
         self.onNavigationStateChanged = onNavigationStateChanged
         self.onChangeGoal = onChangeGoal
         self.goal = goal
         self.records = records
         _weeklyStreakViewModel = Bindable(wrappedValue: weeklyStreakViewModel ?? WeeklyStreakViewModel())
+        _currentWeeklyGoalViewModel = Bindable(wrappedValue: currentWeeklyGoalViewModel ?? CurrentWeeklyGoalViewModel())
     }
 
     private var completedWorkouts: Int { viewModel.completedWorkouts }
@@ -39,7 +42,8 @@ struct WeeklyGoalView: View {
                 VStack(alignment: .leading, spacing: 22) {
                     weeklyScore
                     streakRequestStatus
-                    Text("이번 주 목표까지 \(max(goal - completedWorkouts, 0))회 남았어요")
+                    currentWeeklyGoalRequestStatus
+                    Text(remainingGoalMessage)
                         .font(GymupTypography.uiMedium)
                         .foregroundStyle(GymupColors.secondaryText)
                         .frame(minHeight: 19)
@@ -61,7 +65,10 @@ struct WeeklyGoalView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { onNavigationStateChanged(true) }
         .onDisappear { onNavigationStateChanged(false) }
-        .task { await weeklyStreakViewModel.loadIfNeeded() }
+        .task {
+            await weeklyStreakViewModel.loadIfNeeded()
+            await currentWeeklyGoalViewModel.loadIfNeeded()
+        }
     }
 
     @ViewBuilder
@@ -87,18 +94,64 @@ struct WeeklyGoalView: View {
         }
     }
 
+    @ViewBuilder
+    private var currentWeeklyGoalRequestStatus: some View {
+        if currentWeeklyGoalViewModel.isLoading {
+            ProgressView()
+                .tint(GymupColors.secondaryText)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityLabel("주간 목표를 불러오는 중")
+        } else if let errorMessage = currentWeeklyGoalViewModel.errorMessage {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(errorMessage)
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.secondaryText)
+                Button("다시 시도") {
+                    Task { await currentWeeklyGoalViewModel.retry() }
+                }
+                .font(GymupTypography.uiStrong)
+                .foregroundStyle(GymupColors.primaryText)
+                .accessibilityIdentifier("home.weeklyGoal.retry")
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
     private var weeklyScore: some View {
+        let counts = displayedGoalCounts
         HStack(alignment: .firstTextBaseline, spacing: 6) {
-            Text("\(completedWorkouts)")
+            Text(counts.completed)
                 .font(GymupTypography.score)
                 .tracking(-0.57)
                 .foregroundStyle(GymupColors.primaryText)
-            Text("/ \(goal) 회")
+            Text("/ \(counts.target) 회")
                 .font(GymupTypography.metric)
                 .foregroundStyle(GymupColors.tertiaryText)
         }
         .frame(height: 55, alignment: .leading)
         .accessibilityElement(children: .combine)
+    }
+
+    private var displayedGoalCounts: (completed: String, target: String) {
+        if let response = currentWeeklyGoalViewModel.response {
+            return (String(response.completedCount), String(response.targetCount))
+        }
+        if currentWeeklyGoalViewModel.usesServer {
+            return ("—", "—")
+        }
+        return (String(completedWorkouts), String(goal))
+    }
+
+    private var remainingGoalMessage: String {
+        if let response = currentWeeklyGoalViewModel.response {
+            return "이번 주 목표까지 \(max(response.targetCount - response.completedCount, 0))회 남았어요"
+        }
+        if currentWeeklyGoalViewModel.usesServer {
+            return currentWeeklyGoalViewModel.errorMessage == nil
+                ? "주간 목표를 불러오는 중이에요."
+                : "주간 목표를 확인할 수 없어요."
+        }
+        return "이번 주 목표까지 \(max(goal - completedWorkouts, 0))회 남았어요"
     }
 
     private var weekdayAccessibilityLabel: String {

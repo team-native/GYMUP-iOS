@@ -11,6 +11,7 @@ struct HomeView: View {
     private let routineStore: RoutineStore?
     @Bindable private var levelViewModel: LevelViewModel
     @Bindable private var weeklyStreakViewModel: WeeklyStreakViewModel
+    @Bindable private var currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel
     @State private var viewModel = HomeViewModel()
     @State private var goalStore = GoalStore.shared
     private var growthViewModel: GrowthViewModel {
@@ -32,6 +33,7 @@ struct HomeView: View {
         routineStore: RoutineStore? = nil,
         levelViewModel: LevelViewModel? = nil,
         weeklyStreakViewModel: WeeklyStreakViewModel? = nil,
+        currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
@@ -40,6 +42,7 @@ struct HomeView: View {
         self.routineStore = routineStore
         _levelViewModel = Bindable(wrappedValue: levelViewModel ?? LevelViewModel())
         _weeklyStreakViewModel = Bindable(wrappedValue: weeklyStreakViewModel ?? WeeklyStreakViewModel())
+        _currentWeeklyGoalViewModel = Bindable(wrappedValue: currentWeeklyGoalViewModel ?? CurrentWeeklyGoalViewModel())
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -82,6 +85,7 @@ struct HomeView: View {
         .task {
             await levelViewModel.loadIfNeeded()
             await weeklyStreakViewModel.loadIfNeeded()
+            await currentWeeklyGoalViewModel.loadIfNeeded()
         }
     }
 
@@ -223,7 +227,8 @@ struct HomeView: View {
         case .weeklyGoal:
             WeeklyGoalView(onNavigationStateChanged: { _ in }, onChangeGoal: { path.append(.goalHistory) },
                            goal: weeklyGoal, records: historyStore?.records ?? [],
-                           weeklyStreakViewModel: weeklyStreakViewModel)
+                           weeklyStreakViewModel: weeklyStreakViewModel,
+                           currentWeeklyGoalViewModel: currentWeeklyGoalViewModel)
         case .level:
             LevelView(onNavigationStateChanged: { _ in }, viewModel: levelViewModel)
         case .goalHistory:
