@@ -22,6 +22,7 @@ enum ProfileTypography {
 
 struct ProfileLevelCard: View {
     let profile: ProfileSummary
+    let level: Int?
     let action: () -> Void
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -53,9 +54,7 @@ struct ProfileLevelCard: View {
             .contentShape(Rectangle())
         }
         .buttonStyle(.plain)
-        .accessibilityLabel(
-            "레벨 \(profile.level), \(profile.stage), \(profile.focus), 주 \(profile.workoutsPerWeek)회, 레벨 상세 보기"
-        )
+        .accessibilityLabel(accessibilityLabel)
         .accessibilityHint("레벨 정보를 확인합니다")
     }
 
@@ -72,7 +71,7 @@ struct ProfileLevelCard: View {
     private var profileDetails: some View {
         VStack(alignment: .leading, spacing: GymupSpacing.xSmall) {
             HStack(alignment: .firstTextBaseline, spacing: GymupSpacing.small) {
-                Text("LV.\(profile.level)")
+                Text(level.map { "LV.\($0)" } ?? "LV.—")
                     .font(ProfileTypography.level)
                     .foregroundStyle(GymupColors.primaryText)
                 Text(profile.stage)
@@ -84,6 +83,11 @@ struct ProfileLevelCard: View {
                 .foregroundStyle(ProfileOverviewColors.secondaryText)
                 .fixedSize(horizontal: false, vertical: true)
         }
+    }
+
+    private var accessibilityLabel: String {
+        let levelDescription = level.map { "레벨 \($0)" } ?? "레벨 정보 확인 필요"
+        return "\(levelDescription), \(profile.stage), \(profile.focus), 주 \(profile.workoutsPerWeek)회, 레벨 상세 보기"
     }
 }
 

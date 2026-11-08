@@ -5,7 +5,6 @@ import Observation
 @MainActor
 final class HomeViewModel {
     var dateTitle: String { HistoryDateText.string(.now, format: "M월 d일 EEEE") }
-    let level = 17
     let stageTitle = "STAGE 5 · HEAVY"
     let rewardNotice = "새 원판이 해금됐어요"
     let barbellWeight = 130

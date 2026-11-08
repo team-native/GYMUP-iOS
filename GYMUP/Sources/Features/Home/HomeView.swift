@@ -9,6 +9,7 @@ struct HomeView: View {
     let onDetailRouteChanged: (Bool) -> Void
     private let historyStore: HistoryStore?
     private let routineStore: RoutineStore?
+    @Bindable private var levelViewModel: LevelViewModel
     @State private var viewModel = HomeViewModel()
     @State private var goalStore = GoalStore.shared
     private var growthViewModel: GrowthViewModel {
@@ -28,12 +29,14 @@ struct HomeView: View {
         inventory: BarbellCustomizationViewModel,
         historyStore: HistoryStore? = nil,
         routineStore: RoutineStore? = nil,
+        levelViewModel: LevelViewModel? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
         self.inventory = inventory
         self.historyStore = historyStore
         self.routineStore = routineStore
+        _levelViewModel = Bindable(wrappedValue: levelViewModel ?? LevelViewModel())
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -73,6 +76,7 @@ struct HomeView: View {
             onDetailRouteChanged(!newPath.isEmpty)
         }
         .onAppear { onDetailRouteChanged(!path.isEmpty) }
+        .task { await levelViewModel.loadIfNeeded() }
     }
 
     private var header: some View {
@@ -92,7 +96,7 @@ struct HomeView: View {
                     Image("H1IconZap")
                         .resizable()
                         .frame(width: 14, height: 14)
-                    Text("LV.\(viewModel.level)")
+                    Text(levelViewModel.level.map { "LV.\($0)" } ?? "LV.—")
                         .font(GymupTypography.number)
                         .tracking(0.13)
                         .foregroundStyle(GymupColors.primaryText)
@@ -129,7 +133,11 @@ struct HomeView: View {
                 statistic(icon: "H1IconFlame", value: "\(progress.streakWeeks)주", title: "Streak")
             }
             NavigationLink(value: HomeRoute.level) {
-                statistic(icon: "H1IconZap", value: progress.experiencePoints.formatted(), title: "XP")
+                statistic(
+                    icon: "H1IconZap",
+                    value: levelViewModel.experience.map { $0.formatted() } ?? "—",
+                    title: "XP"
+                )
             }
         }
         .buttonStyle(.plain)
@@ -203,7 +211,7 @@ struct HomeView: View {
             WeeklyGoalView(onNavigationStateChanged: { _ in }, onChangeGoal: { path.append(.goalHistory) },
                            goal: weeklyGoal, records: historyStore?.records ?? [])
         case .level:
-            LevelView(onNavigationStateChanged: { _ in })
+            LevelView(onNavigationStateChanged: { _ in }, viewModel: levelViewModel)
         case .goalHistory:
             ProfileGoalHistoryView(historyStore: historyStore ?? HistoryStore())
         case .customization:

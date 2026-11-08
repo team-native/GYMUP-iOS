@@ -5,6 +5,7 @@ struct MyProfileView: View {
     let onDetailRouteChanged: (Bool) -> Void
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
+    @Bindable private var levelViewModel: LevelViewModel
     @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
     var historyStore: HistoryStore = HistoryStore()
@@ -24,10 +25,12 @@ struct MyProfileView: View {
     init(
         historyStore: HistoryStore? = nil,
         restTimeService: ProfileRestTimeUpdating? = nil,
+        levelViewModel: LevelViewModel? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.historyStore = historyStore ?? HistoryStore()
         _restTimeViewModel = State(initialValue: ProfileRestTimeViewModel(service: restTimeService))
+        _levelViewModel = Bindable(wrappedValue: levelViewModel ?? LevelViewModel())
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -36,7 +39,7 @@ struct MyProfileView: View {
         let growth = GrowthViewModel(historyStore: historyStore, goalSettings: settings)
         let experienceTitles = ["처음", "입문", "중급", "숙련"]
         return ProfileSummary(
-            level: ProfileSampleData.summary.level, stage: growth.currentStage.title,
+            level: levelViewModel.level, stage: growth.currentStage.title,
             focus: settings.map { "\(experienceTitles[$0.experience]) · \($0.purposes.joined(separator: " · "))" } ?? "목표를 설정해 주세요",
             workoutsPerWeek: settings?.frequency ?? 3, currentGoal: growth.goalTitle,
             goalDurationWeeks: settings?.weeks ?? 12, restTimeSummary: restTimeSummary,
@@ -77,7 +80,7 @@ struct MyProfileView: View {
 
                 ScrollView(showsIndicators: false) {
                     VStack(alignment: .leading, spacing: 15) {
-                        ProfileLevelCard(profile: profile) { isLevelPresented = true }
+                        ProfileLevelCard(profile: profile, level: levelViewModel.level) { isLevelPresented = true }
 
                         if let notificationPermissionSnapshot,
                            notificationPermissionSnapshot.shouldShowPermissionBanner {
@@ -108,7 +111,7 @@ struct MyProfileView: View {
             .background(ProfileOverviewColors.canvas)
             .toolbar(.hidden, for: .navigationBar)
             .navigationDestination(isPresented: $isLevelPresented) {
-                LevelView(onNavigationStateChanged: { _ in })
+                LevelView(onNavigationStateChanged: { _ in }, viewModel: levelViewModel)
             }
             .navigationDestination(isPresented: $isGoalHistoryPresented) {
                 ProfileGoalHistoryView(historyStore: historyStore)
@@ -135,6 +138,7 @@ struct MyProfileView: View {
                     .presentationDragIndicator(.visible)
             }
             .task {
+                await levelViewModel.loadIfNeeded()
                 await refreshNotificationPermissionStatus()
             }
             .onChange(of: scenePhase) { _, newPhase in

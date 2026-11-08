@@ -13,6 +13,7 @@ struct MainTabView: View {
     @State private var inventory = BarbellCustomizationViewModel()
     @State private var routineStore = RoutineStore()
     @State private var historyStore = HistoryStore()
+    @State private var levelViewModel: LevelViewModel
     @State private var historyListViewModel: HistoryListViewModel
     @State private var requestedRoutineID: String?
     @State private var requestedExerciseAddRoutineID: String?
@@ -28,6 +29,12 @@ struct MainTabView: View {
     @MainActor
     init(restTimeService: ProfileRestTimeUpdating? = nil) {
         self.restTimeService = restTimeService
+#if DEBUG
+        let levelService = DebugOnboardingNetworking.makeLevelService()
+#else
+        let levelService: UserLevelReading? = nil
+#endif
+        _levelViewModel = State(initialValue: LevelViewModel(service: levelService))
         let storage: UserDefaults? = ProcessInfo.processInfo.arguments.contains("--uitest-ephemeral") ? nil : .standard
         let routineStore = RoutineStore(defaults: storage)
         _routineStore = State(initialValue: routineStore)
@@ -81,6 +88,7 @@ struct MainTabView: View {
                         inventory: inventory,
                         historyStore: historyStore,
                         routineStore: routineStore,
+                        levelViewModel: levelViewModel,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:
@@ -102,6 +110,7 @@ struct MainTabView: View {
                     MyProfileView(
                         historyStore: historyStore,
                         restTimeService: restTimeService,
+                        levelViewModel: levelViewModel,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 }
