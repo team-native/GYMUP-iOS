@@ -92,6 +92,7 @@ private actor OnboardingSubmissionTestService: OnboardingSubmissionServicing {
         )
     }
 
+    // This retry test covers onboarding persistence; goal creation is intentionally a no-op.
     func createGoal(_ request: CreateGoalRequest) async throws {}
 
     func recordedRequests() -> [SaveOnboardingRequest] {
