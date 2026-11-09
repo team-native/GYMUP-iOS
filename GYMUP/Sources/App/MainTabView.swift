@@ -7,6 +7,13 @@ enum GymupTab: Hashable {
     case profile
 }
 
+@MainActor
+private struct MainTabStorageState {
+    let routineStore: RoutineStore
+    let historyStore: HistoryStore
+    let selection: GymupTab
+}
+
 struct MainTabView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selection: GymupTab = .home
@@ -86,7 +93,7 @@ struct MainTabView: View {
     }
 
     @MainActor
-    private static func makeStorageState() -> (routineStore: RoutineStore, historyStore: HistoryStore, selection: GymupTab) {
+    private static func makeStorageState() -> MainTabStorageState {
         let arguments = ProcessInfo.processInfo.arguments
         let storage: UserDefaults? = arguments.contains("--uitest-ephemeral") ? nil : .standard
         let routineStore = RoutineStore(defaults: storage)
@@ -95,7 +102,11 @@ struct MainTabView: View {
             records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : [],
             defaults: isGrowthUITest ? nil : storage
         )
-        return (routineStore, historyStore, isGrowthUITest ? .history : .home)
+        return MainTabStorageState(
+            routineStore: routineStore,
+            historyStore: historyStore,
+            selection: isGrowthUITest ? .history : .home
+        )
     }
 
     var body: some View {
