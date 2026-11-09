@@ -118,7 +118,6 @@ final class RoutineStore {
             routines[index].exerciseCount = exercises.count
             routines[index].exercises = exercises
             routines[index].summarySetCount = nil
-            routines[index].serverRoutineId = nil
             return routineID
         }
 

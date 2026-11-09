@@ -7,6 +7,13 @@ enum GymupTab: Hashable {
     case profile
 }
 
+@MainActor
+private struct MainTabStorageState {
+    let routineStore: RoutineStore
+    let historyStore: HistoryStore
+    let selection: GymupTab
+}
+
 struct MainTabView: View {
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var selection: GymupTab = .home
@@ -28,6 +35,7 @@ struct MainTabView: View {
     private let workoutDetailService: WorkoutDetailReading?
     private let photosService: PhotosListing?
     private let activeGoalProgressService: ActiveGoalProgressReading?
+    private let apiServiceContainer: APIServiceContainer?
 
     @MainActor
     init(
@@ -37,6 +45,7 @@ struct MainTabView: View {
         self.restTimeService = restTimeService
 #if DEBUG
         let apiServices = apiServiceContainer ?? DebugOnboardingNetworking.makeAPIServiceContainer()
+        self.apiServiceContainer = apiServices
         let levelService = apiServices?.level
         let weeklyStreakService = apiServices?.weeklyStreak
         let currentWeeklyGoalService = apiServices?.currentWeeklyGoal
@@ -45,6 +54,7 @@ struct MainTabView: View {
             ? nil
             : apiServices?.goalProgress
 #else
+        self.apiServiceContainer = apiServiceContainer
         let levelService: UserLevelReading? = nil
         let weeklyStreakService: WeeklyStreakReading? = nil
         let currentWeeklyGoalService: CurrentWeeklyGoalReading? = nil
@@ -53,15 +63,11 @@ struct MainTabView: View {
         _levelViewModel = State(initialValue: LevelViewModel(service: levelService))
         _weeklyStreakViewModel = State(initialValue: WeeklyStreakViewModel(service: weeklyStreakService))
         _currentWeeklyGoalViewModel = State(initialValue: CurrentWeeklyGoalViewModel(service: currentWeeklyGoalService))
-        let storage: UserDefaults? = ProcessInfo.processInfo.arguments.contains("--uitest-ephemeral") ? nil : .standard
-        let routineStore = RoutineStore(defaults: storage)
+        let storageState = Self.makeStorageState()
+        let routineStore = storageState.routineStore
         _routineStore = State(initialValue: routineStore)
-        let isGrowthUITest = ProcessInfo.processInfo.arguments.contains("--uitest-g5-growth")
-        _selection = State(initialValue: isGrowthUITest ? .history : .home)
-        _historyStore = State(initialValue: HistoryStore(
-            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : [],
-            defaults: isGrowthUITest ? nil : storage
-        ))
+        _selection = State(initialValue: storageState.selection)
+        _historyStore = State(initialValue: storageState.historyStore)
 #if DEBUG
         let workoutReadService = apiServices?.workoutRead
         let workoutDetailService = apiServices?.workoutHistory
@@ -113,7 +119,9 @@ struct MainTabView: View {
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:
-                    RoutineView(store: routineStore, historyStore: historyStore, requestedRoutineID: $requestedRoutineID,
+                    RoutineView(store: routineStore, historyStore: historyStore,
+                                apiServiceContainer: apiServiceContainer,
+                                requestedRoutineID: $requestedRoutineID,
                                 requestedExerciseAddRoutineID: $requestedExerciseAddRoutineID,
                                 onEmptyStartAttempt: { emptyStartRoutineID = $0 },
                                 onDetailRouteChanged: { isDetailPresented = $0 })
@@ -247,5 +255,24 @@ struct MainTabView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityAddTraits(selection == value ? .isSelected : [])
+    }
+}
+
+private extension MainTabView {
+    @MainActor
+    static func makeStorageState() -> MainTabStorageState {
+        let arguments = ProcessInfo.processInfo.arguments
+        let storage: UserDefaults? = arguments.contains("--uitest-ephemeral") ? nil : .standard
+        let routineStore = RoutineStore(defaults: storage)
+        let isGrowthUITest = arguments.contains("--uitest-g5-growth")
+        let historyStore = HistoryStore(
+            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : [],
+            defaults: isGrowthUITest ? nil : storage
+        )
+        return MainTabStorageState(
+            routineStore: routineStore,
+            historyStore: historyStore,
+            selection: isGrowthUITest ? .history : .home
+        )
     }
 }

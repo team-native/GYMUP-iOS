@@ -24,6 +24,7 @@ final class RoutineViewModel {
     let store: RoutineStore
     private let routineCreator: RoutineCreating?
     private let workoutStarter: WorkoutStarting?
+    let routineExerciseEditor: RoutineExerciseEditing?
     private(set) var preparingServerRoutineID: String?
     var isPreparingServerRoutineID: Bool { preparingServerRoutineID != nil }
     var mode = RoutineListMode.mine
@@ -31,11 +32,13 @@ final class RoutineViewModel {
     init(
         store: RoutineStore,
         routineCreator: RoutineCreating? = nil,
-        workoutStarter: WorkoutStarting? = nil
+        workoutStarter: WorkoutStarting? = nil,
+        routineExerciseEditor: RoutineExerciseEditing? = nil
     ) {
         self.store = store
         self.routineCreator = routineCreator
         self.workoutStarter = workoutStarter
+        self.routineExerciseEditor = routineExerciseEditor
     }
 
     var routines: [RoutinePlan] {
