@@ -10,16 +10,22 @@ struct RoutineEditorView: View {
     @State private var didAttemptSave = false
     @State private var toastVersion = 0
     @State private var isValidationToastVisible = false
+    @State private var isSyncFailurePresented = false
+    @State private var syncFailureMessage = ""
 
     let onSave: (String) -> Void
     let opensAddExerciseOnAppear: Bool
 
-    init(store: RoutineStore, routineID: String?, opensAddExerciseOnAppear: Bool = false,
+    init(store: RoutineStore, routineID: String?, routineExerciseEditor: RoutineExerciseEditing? = nil,
+         opensAddExerciseOnAppear: Bool = false,
          onSave: @escaping (String) -> Void) {
         _viewModel = State(initialValue: RoutineEditorViewModel(store: store, routineID: routineID))
+        self.routineExerciseEditor = routineExerciseEditor
         self.opensAddExerciseOnAppear = opensAddExerciseOnAppear
         self.onSave = onSave
     }
+
+    private let routineExerciseEditor: RoutineExerciseEditing?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -39,6 +45,7 @@ struct RoutineEditorView: View {
             }
         }
         .background(GymupColors.canvas.ignoresSafeArea())
+        .disabled(viewModel.isSaving)
         .toolbar(.hidden, for: .navigationBar)
         .onChange(of: viewModel.title) { _, newValue in viewModel.limitTitle(newValue) }
         .onAppear { if opensAddExerciseOnAppear { isAddExercisePresented = true } }
@@ -61,6 +68,12 @@ struct RoutineEditorView: View {
             }
             isValidationToastVisible = false
         }
+        .alert("서버에 저장하지 못했어요", isPresented: $isSyncFailurePresented) {
+            Button("다시 시도") { saveRoutine() }
+            Button("계속 편집", role: .cancel) {}
+        } message: {
+            Text(syncFailureMessage)
+        }
     }
 
     private var showsNameError: Bool { didAttemptSave && viewModel.validation.isRoutineNameMissing }
@@ -76,30 +89,48 @@ struct RoutineEditorView: View {
                     .contentShape(Rectangle())
             }
             .accessibilityLabel("닫기")
+            .disabled(viewModel.isSaving)
             Spacer()
             Text(viewModel.routineID == nil ? "루틴 만들기" : "루틴 편집")
                 .font(GymupTypography.uiStrong)
                 .foregroundStyle(GymupColors.primaryText)
             Spacer()
             Button {
-                didAttemptSave = true
-                guard let id = viewModel.save() else {
-                    isValidationToastVisible = true
-                    toastVersion += 1
-                    return
-                }
-                onSave(id)
+                saveRoutine()
             } label: {
-                Text("저장")
+                Text(viewModel.isSaving ? "저장 중" : "저장")
                     .font(GymupTypography.uiStrong)
                     .foregroundStyle(viewModel.canSave ? GymupColors.brandText : GymupColors.tertiaryText)
                     .frame(width: 64, height: 40)
             }
+            .disabled(viewModel.isSaving)
             .accessibilityIdentifier("routine.editor.save")
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 8)
         .frame(height: 48)
+    }
+
+    private func saveRoutine() {
+        didAttemptSave = true
+        guard viewModel.canSave else {
+            isValidationToastVisible = true
+            toastVersion += 1
+            return
+        }
+        isSyncFailurePresented = false
+        Task { @MainActor in
+            switch await viewModel.saveAndSync(using: routineExerciseEditor) {
+            case let .saved(id):
+                onSave(id)
+            case .invalid:
+                isValidationToastVisible = true
+                toastVersion += 1
+            case let .failed(message):
+                syncFailureMessage = message
+                isSyncFailurePresented = true
+            }
+        }
     }
 
     private var exerciseList: some View {

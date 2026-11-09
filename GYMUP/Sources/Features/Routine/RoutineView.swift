@@ -15,15 +15,17 @@ struct RoutineView: View {
     @Binding private var requestedExerciseAddRoutineID: String?
 
     @MainActor
-    init(store: RoutineStore, historyStore: HistoryStore, requestedRoutineID: Binding<String?> = .constant(nil),
+    init(store: RoutineStore, historyStore: HistoryStore, apiServiceContainer: APIServiceContainer? = nil,
+         requestedRoutineID: Binding<String?> = .constant(nil),
          requestedExerciseAddRoutineID: Binding<String?> = .constant(nil),
          onEmptyStartAttempt: @escaping (String) -> Void = { _ in },
          onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }) {
         _viewModel = State(
             initialValue: RoutineViewModel(
                 store: store,
-                routineCreator: Self.makeRoutineCreator(),
-                workoutStarter: Self.makeWorkoutStarter()
+                routineCreator: apiServiceContainer?.routine,
+                workoutStarter: apiServiceContainer?.workoutSession,
+                routineExerciseEditor: apiServiceContainer?.routine
             )
         )
         self.historyStore = historyStore
@@ -236,22 +238,6 @@ private extension RoutineView {
         )
     }
 
-    static func makeRoutineCreator() -> RoutineCreating? {
-#if DEBUG
-        DebugOnboardingNetworking.makeRoutineService()
-#else
-        nil
-#endif
-    }
-
-    static func makeWorkoutStarter() -> WorkoutStarting? {
-#if DEBUG
-        DebugOnboardingNetworking.makeWorkoutSessionService()
-#else
-        nil
-#endif
-    }
-
     func openRequestedRoutine() {
         guard let id = requestedRoutineID else { return }
         requestedRoutineID = nil
@@ -269,6 +255,7 @@ private extension RoutineView {
         RoutineEditorView(
             store: viewModel.store,
             routineID: routineID,
+            routineExerciseEditor: viewModel.routineExerciseEditor,
             opensAddExerciseOnAppear: opensAddExerciseOnAppear,
             onSave: { savedID in
                 if !path.isEmpty { path.removeLast() }

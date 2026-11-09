@@ -28,6 +28,7 @@ struct MainTabView: View {
     private let workoutDetailService: WorkoutDetailReading?
     private let photosService: PhotosListing?
     private let activeGoalProgressService: ActiveGoalProgressReading?
+    private let apiServiceContainer: APIServiceContainer?
 
     @MainActor
     init(
@@ -37,6 +38,7 @@ struct MainTabView: View {
         self.restTimeService = restTimeService
 #if DEBUG
         let apiServices = apiServiceContainer ?? DebugOnboardingNetworking.makeAPIServiceContainer()
+        self.apiServiceContainer = apiServices
         let levelService = apiServices?.level
         let weeklyStreakService = apiServices?.weeklyStreak
         let currentWeeklyGoalService = apiServices?.currentWeeklyGoal
@@ -45,6 +47,7 @@ struct MainTabView: View {
             ? nil
             : apiServices?.goalProgress
 #else
+        self.apiServiceContainer = apiServiceContainer
         let levelService: UserLevelReading? = nil
         let weeklyStreakService: WeeklyStreakReading? = nil
         let currentWeeklyGoalService: CurrentWeeklyGoalReading? = nil
@@ -113,7 +116,9 @@ struct MainTabView: View {
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:
-                    RoutineView(store: routineStore, historyStore: historyStore, requestedRoutineID: $requestedRoutineID,
+                    RoutineView(store: routineStore, historyStore: historyStore,
+                                apiServiceContainer: apiServiceContainer,
+                                requestedRoutineID: $requestedRoutineID,
                                 requestedExerciseAddRoutineID: $requestedExerciseAddRoutineID,
                                 onEmptyStartAttempt: { emptyStartRoutineID = $0 },
                                 onDetailRouteChanged: { isDetailPresented = $0 })
