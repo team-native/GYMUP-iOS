@@ -4,34 +4,8 @@ import XCTest
 
 final class WorkoutPhotoUploadAPITests: NetworkingTestCase {
     func testUploadUsesSignedURLHeadersAndDoesNotForwardBearerToken() async throws {
-        var capturedRequests: [URLRequest] = []
+        let capture = installSignedUploadResponse()
         let imageData = Data([0xFF, 0xD8, 0x00, 0xFE, 0xD9])
-        StubURLProtocol.install { request in
-            let materializedRequest = try StubURLProtocol.materializeBodyStream(in: request)
-            capturedRequests.append(materializedRequest)
-            let isMetadataRequest = materializedRequest.httpMethod == "POST"
-            let response = try XCTUnwrap(
-                HTTPURLResponse(
-                    url: try XCTUnwrap(materializedRequest.url),
-                    statusCode: isMetadataRequest ? 201 : 200,
-                    httpVersion: nil,
-                    headerFields: nil
-                )
-            )
-            let body = #"""
-            {
-              "photoId": "photo-1",
-              "uploadUrl": "https://storage.example.test/signed-upload",
-              "uploadHeaders": {
-                "Content-Type": "image/jpeg",
-                "x-upload-signature": "signed-value"
-              },
-              "expiresAt": "2030-01-01T00:00:00Z"
-            }
-            """#
-            return (response, isMetadataRequest ? Data(body.utf8) : Data())
-        }
-
         let service = PhotosAPIService(
             client: try makeClient(token: "app-secret-token"),
             uploadSession: makeUploadSession()
@@ -50,61 +24,24 @@ final class WorkoutPhotoUploadAPITests: NetworkingTestCase {
             now: Date(timeIntervalSince1970: 1_800_000_000)
         )
 
-        XCTAssertEqual(capturedRequests.map(\.httpMethod), ["POST", "PUT"])
-        XCTAssertEqual(capturedRequests[0].url?.path, "/api/v1/workouts/workout-1/photos")
+        XCTAssertEqual(capture.requests.map(\.httpMethod), ["POST", "PUT"])
+        XCTAssertEqual(capture.requests[0].url?.path, "/api/v1/workouts/workout-1/photos")
         XCTAssertEqual(
-            capturedRequests[0].value(forHTTPHeaderField: "Authorization"),
+            capture.requests[0].value(forHTTPHeaderField: "Authorization"),
             "Bearer app-secret-token"
         )
         XCTAssertEqual(
-            capturedRequests[1].url?.absoluteString,
+            capture.requests[1].url?.absoluteString,
             "https://storage.example.test/signed-upload"
         )
-        XCTAssertNil(capturedRequests[1].value(forHTTPHeaderField: "Authorization"))
-        XCTAssertEqual(capturedRequests[1].value(forHTTPHeaderField: "Content-Type"), "image/jpeg")
-        XCTAssertEqual(capturedRequests[1].value(forHTTPHeaderField: "x-upload-signature"), "signed-value")
-        XCTAssertEqual(capturedRequests[1].httpBody, imageData)
+        XCTAssertNil(capture.requests[1].value(forHTTPHeaderField: "Authorization"))
+        XCTAssertEqual(capture.requests[1].value(forHTTPHeaderField: "Content-Type"), "image/jpeg")
+        XCTAssertEqual(capture.requests[1].value(forHTTPHeaderField: "x-upload-signature"), "signed-value")
+        XCTAssertEqual(capture.requests[1].httpBody, imageData)
     }
 
     func testStorageRetryReusesIssuedURLWithoutCreatingMetadataAgain() async throws {
-        var capturedRequests: [URLRequest] = []
-        var putAttempts = 0
-        StubURLProtocol.install { request in
-            let materializedRequest = try StubURLProtocol.materializeBodyStream(in: request)
-            capturedRequests.append(materializedRequest)
-            if materializedRequest.httpMethod == "POST" {
-                let response = try XCTUnwrap(
-                    HTTPURLResponse(
-                        url: try XCTUnwrap(request.url),
-                        statusCode: 201,
-                        httpVersion: nil,
-                        headerFields: nil
-                    )
-                )
-                let body = #"""
-                {
-                  "photoId": "photo-2",
-                  "uploadUrl": "https://storage.example.test/retry-upload",
-                  "uploadHeaders": {"x-upload-signature": "same-signature"},
-                  "expiresAt": "2030-01-01T00:00:00Z"
-                }
-                """#
-                return (response, Data(body.utf8))
-            }
-
-            putAttempts += 1
-            let statusCode = putAttempts == 1 ? 503 : 204
-            let response = try XCTUnwrap(
-                HTTPURLResponse(
-                    url: try XCTUnwrap(request.url),
-                    statusCode: statusCode,
-                    httpVersion: nil,
-                    headerFields: nil
-                )
-            )
-            return (response, Data())
-        }
-
+        let capture = installRetryUploadResponses()
         let service = PhotosAPIService(
             client: try makeClient(token: "app-secret-token"),
             uploadSession: makeUploadSession()
@@ -136,8 +73,8 @@ final class WorkoutPhotoUploadAPITests: NetworkingTestCase {
             now: Date(timeIntervalSince1970: 1_800_000_000)
         )
 
-        XCTAssertEqual(capturedRequests.filter { $0.httpMethod == "POST" }.count, 1)
-        let putRequests = capturedRequests.filter { $0.httpMethod == "PUT" }
+        XCTAssertEqual(capture.requests.filter { $0.httpMethod == "POST" }.count, 1)
+        let putRequests = capture.requests.filter { $0.httpMethod == "PUT" }
         XCTAssertEqual(putRequests.count, 2)
         XCTAssertEqual(
             putRequests.map { $0.url?.absoluteString },
@@ -261,7 +198,81 @@ final class WorkoutPhotoUploadAPITests: NetworkingTestCase {
         configuration.protocolClasses = [StubURLProtocol.self]
         configuration.httpCookieStorage = nil
         configuration.httpShouldSetCookies = false
-        let redirectDelegate = WorkoutPhotoStorageUploadRedirectDelegate()
+        let redirectDelegate = PhotoUploadRedirectDelegate()
         return URLSession(configuration: configuration, delegate: redirectDelegate, delegateQueue: nil)
     }
+}
+
+private final class PhotoUploadRequestCapture {
+    var requests: [URLRequest] = []
+    var putAttempts = 0
+}
+
+private func installSignedUploadResponse() -> PhotoUploadRequestCapture {
+    let capture = PhotoUploadRequestCapture()
+    StubURLProtocol.install { request in
+        let materializedRequest = try StubURLProtocol.materializeBodyStream(in: request)
+        capture.requests.append(materializedRequest)
+        let isMetadataRequest = materializedRequest.httpMethod == "POST"
+        let response = try XCTUnwrap(
+            HTTPURLResponse(
+                url: try XCTUnwrap(materializedRequest.url),
+                statusCode: isMetadataRequest ? 201 : 200,
+                httpVersion: nil,
+                headerFields: nil
+            )
+        )
+        let body = #"""
+        {
+          "photoId": "photo-1",
+          "uploadUrl": "https://storage.example.test/signed-upload",
+          "uploadHeaders": {
+            "Content-Type": "image/jpeg",
+            "x-upload-signature": "signed-value"
+          },
+          "expiresAt": "2030-01-01T00:00:00Z"
+        }
+        """#
+        return (response, isMetadataRequest ? Data(body.utf8) : Data())
+    }
+    return capture
+}
+
+private func installRetryUploadResponses() -> PhotoUploadRequestCapture {
+    let capture = PhotoUploadRequestCapture()
+    StubURLProtocol.install { request in
+        let materializedRequest = try StubURLProtocol.materializeBodyStream(in: request)
+        capture.requests.append(materializedRequest)
+        if materializedRequest.httpMethod == "POST" {
+            return try retryMetadataResponse(for: materializedRequest)
+        }
+
+        capture.putAttempts += 1
+        let statusCode = capture.putAttempts == 1 ? 503 : 204
+        let response = try XCTUnwrap(
+            HTTPURLResponse(
+                url: try XCTUnwrap(materializedRequest.url),
+                statusCode: statusCode,
+                httpVersion: nil,
+                headerFields: nil
+            )
+        )
+        return (response, Data())
+    }
+    return capture
+}
+
+private func retryMetadataResponse(for request: URLRequest) throws -> (HTTPURLResponse, Data) {
+    let response = try XCTUnwrap(
+        HTTPURLResponse(url: try XCTUnwrap(request.url), statusCode: 201, httpVersion: nil, headerFields: nil)
+    )
+    let body = #"""
+    {
+      "photoId": "photo-2",
+      "uploadUrl": "https://storage.example.test/retry-upload",
+      "uploadHeaders": {"x-upload-signature": "same-signature"},
+      "expiresAt": "2030-01-01T00:00:00Z"
+    }
+    """#
+    return (response, Data(body.utf8))
 }

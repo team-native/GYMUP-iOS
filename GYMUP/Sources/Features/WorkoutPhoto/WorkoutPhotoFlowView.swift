@@ -8,7 +8,7 @@ struct WorkoutPhotoFlowView: View {
     let onClose: () -> Void
     var onCameraAuthorized: () -> Void = {}
     var onCameraPermissionDenied: () -> Void = {}
-    var workoutId: String? = nil
+    var workoutId: String?
 
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
@@ -23,7 +23,7 @@ struct WorkoutPhotoFlowView: View {
     @State private var isShowingPhotoSaveFailure = false
     @State private var shouldRetryPhotoSave = false
     @State var selectionError: String?
-    @State var pendingWorkoutPhotoUpload: PendingWorkoutPhotoUpload? = nil
+    @State var pendingWorkoutPhotoUpload: PendingWorkoutPhotoUpload?
     @State var isUploadingWorkoutPhoto = false
     @StateObject private var cameraController = WorkoutPhotoCameraController()
 
@@ -283,11 +283,13 @@ struct WorkoutPhotoFlowView: View {
         openAppSettings()
     }
 
-    private func openAppSettings() {
+}
+
+private extension WorkoutPhotoFlowView {
+    func openAppSettings() {
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
         openURL(settingsURL)
     }
-
 }
 
 struct WorkoutPhotoFlowHostView: View {

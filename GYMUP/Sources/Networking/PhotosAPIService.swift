@@ -184,7 +184,7 @@ struct PhotosAPIService {
         configuration.httpCookieStorage = nil
         configuration.httpShouldSetCookies = false
         configuration.urlCache = nil
-        let redirectDelegate = WorkoutPhotoStorageUploadRedirectDelegate()
+        let redirectDelegate = PhotoUploadRedirectDelegate()
         return URLSession(configuration: configuration, delegate: redirectDelegate, delegateQueue: nil)
     }
 
@@ -210,7 +210,7 @@ enum WorkoutPhotoStorageUploadError: Error, Equatable {
     }
 }
 
-final class WorkoutPhotoStorageUploadRedirectDelegate: NSObject, URLSessionTaskDelegate {
+final class PhotoUploadRedirectDelegate: NSObject, URLSessionTaskDelegate {
     func urlSession(
         _ session: URLSession,
         task: URLSessionTask,
