@@ -11,6 +11,8 @@ let project = Project(
             deploymentTargets: .iOS("17.0"),
             infoPlist: .extendingDefault(
                 with: [
+                    // Release builds inject this build setting. An unset value remains invalid and disables API services.
+                    "GYMUP_API_BASE_URL": "$(GYMUP_API_BASE_URL)",
                     "UILaunchScreen": [:],
                     "NSSupportsLiveActivities": true,
                     "NSCameraUsageDescription": "운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.",

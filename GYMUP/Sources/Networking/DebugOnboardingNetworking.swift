@@ -110,160 +110,62 @@ actor UITestOnboardingSubmissionService: OnboardingSubmissionServicing {
 }
 
 enum DebugOnboardingNetworking {
-    static func makeService() -> OnboardingAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
+    static func makeAPIServiceContainer(bundle: Bundle = .main) -> APIServiceContainer? {
+        APIServiceContainer(bundle: bundle) { environment in
+            DevelopmentBearerTokenProvider(environment: environment)
         }
+    }
 
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return OnboardingAPIService(client: client)
+    static func makeService() -> OnboardingAPIService? {
+        makeAPIServiceContainer()?.onboarding
     }
 
     static func makeGoalProgressService() -> GoalAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return GoalAPIService(client: client)
+        makeAPIServiceContainer()?.goalProgress
     }
 
     static func makeCurrentWeeklyGoalService() -> CurrentWeeklyGoalAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return CurrentWeeklyGoalAPIService(client: client)
+        makeAPIServiceContainer()?.currentWeeklyGoal
     }
 
     static func makeRestTimeService() -> UserSettingsAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return UserSettingsAPIService(client: client)
+        makeAPIServiceContainer()?.userSettings
     }
 
     static func makePlateCalculatorService() -> PlateCalculatorAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return PlateCalculatorAPIService(client: client)
+        makeAPIServiceContainer()?.plateCalculator
     }
 
     static func makeExerciseReadService() -> ExerciseReadAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return ExerciseReadAPIService(client: client)
+        makeAPIServiceContainer()?.exerciseRead
     }
 
     static func makeRoutineService() -> RoutineAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return RoutineAPIService(client: client)
+        makeAPIServiceContainer()?.routine
     }
 
     static func makeWorkoutSessionService() -> WorkoutSessionAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return WorkoutSessionAPIService(client: client)
+        makeAPIServiceContainer()?.workoutSession
     }
 
     static func makeWorkoutReadService() -> WorkoutReadAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return WorkoutReadAPIService(client: client)
+        makeAPIServiceContainer()?.workoutRead
     }
 
     static func makeWorkoutHistoryService() -> WorkoutHistoryAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return WorkoutHistoryAPIService(client: client)
+        makeAPIServiceContainer()?.workoutHistory
     }
 
     static func makePhotosService() -> PhotosAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return PhotosAPIService(client: client)
+        makeAPIServiceContainer()?.photos
     }
 
     static func makeLevelService() -> LevelAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return LevelAPIService(client: client)
+        makeAPIServiceContainer()?.level
     }
 
     static func makeWeeklyStreakService() -> WeeklyStreakAPIService? {
-        guard let baseURL = URL(string: "http://localhost:8000"),
-              let environment = try? APIEnvironment(baseURL: baseURL)
-        else {
-            return nil
-        }
-
-        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
-        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
-        return WeeklyStreakAPIService(client: client)
+        makeAPIServiceContainer()?.weeklyStreak
     }
 }
 #endif

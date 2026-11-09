@@ -30,16 +30,20 @@ struct MainTabView: View {
     private let activeGoalProgressService: ActiveGoalProgressReading?
 
     @MainActor
-    init(restTimeService: ProfileRestTimeUpdating? = nil) {
+    init(
+        restTimeService: ProfileRestTimeUpdating? = nil,
+        apiServiceContainer: APIServiceContainer? = nil
+    ) {
         self.restTimeService = restTimeService
 #if DEBUG
-        let levelService = DebugOnboardingNetworking.makeLevelService()
-        let weeklyStreakService = DebugOnboardingNetworking.makeWeeklyStreakService()
-        let currentWeeklyGoalService = DebugOnboardingNetworking.makeCurrentWeeklyGoalService()
+        let apiServices = apiServiceContainer ?? DebugOnboardingNetworking.makeAPIServiceContainer()
+        let levelService = apiServices?.level
+        let weeklyStreakService = apiServices?.weeklyStreak
+        let currentWeeklyGoalService = apiServices?.currentWeeklyGoal
         let arguments = ProcessInfo.processInfo.arguments
         activeGoalProgressService = arguments.contains("--uitest-ephemeral") || arguments.contains("--uitest-no-onboarding-service")
             ? nil
-            : DebugOnboardingNetworking.makeGoalProgressService()
+            : apiServices?.goalProgress
 #else
         let levelService: UserLevelReading? = nil
         let weeklyStreakService: WeeklyStreakReading? = nil
@@ -59,9 +63,9 @@ struct MainTabView: View {
             defaults: isGrowthUITest ? nil : storage
         ))
 #if DEBUG
-        let workoutReadService = DebugOnboardingNetworking.makeWorkoutReadService()
-        let workoutDetailService = DebugOnboardingNetworking.makeWorkoutHistoryService()
-        let photosService = DebugOnboardingNetworking.makePhotosService()
+        let workoutReadService = apiServices?.workoutRead
+        let workoutDetailService = apiServices?.workoutHistory
+        let photosService = apiServices?.photos
 #else
         let workoutReadService: WorkoutReadAPIService? = nil
         let workoutDetailService: WorkoutDetailReading? = nil
