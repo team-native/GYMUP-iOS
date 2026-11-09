@@ -242,9 +242,12 @@ final class PhotoUploadRedirectDelegate: NSObject, URLSessionTaskDelegate {
     private func effectivePort(for url: URL) -> Int? {
         if let port = url.port { return port }
         switch url.scheme?.lowercased() {
-        case "https": 443
-        case "http": 80
-        default: nil
+        case "https":
+            return 443
+        case "http":
+            return 80
+        default:
+            return nil
         }
     }
 }
