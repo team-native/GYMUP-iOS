@@ -15,6 +15,7 @@ struct MainTabView: View {
     @State private var historyStore = HistoryStore()
     @State private var levelViewModel: LevelViewModel
     @State private var weeklyStreakViewModel: WeeklyStreakViewModel
+    @State private var currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel
     @State private var historyListViewModel: HistoryListViewModel
     @State private var requestedRoutineID: String?
     @State private var requestedExerciseAddRoutineID: String?
@@ -33,12 +34,15 @@ struct MainTabView: View {
 #if DEBUG
         let levelService = DebugOnboardingNetworking.makeLevelService()
         let weeklyStreakService = DebugOnboardingNetworking.makeWeeklyStreakService()
+        let currentWeeklyGoalService = DebugOnboardingNetworking.makeCurrentWeeklyGoalService()
 #else
         let levelService: UserLevelReading? = nil
         let weeklyStreakService: WeeklyStreakReading? = nil
+        let currentWeeklyGoalService: CurrentWeeklyGoalReading? = nil
 #endif
         _levelViewModel = State(initialValue: LevelViewModel(service: levelService))
         _weeklyStreakViewModel = State(initialValue: WeeklyStreakViewModel(service: weeklyStreakService))
+        _currentWeeklyGoalViewModel = State(initialValue: CurrentWeeklyGoalViewModel(service: currentWeeklyGoalService))
         let storage: UserDefaults? = ProcessInfo.processInfo.arguments.contains("--uitest-ephemeral") ? nil : .standard
         let routineStore = RoutineStore(defaults: storage)
         _routineStore = State(initialValue: routineStore)
@@ -94,6 +98,7 @@ struct MainTabView: View {
                         routineStore: routineStore,
                         levelViewModel: levelViewModel,
                         weeklyStreakViewModel: weeklyStreakViewModel,
+                        currentWeeklyGoalViewModel: currentWeeklyGoalViewModel,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:
