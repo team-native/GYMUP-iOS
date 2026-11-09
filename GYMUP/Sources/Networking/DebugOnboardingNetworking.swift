@@ -134,6 +134,18 @@ enum DebugOnboardingNetworking {
         return GoalAPIService(client: client)
     }
 
+    static func makeCurrentWeeklyGoalService() -> CurrentWeeklyGoalAPIService? {
+        guard let baseURL = URL(string: "http://localhost:8000"),
+              let environment = try? APIEnvironment(baseURL: baseURL)
+        else {
+            return nil
+        }
+
+        let tokenProvider = DevelopmentBearerTokenProvider(environment: environment)
+        let client = APIClient(environment: environment, tokenProvider: tokenProvider)
+        return CurrentWeeklyGoalAPIService(client: client)
+    }
+
     static func makeRestTimeService() -> UserSettingsAPIService? {
         guard let baseURL = URL(string: "http://localhost:8000"),
               let environment = try? APIEnvironment(baseURL: baseURL)
