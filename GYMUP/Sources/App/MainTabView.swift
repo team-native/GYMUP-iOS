@@ -92,23 +92,6 @@ struct MainTabView: View {
 #endif
     }
 
-    @MainActor
-    private static func makeStorageState() -> MainTabStorageState {
-        let arguments = ProcessInfo.processInfo.arguments
-        let storage: UserDefaults? = arguments.contains("--uitest-ephemeral") ? nil : .standard
-        let routineStore = RoutineStore(defaults: storage)
-        let isGrowthUITest = arguments.contains("--uitest-g5-growth")
-        let historyStore = HistoryStore(
-            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : [],
-            defaults: isGrowthUITest ? nil : storage
-        )
-        return MainTabStorageState(
-            routineStore: routineStore,
-            historyStore: historyStore,
-            selection: isGrowthUITest ? .history : .home
-        )
-    }
-
     var body: some View {
         Group {
             if let completionTestData {
@@ -272,5 +255,24 @@ struct MainTabView: View {
         .buttonStyle(.plain)
         .accessibilityLabel(title)
         .accessibilityAddTraits(selection == value ? .isSelected : [])
+    }
+}
+
+private extension MainTabView {
+    @MainActor
+    static func makeStorageState() -> MainTabStorageState {
+        let arguments = ProcessInfo.processInfo.arguments
+        let storage: UserDefaults? = arguments.contains("--uitest-ephemeral") ? nil : .standard
+        let routineStore = RoutineStore(defaults: storage)
+        let isGrowthUITest = arguments.contains("--uitest-g5-growth")
+        let historyStore = HistoryStore(
+            records: isGrowthUITest ? HistorySampleData.growthGraphUITestRecords : [],
+            defaults: isGrowthUITest ? nil : storage
+        )
+        return MainTabStorageState(
+            routineStore: routineStore,
+            historyStore: historyStore,
+            selection: isGrowthUITest ? .history : .home
+        )
     }
 }
