@@ -6,7 +6,9 @@ The Notion table contains 25 endpoint rows. This implementation follows the user
 
 ## Networking foundation scope
 
-`APIEnvironment(baseURL:)`, the API client, and endpoint services provide the networking foundation. In debug builds, onboarding profile/goal submission and Growth progress use the development server at `http://localhost:8000`. Production base URL configuration and app wiring for the remaining endpoint services are follow-up work.
+`APIEnvironment(baseURL:)`, `APIEnvironmentConfiguration`, and `APIServiceContainer` provide the networking foundation and centralize API client/service construction. Debug builds read `GYMUP_API_BASE_URL` from `Config/Info-Debug.plist`, explicitly set to `http://localhost:8000`. The generated Release Info.plist exposes the same key, supplied by the `GYMUP_API_BASE_URL` build setting (for example, an Xcode Release configuration or `xcodebuild ... GYMUP_API_BASE_URL=https://api.example.com`); there is no localhost fallback. `APIEnvironmentConfiguration` rejects a missing or invalid value, so container creation fails safely.
+
+`BearerTokenProviding` is injectable into `APIServiceContainer`, but this repository has no production implementation. `DevelopmentBearerTokenProvider` is compiled only in Debug builds. The app therefore does not create API services or send API requests in Release until a production token provider is added and injected. The configured Release base URL alone does not enable requests.
 
 | Method | Path | Success | Query | Request body | Headers | Response fields |
 | --- | --- | ---: | --- | --- | --- | --- |

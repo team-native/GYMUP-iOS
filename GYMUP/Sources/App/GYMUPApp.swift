@@ -4,6 +4,7 @@ import SwiftUI
 struct GYMUPApp: App {
     @State private var isShowingSplash = true
     @AppStorage("onboarding.completed") private var hasCompletedOnboarding = false
+    private let apiServiceContainer: APIServiceContainer?
     private let onboardingSubmissionService: OnboardingSubmissionServicing?
     private let restTimeService: ProfileRestTimeUpdating?
 
@@ -14,6 +15,8 @@ struct GYMUPApp: App {
         }
 
 #if DEBUG
+        let apiServiceContainer = DebugOnboardingNetworking.makeAPIServiceContainer()
+        self.apiServiceContainer = apiServiceContainer
         if arguments.contains("--uitest-no-onboarding-service") {
             onboardingSubmissionService = nil
         } else if arguments.contains("--uitest-ephemeral") {
@@ -21,12 +24,13 @@ struct GYMUPApp: App {
                 failsFirstRequest: arguments.contains("--uitest-onboarding-error")
             )
         } else {
-            onboardingSubmissionService = DebugOnboardingNetworking.makeService()
+            onboardingSubmissionService = apiServiceContainer?.onboarding
         }
         restTimeService = arguments.contains("--uitest-ephemeral")
             ? nil
-            : DebugOnboardingNetworking.makeRestTimeService()
+            : apiServiceContainer?.userSettings
 #else
+        apiServiceContainer = nil
         onboardingSubmissionService = nil
         restTimeService = nil
 #endif
@@ -49,7 +53,10 @@ struct GYMUPApp: App {
                         hasCompletedOnboarding = true
                     }
                 } else {
-                    MainTabView(restTimeService: restTimeService)
+                    MainTabView(
+                        restTimeService: restTimeService,
+                        apiServiceContainer: apiServiceContainer
+                    )
                 }
             }
             .preferredColorScheme(.dark)
