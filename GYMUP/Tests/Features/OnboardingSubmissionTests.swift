@@ -92,6 +92,8 @@ private actor OnboardingSubmissionTestService: OnboardingSubmissionServicing {
         )
     }
 
+    func createGoal(_ request: CreateGoalRequest) async throws {}
+
     func recordedRequests() -> [SaveOnboardingRequest] {
         requests
     }
