@@ -21,7 +21,7 @@ final class OnboardingSubmissionTests: XCTestCase {
         }
     }
 
-    func testSubmissionPreservesServerMessageAndAllowsRetryAfterConflict() async throws {
+    func testSubmissionPreservesServerMessageAndAllowsRetryAfterValidationError() async throws {
         let service = OnboardingSubmissionTestService(failuresBeforeSuccess: 1)
         let viewModel = OnboardingSubmissionViewModel(service: service)
         var draft = OnboardingDraft()
@@ -32,7 +32,7 @@ final class OnboardingSubmissionTests: XCTestCase {
         let firstResult = await viewModel.submit(draft: draft)
 
         XCTAssertFalse(firstResult)
-        XCTAssertEqual(viewModel.errorMessage, "Already completed by another session.")
+        XCTAssertEqual(viewModel.errorMessage, "Invalid onboarding data.")
         XCTAssertFalse(viewModel.isSubmitting)
         XCTAssertTrue(viewModel.canRetry)
 
@@ -78,8 +78,8 @@ private actor OnboardingSubmissionTestService: OnboardingSubmissionServicing {
         if failuresBeforeSuccess > 0 {
             failuresBeforeSuccess -= 1
             throw APIClientError.server(
-                statusCode: 409,
-                detail: ServerErrorDetail(code: "ALREADY_COMPLETED", message: "Already completed by another session.")
+                statusCode: 400,
+                detail: ServerErrorDetail(code: "VALIDATION_ERROR", message: "Invalid onboarding data.")
             )
         }
 
@@ -91,6 +91,9 @@ private actor OnboardingSubmissionTestService: OnboardingSubmissionServicing {
             weeklyWorkoutTarget: request.weeklyWorkoutTarget
         )
     }
+
+    // This retry test covers onboarding persistence; goal creation is intentionally a no-op.
+    func createGoal(_ request: CreateGoalRequest) async throws {}
 
     func recordedRequests() -> [SaveOnboardingRequest] {
         requests

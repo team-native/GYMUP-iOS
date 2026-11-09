@@ -5,11 +5,13 @@ struct GrowthView: View {
     let onOpenHistory: () -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var goalStore = GoalStore.shared
+    @State private var progressViewModel: ActiveGoalProgressViewModel
     private let historyStore: HistoryStore
     private let initialGoalSettings: OnboardingStoredSettings?
     private var viewModel: GrowthViewModel {
         GrowthViewModel(historyStore: historyStore,
-                        goalSettings: goalStore.revision > 0 ? goalStore.settings : initialGoalSettings)
+                        goalSettings: goalStore.revision > 0 ? goalStore.settings : initialGoalSettings,
+                        serverGrowth: progressViewModel.response?.growth)
     }
 
     @MainActor
@@ -17,12 +19,14 @@ struct GrowthView: View {
         onNavigationStateChanged: @escaping (Bool) -> Void,
         onOpenHistory: @escaping () -> Void,
         historyStore: HistoryStore? = nil,
-        goalSettings: OnboardingStoredSettings? = .load()
+        goalSettings: OnboardingStoredSettings? = .load(),
+        progressService: ActiveGoalProgressReading? = nil
     ) {
         self.onNavigationStateChanged = onNavigationStateChanged
         self.onOpenHistory = onOpenHistory
         self.historyStore = historyStore ?? HistoryStore()
         self.initialGoalSettings = goalSettings
+        _progressViewModel = State(initialValue: ActiveGoalProgressViewModel(service: progressService))
     }
 
     var body: some View {
@@ -31,6 +35,7 @@ struct GrowthView: View {
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: 19) {
                     score
+                    progressStatus
                     goalDescription
                     progressBar
                     stages
@@ -45,6 +50,38 @@ struct GrowthView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { onNavigationStateChanged(true) }
         .onDisappear { onNavigationStateChanged(false) }
+        .task { await progressViewModel.refresh() }
+    }
+
+    @ViewBuilder
+    private var progressStatus: some View {
+        if progressViewModel.isAvailable && (progressViewModel.isLoading || progressViewModel.errorMessage != nil) {
+            HStack(spacing: 8) {
+                if progressViewModel.isLoading {
+                    ProgressView()
+                        .controlSize(.small)
+                        .tint(GymupColors.accent)
+                    Text(progressViewModel.response == nil ? "Growth를 불러오고 있어요." : "Growth 업데이트 중")
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                }
+                if let errorMessage = progressViewModel.errorMessage {
+                    Text(errorMessage)
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                        .lineLimit(2)
+                    Spacer(minLength: 4)
+                    Button("다시 시도") {
+                        Task { await progressViewModel.refresh() }
+                    }
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.accent)
+                    .disabled(progressViewModel.isLoading)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(minHeight: 20)
+        }
     }
 
     private var navigationBar: some View {

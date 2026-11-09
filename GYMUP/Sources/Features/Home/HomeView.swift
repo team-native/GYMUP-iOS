@@ -9,6 +9,7 @@ struct HomeView: View {
     let onDetailRouteChanged: (Bool) -> Void
     private let historyStore: HistoryStore?
     private let routineStore: RoutineStore?
+    private let activeGoalProgressService: ActiveGoalProgressReading?
     @Bindable private var levelViewModel: LevelViewModel
     @Bindable private var weeklyStreakViewModel: WeeklyStreakViewModel
     @Bindable private var currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel
@@ -34,12 +35,14 @@ struct HomeView: View {
         levelViewModel: LevelViewModel? = nil,
         weeklyStreakViewModel: WeeklyStreakViewModel? = nil,
         currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel? = nil,
+        activeGoalProgressService: ActiveGoalProgressReading? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
         self.inventory = inventory
         self.historyStore = historyStore
         self.routineStore = routineStore
+        self.activeGoalProgressService = activeGoalProgressService
         _levelViewModel = Bindable(wrappedValue: levelViewModel ?? LevelViewModel())
         _weeklyStreakViewModel = Bindable(wrappedValue: weeklyStreakViewModel ?? WeeklyStreakViewModel())
         _currentWeeklyGoalViewModel = Bindable(wrappedValue: currentWeeklyGoalViewModel ?? CurrentWeeklyGoalViewModel())
@@ -223,7 +226,12 @@ struct HomeView: View {
     private func destination(for route: HomeRoute) -> some View {
         switch route {
         case .growth:
-            GrowthView(onNavigationStateChanged: { _ in }, onOpenHistory: { path.append(.goalHistory) }, historyStore: historyStore)
+            GrowthView(
+                onNavigationStateChanged: { _ in },
+                onOpenHistory: { path.append(.goalHistory) },
+                historyStore: historyStore,
+                progressService: activeGoalProgressService
+            )
         case .weeklyGoal:
             WeeklyGoalView(onNavigationStateChanged: { _ in }, onChangeGoal: { path.append(.goalHistory) },
                            goal: weeklyGoal, records: historyStore?.records ?? [],
