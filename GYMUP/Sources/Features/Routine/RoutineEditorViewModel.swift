@@ -81,24 +81,38 @@ final class RoutineEditorViewModel {
         guard validation.isValid else { return .invalid }
 
         let normalizedTitle = title.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard let routineID, let routine = store.routine(id: routineID),
-              let serverRoutineID = routine.serverRoutineId else {
-            return .saved(store.saveRoutine(id: routineID, title: normalizedTitle, exercises: exercises))
+        guard let routineID, let routine = store.routine(id: routineID) else {
+            return saveLocally(routineID: routineID, title: normalizedTitle)
         }
+        guard let serverRoutineID = routine.serverRoutineId else {
+            return saveLocally(routineID: routineID, title: normalizedTitle)
+        }
+        return await saveServerBackedRoutine(
+            routineID: routineID,
+            serverRoutineID: serverRoutineID,
+            title: normalizedTitle,
+            using: service
+        )
+    }
+
+    private func saveLocally(routineID: String?, title: String) -> RoutineEditorSaveResult {
+        .saved(store.saveRoutine(id: routineID, title: title, exercises: exercises))
+    }
+
+    private func saveServerBackedRoutine(
+        routineID: String,
+        serverRoutineID: String,
+        title: String,
+        using service: RoutineExerciseEditing?
+    ) async -> RoutineEditorSaveResult {
         guard !serverRoutineID.isEmpty else {
             return .failed("서버에서 루틴 ID를 확인하지 못했어요. 변경 내용은 유지돼요.")
         }
-        guard serverRoutineIDAtOpen == serverRoutineID,
-              serverExercises != nil,
-              serverExerciseOrder != nil else {
+        guard canSyncServerRoutine(serverRoutineID) else {
             return .failed("루틴의 서버 정보가 바뀌었어요. 화면을 다시 열어 주세요.")
         }
-        let hasServerChanges = pendingExercisePatch != nil
-            || pendingExerciseOrder != nil
-            || exercisePatch(for: exercises) != nil
-            || serverExerciseOrder != exercises.map(\.id)
         guard hasServerChanges else {
-            return .saved(store.saveRoutine(id: routineID, title: normalizedTitle, exercises: exercises))
+            return saveLocally(routineID: routineID, title: title)
         }
         guard let service else {
             return .failed("서버 연결을 사용할 수 없어요. 변경 내용은 이 화면에 유지돼요.")
@@ -111,48 +125,71 @@ final class RoutineEditorViewModel {
         defer { isSaving = false }
 
         do {
-            // Resolve an earlier ambiguous PATCH first. Its exact request is retained
-            // until a response confirms the server state; PATCH adds are idempotent
-            // by exerciseId in the paired backend change.
-            try await sendPendingExercisePatch(using: service, routineID: serverRoutineID)
-            if let request = exercisePatch(for: exercises) {
-                pendingExercisePatch = request
-                try await sendPendingExercisePatch(using: service, routineID: serverRoutineID)
-            }
-
-            // PUT sends an absolute order, so retrying the saved request is safe.
-            try await sendPendingExerciseOrder(using: service, routineID: serverRoutineID)
-            let desiredOrder = exercises.map(\.id)
-            if serverExerciseOrder != desiredOrder {
-                pendingExerciseOrder = desiredOrder
-                try await sendPendingExerciseOrder(using: service, routineID: serverRoutineID)
-            }
-
-            let confirmedByID = (serverExercises ?? []).reduce(into: [String: RoutineEditorServerExercise]()) {
-                $0[$1.exerciseId] = $1
-            }
-            let expectedByID = exercises.reduce(into: [String: RoutineEditorServerExercise]()) {
-                let state = RoutineEditorServerExercise($1)
-                $0[state.exerciseId] = state
-            }
-            guard serverExerciseOrder == desiredOrder,
-                  confirmedByID.count == expectedByID.count,
-                  confirmedByID == expectedByID else {
+            try await synchronizeServerRoutine(using: service, routineID: serverRoutineID)
+            guard serverStateMatchesDraft else {
                 return .failed("서버 저장 내용을 확인하지 못했어요. 변경은 이 화면에 유지돼요. 다시 시도해 주세요.")
             }
             guard store.routine(id: routineID)?.serverRoutineId == serverRoutineID else {
                 return .failed("루틴 정보가 바뀌어 로컬 저장을 완료하지 못했어요. 다시 열어 확인해 주세요.")
             }
-            return .saved(store.saveRoutine(id: routineID, title: normalizedTitle, exercises: exercises))
+            return saveLocally(routineID: routineID, title: title)
         } catch {
-            // A rejected client request cannot have been applied. Clear that exact
-            // pending payload so a corrected draft can produce a fresh request.
-            if case let APIClientError.server(statusCode, _) = error, (400..<500).contains(statusCode) {
-                pendingExercisePatch = nil
-                pendingExerciseOrder = nil
-            }
+            clearRejectedOperations(for: error)
             return .failed(Self.failureMessage(for: error))
         }
+    }
+
+    private var hasServerChanges: Bool {
+        pendingExercisePatch != nil
+            || pendingExerciseOrder != nil
+            || exercisePatch(for: exercises) != nil
+            || serverExerciseOrder != exercises.map(\.id)
+    }
+
+    private var serverStateMatchesDraft: Bool {
+        let confirmedByID = (serverExercises ?? []).reduce(into: [String: RoutineEditorServerExercise]()) {
+            $0[$1.exerciseId] = $1
+        }
+        let expectedByID = exercises.reduce(into: [String: RoutineEditorServerExercise]()) {
+            let state = RoutineEditorServerExercise($1)
+            $0[state.exerciseId] = state
+        }
+        return serverExerciseOrder == exercises.map(\.id)
+            && confirmedByID.count == expectedByID.count
+            && confirmedByID == expectedByID
+    }
+
+    private func canSyncServerRoutine(_ serverRoutineID: String) -> Bool {
+        serverRoutineIDAtOpen == serverRoutineID
+            && serverExercises != nil
+            && serverExerciseOrder != nil
+    }
+
+    private func synchronizeServerRoutine(
+        using service: RoutineExerciseEditing,
+        routineID: String
+    ) async throws {
+        // Resolve an earlier ambiguous PATCH before creating a fresh delta.
+        try await sendPendingExercisePatch(using: service, routineID: routineID)
+        if let request = exercisePatch(for: exercises) {
+            pendingExercisePatch = request
+            try await sendPendingExercisePatch(using: service, routineID: routineID)
+        }
+
+        // PUT sends an absolute order, so retrying the saved request is safe.
+        try await sendPendingExerciseOrder(using: service, routineID: routineID)
+        let desiredOrder = exercises.map(\.id)
+        if serverExerciseOrder != desiredOrder {
+            pendingExerciseOrder = desiredOrder
+            try await sendPendingExerciseOrder(using: service, routineID: routineID)
+        }
+    }
+
+    private func clearRejectedOperations(for error: Error) {
+        guard case let APIClientError.server(statusCode, _) = error,
+              (400..<500).contains(statusCode) else { return }
+        pendingExercisePatch = nil
+        pendingExerciseOrder = nil
     }
 
     private func exercisePatch(for draft: [RoutineExercise]) -> UpdateRoutineExercisesRequest? {

@@ -75,11 +75,13 @@ struct RoutineEditorView: View {
             Text(syncFailureMessage)
         }
     }
+}
 
-    private var showsNameError: Bool { didAttemptSave && viewModel.validation.isRoutineNameMissing }
-    private var showsEmptyExerciseError: Bool { didAttemptSave && viewModel.validation.areExercisesMissing }
+private extension RoutineEditorView {
+    var showsNameError: Bool { didAttemptSave && viewModel.validation.isRoutineNameMissing }
+    var showsEmptyExerciseError: Bool { didAttemptSave && viewModel.validation.areExercisesMissing }
 
-    private var navigationBar: some View {
+    var navigationBar: some View {
         HStack {
             Button(action: dismiss.callAsFunction) {
                 Image("R3IconClose")
@@ -111,7 +113,7 @@ struct RoutineEditorView: View {
         .frame(height: 48)
     }
 
-    private func saveRoutine() {
+    func saveRoutine() {
         didAttemptSave = true
         guard viewModel.canSave else {
             isValidationToastVisible = true
@@ -132,8 +134,10 @@ struct RoutineEditorView: View {
             }
         }
     }
+}
 
-    private var exerciseList: some View {
+private extension RoutineEditorView {
+    var exerciseList: some View {
         VStack(alignment: .leading, spacing: 24) {
             HStack {
                 Text("운동 \(viewModel.exerciseCount)")
@@ -169,7 +173,7 @@ struct RoutineEditorView: View {
         }
     }
 
-    private func exerciseRow(_ exercise: RoutineExercise) -> some View {
+    func exerciseRow(_ exercise: RoutineExercise) -> some View {
         let isDragging = viewModel.draggingExerciseID == exercise.id
         return Button { settingsExerciseID = exercise.id } label: {
             HStack(spacing: 14) {
@@ -221,7 +225,7 @@ struct RoutineEditorView: View {
         .accessibilityIdentifier("routine.editor.exercise.\(exercise.id)")
     }
 
-    private var addExerciseButton: some View {
+    var addExerciseButton: some View {
         Button { isAddExercisePresented = true } label: {
             HStack(spacing: 6) {
                 Image("R3IconPlus")
@@ -240,7 +244,7 @@ struct RoutineEditorView: View {
     }
 
     @ViewBuilder
-    private var addExerciseOverlay: some View {
+    var addExerciseOverlay: some View {
         if isAddExercisePresented {
             GeometryReader { geometry in
                 ZStack(alignment: .bottom) {
@@ -262,7 +266,7 @@ struct RoutineEditorView: View {
     }
 
     @ViewBuilder
-    private var exerciseSettingsOverlay: some View {
+    var exerciseSettingsOverlay: some View {
         if let exerciseID = settingsExerciseID,
            let exercise = viewModel.exercises.first(where: { $0.id == exerciseID }) {
             GeometryReader { geometry in
