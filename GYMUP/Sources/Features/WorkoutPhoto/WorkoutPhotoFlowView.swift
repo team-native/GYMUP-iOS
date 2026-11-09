@@ -8,6 +8,7 @@ struct WorkoutPhotoFlowView: View {
     let onClose: () -> Void
     var onCameraAuthorized: () -> Void = {}
     var onCameraPermissionDenied: () -> Void = {}
+    var workoutId: String?
 
     @Environment(\.openURL) private var openURL
     @Environment(\.scenePhase) private var scenePhase
@@ -21,7 +22,9 @@ struct WorkoutPhotoFlowView: View {
     @State private var isRequestingCameraPermission = false
     @State private var isShowingPhotoSaveFailure = false
     @State private var shouldRetryPhotoSave = false
-    @State private var selectionError: String?
+    @State var selectionError: String?
+    @State var pendingWorkoutPhotoUpload: PendingWorkoutPhotoUpload?
+    @State var isUploadingWorkoutPhoto = false
     @StateObject private var cameraController = WorkoutPhotoCameraController()
 
     private let cameraPermissionRequester = WorkoutCameraPermissionRequester.live
@@ -66,9 +69,19 @@ struct WorkoutPhotoFlowView: View {
                 } else if result == .photoSaveFailed || result == .savedToPhotos, selectedImage == nil {
                     selectionError = "저장한 사진 미리보기를 찾지 못했어요. 다시 시도해 주세요."
                 }
+
+                if result == .savedToPhotos, selectedImage != nil {
+                    uploadSavedWorkoutPhoto(payload.image)
+                }
             }
         }
-        .alert("사진 공유", isPresented: isShowingSelectionError) {
+        .alert("사진 처리", isPresented: isShowingSelectionError) {
+            if canRetryWorkoutPhotoUpload {
+                Button("다시 업로드") {
+                    retryWorkoutPhotoUpload()
+                }
+                .accessibilityIdentifier("workout.photo.upload.retry")
+            }
             Button("확인", role: .cancel) {
                 selectionError = nil
             }
@@ -270,7 +283,10 @@ struct WorkoutPhotoFlowView: View {
         openAppSettings()
     }
 
-    private func openAppSettings() {
+}
+
+private extension WorkoutPhotoFlowView {
+    func openAppSettings() {
         guard let settingsURL = URL(string: UIApplication.openSettingsURLString) else { return }
         openURL(settingsURL)
     }

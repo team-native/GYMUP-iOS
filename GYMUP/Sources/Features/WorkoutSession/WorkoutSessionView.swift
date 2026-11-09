@@ -105,7 +105,8 @@ struct WorkoutSessionView: View {
                 if let photoCompletionData {
                     WorkoutPhotoFlowView(
                         data: photoCompletionData,
-                        onClose: { isShowingWorkoutPhoto = false }
+                        onClose: { isShowingWorkoutPhoto = false },
+                        workoutId: viewModel.serverWorkoutID
                     )
                     .presentationDragIndicator(.visible)
                 }

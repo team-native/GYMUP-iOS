@@ -82,9 +82,15 @@ struct RequestWorkoutPhotoUploadResponse: Codable, Equatable {
 
 struct PhotosAPIService {
     private let client: APIClient
+    private let uploadSession: URLSession
 
     init(client: APIClient) {
+        self.init(client: client, uploadSession: Self.makeUploadSession())
+    }
+
+    init(client: APIClient, uploadSession: URLSession) {
         self.client = client
+        self.uploadSession = uploadSession
     }
 
     func list(_ query: ListPhotosQuery) async throws -> ListPhotosResponse {
@@ -134,6 +140,115 @@ struct PhotosAPIService {
             expectedStatusCode: 201
         )
         return try await client.send(endpoint, body: request, as: RequestWorkoutPhotoUploadResponse.self)
+    }
+
+    func uploadWorkoutPhoto(
+        _ imageData: Data,
+        using upload: RequestWorkoutPhotoUploadResponse,
+        now: Date = .now
+    ) async throws {
+        guard let url = URL(string: upload.uploadUrl), url.scheme?.lowercased() == "https", url.host != nil else {
+            throw WorkoutPhotoStorageUploadError.invalidURL
+        }
+
+        guard let expiration = Self.date(from: upload.expiresAt), expiration > now else {
+            throw WorkoutPhotoStorageUploadError.expired
+        }
+
+        guard case let .object(headers) = upload.uploadHeaders else {
+            throw WorkoutPhotoStorageUploadError.invalidHeaders
+        }
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "PUT"
+        for (name, value) in headers {
+            guard case let .string(stringValue) = value,
+                  !name.isEmpty,
+                  !stringValue.contains("\r"),
+                  !stringValue.contains("\n") else {
+                throw WorkoutPhotoStorageUploadError.invalidHeaders
+            }
+            request.setValue(stringValue, forHTTPHeaderField: name)
+        }
+
+        let (_, response) = try await uploadSession.upload(for: request, from: imageData)
+        guard let httpResponse = response as? HTTPURLResponse,
+              (200..<300).contains(httpResponse.statusCode) else {
+            let statusCode = (response as? HTTPURLResponse)?.statusCode ?? 0
+            throw WorkoutPhotoStorageUploadError.httpStatus(statusCode)
+        }
+    }
+
+    private static func makeUploadSession() -> URLSession {
+        let configuration = URLSessionConfiguration.ephemeral
+        configuration.httpCookieStorage = nil
+        configuration.httpShouldSetCookies = false
+        configuration.urlCache = nil
+        let redirectDelegate = PhotoUploadRedirectDelegate()
+        return URLSession(configuration: configuration, delegate: redirectDelegate, delegateQueue: nil)
+    }
+
+    private static func date(from value: String) -> Date? {
+        let formatter = ISO8601DateFormatter()
+        if let date = formatter.date(from: value) { return date }
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.date(from: value)
+    }
+}
+
+enum WorkoutPhotoStorageUploadError: Error, Equatable {
+    case invalidURL
+    case expired
+    case invalidHeaders
+    case httpStatus(Int)
+
+    var isRetryable: Bool {
+        if case let .httpStatus(statusCode) = self {
+            return (500..<600).contains(statusCode)
+        }
+        return false
+    }
+}
+
+final class PhotoUploadRedirectDelegate: NSObject, URLSessionTaskDelegate {
+    func urlSession(
+        _ session: URLSession,
+        task: URLSessionTask,
+        willPerformHTTPRedirection response: HTTPURLResponse,
+        newRequest request: URLRequest,
+        completionHandler: @escaping (URLRequest?) -> Void
+    ) {
+        guard let originalURL = task.originalRequest?.url,
+              let destinationURL = request.url,
+              hasSameOrigin(originalURL, destinationURL) else {
+            completionHandler(nil)
+            return
+        }
+
+        completionHandler(request)
+    }
+
+    private func hasSameOrigin(_ firstURL: URL, _ secondURL: URL) -> Bool {
+        guard let firstScheme = firstURL.scheme?.lowercased(),
+              let secondScheme = secondURL.scheme?.lowercased(),
+              let firstHost = firstURL.host?.lowercased(),
+              let secondHost = secondURL.host?.lowercased() else { return false }
+
+        return firstScheme == secondScheme
+            && firstHost == secondHost
+            && effectivePort(for: firstURL) == effectivePort(for: secondURL)
+    }
+
+    private func effectivePort(for url: URL) -> Int? {
+        if let port = url.port { return port }
+        switch url.scheme?.lowercased() {
+        case "https":
+            return 443
+        case "http":
+            return 80
+        default:
+            return nil
+        }
     }
 }
 

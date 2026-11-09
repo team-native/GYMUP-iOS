@@ -42,7 +42,7 @@ The Notion table contains 25 endpoint rows. This implementation follows the user
 | `POST` | `/api/v1/workouts/{workoutId}/sets` | 201 | — | `exerciseId`, `setIndex`, `weight`, `reps`, `completedAt` | `Authorization`; `Idempotency-Key` (recommended) | `setId`, `workoutId`, `exerciseId`, `setIndex`, `pr`, `nextAction` (`JSONValue`), `rest` (`JSONValue`) |
 | `POST` | `/api/v1/workouts` | 201 | — | `routineId`, `startedAt`, `timezone` | `Authorization` | `workoutId`, `status` (`IN_PROGRESS`), `routineSnapshot` (`JSONValue`), `currentExercise` (`JSONValue`), `startedAt` |
 
-For the workout photo route, this contract describes the documented metadata request and upload URL response. The user decided the binary `PUT` to the returned storage URL is a separate follow-up task.
+For the workout photo route, the client requests upload metadata after the user saves the rendered workout photo to Photos, then sends the image bytes with a `PUT` to the returned storage URL using only the server-provided `uploadHeaders`. The signed storage request does not use the app's Bearer token. Failed storage uploads can retry the same URL while it remains valid; retrying does not create another metadata record. The app currently has no production bearer token provider, so API services remain unavailable in Release builds until one is added and injected.
 
 Routine editing sends exercise additions, field updates, removals, and an absolute exercise order through the two documented routes above. Exercise writes include only fields accepted by the backend. The editor's routine title remains locally editable; neither route accepts a name update, so the title is not sent to the server and the existing server routine name remains unchanged.
 
