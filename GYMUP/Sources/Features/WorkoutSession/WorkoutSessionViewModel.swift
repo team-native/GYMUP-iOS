@@ -12,7 +12,7 @@ final class WorkoutSessionViewModel {
     private(set) var serverWorkoutID: String?
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
-    private let previousRecordService: ExerciseReadAPIService?
+    private let previousRecordService: WorkoutPreviousRecordLoading?
     let exerciseGuidance: WorkoutExerciseGuidanceViewModel
     let nextSetService: WorkoutNextSetReading?
     let progressService: WorkoutSessionProgressing?
@@ -44,7 +44,7 @@ final class WorkoutSessionViewModel {
         startsImmediately: Bool = true,
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
-        previousRecordService: ExerciseReadAPIService? = nil,
+        previousRecordService: WorkoutPreviousRecordLoading? = nil,
         exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         progressService: WorkoutSessionProgressing? = nil,
         nextSetService: WorkoutNextSetReading? = nil
@@ -67,7 +67,7 @@ final class WorkoutSessionViewModel {
         startsImmediately: Bool = true,
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
-        previousRecordService: ExerciseReadAPIService? = nil,
+        previousRecordService: WorkoutPreviousRecordLoading? = nil,
         exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         serverWorkoutID: String? = nil,
         progressService: WorkoutSessionProgressing? = nil,
@@ -296,7 +296,7 @@ extension WorkoutSessionViewModel {
         defer { loadingPreviousRecordExerciseIDs.remove(exerciseID) }
 
         do {
-            let response = try await previousRecordService.previousRecord(exerciseId: exerciseID)
+            let response = try await previousRecordService.fetchPreviousRecord(for: exerciseID)
             guard response.exerciseId == exerciseID,
                   let exerciseIndex = plan.exercises.firstIndex(where: { $0.id == exerciseID }) else {
                 throw APIClientError.invalidResponse
