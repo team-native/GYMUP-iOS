@@ -229,4 +229,5 @@ final class PhotoAPIServiceTests: NetworkingTestCase {
             .object(["Content-Type": .string("image/jpeg"), "x-upload-token": .string("abc")])
         )
     }
+
 }
