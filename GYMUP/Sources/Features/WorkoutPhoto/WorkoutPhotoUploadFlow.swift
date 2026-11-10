@@ -4,6 +4,8 @@ import UIKit
 struct PendingWorkoutPhotoUpload {
     let imageData: Data
     let response: RequestWorkoutPhotoUploadResponse
+    let filterRequest: CreatePhotoFilterRequest
+    let stampRequest: CreatePhotoStampRequest
 
     var expiration: Date {
         let formatter = ISO8601DateFormatter()
@@ -46,10 +48,16 @@ extension WorkoutPhotoFlowView {
                         size: imageData.count
                     )
                 )
-                let pendingUpload = PendingWorkoutPhotoUpload(imageData: imageData, response: upload)
+                let pendingUpload = PendingWorkoutPhotoUpload(
+                    imageData: imageData,
+                    response: upload,
+                    filterRequest: makePhotoFilterRequest(),
+                    stampRequest: makePhotoStampRequest()
+                )
                 pendingWorkoutPhotoUpload = pendingUpload
                 try await service.uploadWorkoutPhoto(imageData, using: upload)
                 pendingWorkoutPhotoUpload = nil
+                await submitPhotoProcessingJobs(for: pendingUpload, using: service)
             } catch {
                 handleWorkoutPhotoUploadFailure(error)
             }
@@ -85,8 +93,10 @@ extension WorkoutPhotoFlowView {
                     pendingWorkoutPhotoUpload.imageData,
                     using: pendingWorkoutPhotoUpload.response
                 )
+                let uploadedPhoto = pendingWorkoutPhotoUpload
                 self.pendingWorkoutPhotoUpload = nil
                 selectionError = nil
+                await submitPhotoProcessingJobs(for: uploadedPhoto, using: service)
             } catch {
                 handleWorkoutPhotoUploadFailure(error)
             }
@@ -108,5 +118,64 @@ extension WorkoutPhotoFlowView {
 
         selectionError = "사진은 보관함에 저장됐지만 서버 업로드에 실패했어요. "
             + "발급 주소가 유효한 동안 같은 업로드를 다시 시도할 수 있어요."
+    }
+
+    private func makePhotoFilterRequest() -> CreatePhotoFilterRequest {
+        CreatePhotoFilterRequest(
+            preset: editor.filter.apiPreset,
+            adjustments: PhotoFilterAdjustments(
+                contrast: 1 + editor.adjustments.contrast / 100,
+                shadow: 0,
+                sharpness: 1 + editor.adjustments.sharpness / 100,
+                highlight: 0,
+                tone: 0
+            )
+        )
+    }
+
+    private func makePhotoStampRequest() -> CreatePhotoStampRequest {
+        CreatePhotoStampRequest(
+            layoutId: stamp.style.apiLayoutID,
+            fields: ["routine", "duration", "sets", "growth", "xp"]
+        )
+    }
+
+    private func submitPhotoProcessingJobs(
+        for upload: PendingWorkoutPhotoUpload,
+        using service: PhotosAPIService
+    ) async {
+        var didConfirmAllJobs = true
+        do {
+            let filterJob = try await service.applyFilter(
+                photoId: upload.response.photoId,
+                request: upload.filterRequest
+            )
+            guard filterJob.photoId == upload.response.photoId,
+                  !filterJob.jobId.isEmpty,
+                  filterJob.status == .processing else {
+                throw APIClientError.invalidResponse
+            }
+        } catch {
+            didConfirmAllJobs = false
+        }
+
+        do {
+            let stampJob = try await service.createStamp(
+                photoId: upload.response.photoId,
+                request: upload.stampRequest
+            )
+            guard stampJob.photoId == upload.response.photoId,
+                  !stampJob.jobId.isEmpty,
+                  stampJob.status == .processing else {
+                throw APIClientError.invalidResponse
+            }
+        } catch {
+            didConfirmAllJobs = false
+        }
+
+        guard didConfirmAllJobs else {
+            selectionError = "사진은 서버에 업로드했지만 필터·스탬프 처리 요청 응답을 확인하지 못했어요."
+            return
+        }
     }
 }

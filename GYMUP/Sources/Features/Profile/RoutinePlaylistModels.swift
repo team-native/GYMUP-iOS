@@ -1,12 +1,5 @@
 import Foundation
 
-enum PlaylistProvider: String, CaseIterable, Hashable, Identifiable {
-    case appleMusic = "Apple Music"
-    case spotify = "Spotify"
-
-    var id: Self { self }
-}
-
 struct PlaylistTrack: Identifiable, Equatable {
     let id: String
     let title: String
@@ -53,30 +46,23 @@ struct RoutinePlaylist: Identifiable, Equatable {
 }
 
 struct PlaylistTrackSelectionPresentation: Identifiable {
-    let routine: RoutinePlaylist
+    let routineID: String
+    let routineTitle: String
     let provider: PlaylistProvider
+    let currentPlaylist: RoutinePlaylistReference?
 
-    var id: String { "\(routine.id)-\(provider.id)" }
+    var id: String { "\(routineID)-\(provider.rawValue)" }
 }
 
+// Retained for the existing model unit tests. This preview data is not used by the app flow or sent to the API.
 enum RoutinePlaylistSampleData {
     static let routines = [
         RoutinePlaylist(
             id: "upper-a",
             title: "상체 A",
             assignments: [
-                .appleMusic: assignment(
-                    title: "Heavy Lifting Mix",
-                    routineID: "upper-a-apple",
-                    count: 42,
-                    selected: true
-                ),
-                .spotify: assignment(
-                    title: "Strength Mode",
-                    routineID: "upper-a-spotify",
-                    count: 24,
-                    selected: true
-                )
+                .appleMusic: assignment(title: "Heavy Lifting Mix", routineID: "upper-a-apple", count: 42, selected: true),
+                .spotify: assignment(title: "Strength Mode", routineID: "upper-a-spotify", count: 24, selected: true)
             ]
         ),
         RoutinePlaylist(
@@ -91,18 +77,8 @@ enum RoutinePlaylistSampleData {
             id: "back-c",
             title: "등 · 이두 C",
             assignments: [
-                .appleMusic: assignment(
-                    title: "Pump Up",
-                    routineID: "back-c-apple",
-                    count: 30,
-                    selected: true
-                ),
-                .spotify: assignment(
-                    title: "Pull Day",
-                    routineID: "back-c-spotify",
-                    count: 18,
-                    selected: true
-                )
+                .appleMusic: assignment(title: "Pump Up", routineID: "back-c-apple", count: 30, selected: true),
+                .spotify: assignment(title: "Pull Day", routineID: "back-c-spotify", count: 18, selected: true)
             ]
         )
     ]

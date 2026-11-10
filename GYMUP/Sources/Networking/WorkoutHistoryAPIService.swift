@@ -115,6 +115,13 @@ struct WorkoutHistoryAPIService {
     }
 }
 
+protocol WorkoutCompletionProcessing {
+    func summary(workoutId: String) async throws -> WorkoutSummaryResponse
+    func complete(workoutId: String, request: CompleteWorkoutRequest) async throws -> CompleteWorkoutResponse
+}
+
+extension WorkoutHistoryAPIService: WorkoutCompletionProcessing {}
+
 protocol WorkoutDetailReading {
     func detail(workoutId: String) async throws -> WorkoutDetailResponse
 }

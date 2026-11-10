@@ -8,6 +8,7 @@ final class GoalStore {
     private let defaults: UserDefaults
     private(set) var revision = 0
     private(set) var archived: [ProfileGoalRecord]
+    private let activeGoalCompletedKey = "goals.active.completed.v1"
 
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
@@ -17,10 +18,12 @@ final class GoalStore {
 
     var settings: OnboardingStoredSettings? {
         _ = revision
+        guard !defaults.bool(forKey: activeGoalCompletedKey) else { return nil }
         return OnboardingStoredSettings.load(from: defaults)
     }
 
     func goals(historyStore: HistoryStore) -> [ProfileGoalRecord] {
+        guard !defaults.bool(forKey: activeGoalCompletedKey) else { return archived }
         guard let settings else { return archived }
         let growth = GrowthViewModel(historyStore: historyStore, goalSettings: settings)
         let current = ProfileGoalRecord(
@@ -39,10 +42,41 @@ final class GoalStore {
             archived.insert(previous, at: 0)
         }
         defaults.set(try? JSONEncoder().encode(archived), forKey: "goals.archive.v1")
+        defaults.set(false, forKey: activeGoalCompletedKey)
         defaults.set(ProfileGoalType.allCases.firstIndex(of: goal.type) ?? 0, forKey: "onboarding.goal")
         defaults.set(goal.workoutsPerWeek, forKey: "onboarding.frequency")
         defaults.set(goal.durationWeeks, forKey: "onboarding.weeks")
         defaults.set(ISO8601DateFormatter().string(from: now), forKey: "onboarding.goal.startedAt")
         revision += 1
+    }
+
+    func completeActiveGoal(
+        historyStore: HistoryStore,
+        response: CompleteGoalResponse,
+        now: Date = .now
+    ) {
+        guard response.status == "COMPLETED",
+              var current = goals(historyStore: historyStore).first(where: \.isCurrent) else { return }
+        current.isCurrent = false
+        current.growth = 100
+        current.badge = response.peakFormUnlocked ? "PEAK" : nil
+        current.period = "완료 · \(HistoryDateText.string(Self.date(from: response.completedAt) ?? now, format: "yyyy.MM.dd"))"
+        archived.insert(current, at: 0)
+        defaults.set(try? JSONEncoder().encode(archived), forKey: "goals.archive.v1")
+        defaults.set(true, forKey: activeGoalCompletedKey)
+        revision += 1
+    }
+
+    private static func date(from value: String) -> Date? {
+        let options: [ISO8601DateFormatter.Options] = [
+            [.withInternetDateTime, .withFractionalSeconds],
+            [.withInternetDateTime]
+        ]
+        for formatOptions in options {
+            let formatter = ISO8601DateFormatter()
+            formatter.formatOptions = formatOptions
+            if let date = formatter.date(from: value) { return date }
+        }
+        return nil
     }
 }

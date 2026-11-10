@@ -47,6 +47,8 @@ enum WorkoutPhotoFilter: String, CaseIterable, Identifiable {
     case mirror = "Mirror"
 
     var id: Self { self }
+
+    var apiPreset: String { rawValue }
 }
 
 struct WorkoutPhotoAdjustments: Equatable {
@@ -74,6 +76,15 @@ enum WorkoutPhotoStampStyle: String, CaseIterable, Identifiable {
     case stamp = "스탬프"
 
     var id: Self { self }
+
+    var apiLayoutID: String {
+        switch self {
+        case .card: "card"
+        case .minimal: "minimal"
+        case .bold: "bold"
+        case .stamp: "stamp"
+        }
+    }
 
     var accessibilityDescription: String {
         switch self {

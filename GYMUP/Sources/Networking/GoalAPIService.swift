@@ -7,7 +7,20 @@ struct CreateGoalRequest: Codable, Equatable {
     let weeklyWorkoutTarget: Int
 }
 
+struct CompleteGoalRequest: Codable, Equatable {
+    let expectedVersion: Int
+}
+
+struct CompleteGoalResponse: Decodable, Equatable {
+    let goalId: String
+    let status: String
+    let peakFormUnlocked: Bool
+    let rewards: JSONValue
+    let completedAt: String
+}
+
 struct ActiveGoalProgressResponse: Decodable, Equatable {
+    let goalId: String?
     let growth: Int
 }
 
@@ -15,7 +28,11 @@ protocol ActiveGoalProgressReading {
     func fetchActiveProgress() async throws -> ActiveGoalProgressResponse
 }
 
-struct GoalAPIService: ActiveGoalProgressReading {
+protocol GoalCompleting {
+    func completeGoal(goalId: String, request: CompleteGoalRequest) async throws -> CompleteGoalResponse
+}
+
+struct GoalAPIService: ActiveGoalProgressReading, GoalCompleting {
     private let client: APIClient
 
     init(client: APIClient) {
@@ -34,5 +51,14 @@ struct GoalAPIService: ActiveGoalProgressReading {
             throw APIClientError.invalidResponse
         }
         return response
+    }
+
+    func completeGoal(goalId: String, request: CompleteGoalRequest) async throws -> CompleteGoalResponse {
+        let endpoint = APIEndpoint(
+            method: .post,
+            path: "/api/v1/goals/\(goalId)/complete",
+            expectedStatusCode: 200
+        )
+        return try await client.send(endpoint, body: request, as: CompleteGoalResponse.self)
     }
 }

@@ -70,8 +70,8 @@ struct WorkoutPhotoFlowView: View {
                     selectionError = "저장한 사진 미리보기를 찾지 못했어요. 다시 시도해 주세요."
                 }
 
-                if result == .savedToPhotos, selectedImage != nil {
-                    uploadSavedWorkoutPhoto(payload.image)
+                if result == .savedToPhotos, let originalImage = selectedImage {
+                    uploadSavedWorkoutPhoto(originalImage)
                 }
             }
         }

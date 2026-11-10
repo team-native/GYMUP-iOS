@@ -6,6 +6,8 @@ struct MyProfileView: View {
     @Environment(\.scenePhase) private var scenePhase
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Bindable private var levelViewModel: LevelViewModel
+    @Bindable private var routineStore: RoutineStore
+    private let routineService: RoutineAPIService?
     @State private var isLevelPresented = false
     @State private var isGoalHistoryPresented = false
     var historyStore: HistoryStore = HistoryStore()
@@ -26,11 +28,15 @@ struct MyProfileView: View {
         historyStore: HistoryStore? = nil,
         restTimeService: ProfileRestTimeUpdating? = nil,
         levelViewModel: LevelViewModel? = nil,
+        routineStore: RoutineStore? = nil,
+        routineService: RoutineAPIService? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.historyStore = historyStore ?? HistoryStore()
         _restTimeViewModel = State(initialValue: ProfileRestTimeViewModel(service: restTimeService))
         _levelViewModel = Bindable(wrappedValue: levelViewModel ?? LevelViewModel())
+        _routineStore = Bindable(wrappedValue: routineStore ?? RoutineStore())
+        self.routineService = routineService
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -130,7 +136,7 @@ struct MyProfileView: View {
                 ProfilePhotoPermissionView()
             }
             .navigationDestination(isPresented: $isPlaylistPresented) {
-                ProfilePlaylistView()
+                ProfilePlaylistView(store: routineStore, routineService: routineService)
             }
             .sheet(item: $presentedSheet) { destination in
                 sheet(for: destination)

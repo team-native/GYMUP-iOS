@@ -5,7 +5,7 @@ struct UserLevelResponse: Decodable, Equatable {
     let currentXp: Int
     let nextLevelXp: Int
     let progressPercent: Double
-    let lastLevelUpAt: String
+    let lastLevelUpAt: String?
 }
 
 protocol UserLevelReading {

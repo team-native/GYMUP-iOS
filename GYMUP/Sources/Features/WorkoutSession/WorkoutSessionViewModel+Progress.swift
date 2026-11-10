@@ -78,6 +78,7 @@ extension WorkoutSessionViewModel {
             guard response.workoutId == serverWorkoutID else {
                 throw APIClientError.invalidResponse
             }
+            try updateServerWorkoutVersion(from: response.version)
             guard moveToNextExerciseLocally() else { throw APIClientError.invalidResponse }
             pendingExerciseAdvance = nil
             return true
@@ -103,6 +104,8 @@ extension WorkoutSessionViewModel {
             return await requestServerRestExtension(by: seconds)
         case .refreshRest:
             return await refreshActiveServerRest(at: Date())
+        case .completeWorkout:
+            return await finishWorkout()
         }
     }
 
@@ -149,6 +152,7 @@ extension WorkoutSessionViewModel {
                 idempotencyKey: pendingSetSubmission.idempotencyKey
             )
             try validateCreatedSet(response, workoutID: workoutID, exercise: exercise, setIndex: setIndex)
+            try updateServerWorkoutVersion(from: response.version)
             markSetCompleted(exerciseIndex: exerciseIndex, setIndex: setIndex, at: date, startsLocalRest: false)
             self.pendingSetSubmission = nil
             let hasMoreSets = exercise.sets.dropFirst(setIndex + 1).contains { !$0.isCompleted }
@@ -258,6 +262,7 @@ enum FailedWorkoutServerAction: Equatable {
     case skipRest
     case extendRest(seconds: Int)
     case refreshRest
+    case completeWorkout
 }
 
 struct PendingWorkoutSetSubmission {

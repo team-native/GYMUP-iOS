@@ -51,6 +51,21 @@ struct AdvanceWorkoutExerciseResponse: Codable, Equatable {
     let currentExercise: JSONValue
     let nextExercise: JSONValue
     let status: String
+    let version: Int?
+
+    init(
+        workoutId: String,
+        currentExercise: JSONValue,
+        nextExercise: JSONValue,
+        status: String,
+        version: Int? = nil
+    ) {
+        self.workoutId = workoutId
+        self.currentExercise = currentExercise
+        self.nextExercise = nextExercise
+        self.status = status
+        self.version = version
+    }
 }
 
 struct CreateWorkoutSetRequest: Codable, Equatable {
@@ -69,6 +84,27 @@ struct CreateWorkoutSetResponse: Codable, Equatable {
     let isPersonalRecord: Bool
     let nextAction: JSONValue
     let rest: JSONValue
+    let version: Int?
+
+    init(
+        setId: String,
+        workoutId: String,
+        exerciseId: String,
+        setIndex: Int,
+        isPersonalRecord: Bool,
+        nextAction: JSONValue,
+        rest: JSONValue,
+        version: Int? = nil
+    ) {
+        self.setId = setId
+        self.workoutId = workoutId
+        self.exerciseId = exerciseId
+        self.setIndex = setIndex
+        self.isPersonalRecord = isPersonalRecord
+        self.nextAction = nextAction
+        self.rest = rest
+        self.version = version
+    }
 
     enum CodingKeys: String, CodingKey {
         case setId
@@ -78,6 +114,7 @@ struct CreateWorkoutSetResponse: Codable, Equatable {
         case isPersonalRecord = "pr"
         case nextAction
         case rest
+        case version
     }
 }
 
@@ -97,6 +134,23 @@ struct StartWorkoutResponse: Codable, Equatable {
     let routineSnapshot: JSONValue
     let currentExercise: JSONValue
     let startedAt: String
+    let version: Int?
+
+    init(
+        workoutId: String,
+        status: ActiveWorkoutStatus,
+        routineSnapshot: JSONValue,
+        currentExercise: JSONValue,
+        startedAt: String,
+        version: Int? = nil
+    ) {
+        self.workoutId = workoutId
+        self.status = status
+        self.routineSnapshot = routineSnapshot
+        self.currentExercise = currentExercise
+        self.startedAt = startedAt
+        self.version = version
+    }
 }
 
 protocol WorkoutStarting {

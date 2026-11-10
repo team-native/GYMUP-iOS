@@ -25,6 +25,7 @@ final class RoutineViewModel {
     private let routineCreator: RoutineCreating?
     private let workoutStarter: WorkoutStarting?
     let routineExerciseEditor: RoutineExerciseEditing?
+    private var startedWorkoutVersions: [String: Int] = [:]
     private(set) var preparingServerRoutineID: String?
     var isPreparingServerRoutineID: Bool { preparingServerRoutineID != nil }
     var mode = RoutineListMode.mine
@@ -138,6 +139,9 @@ final class RoutineViewModel {
             guard !response.workoutId.isEmpty else {
                 return .workoutStartFailed(message: "서버에서 운동 ID를 확인하지 못했어요.")
             }
+            if let version = response.version, version > 0 {
+                startedWorkoutVersions[response.workoutId] = version
+            }
             return .started(serverWorkoutID: response.workoutId, startedAt: startedAt)
         } catch let APIClientError.server(_, detail) {
             return .workoutStartFailed(message: detail.message)
@@ -150,5 +154,9 @@ final class RoutineViewModel {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter.string(from: date)
+    }
+
+    func serverWorkoutVersion(for workoutId: String) -> Int? {
+        startedWorkoutVersions[workoutId]
     }
 }

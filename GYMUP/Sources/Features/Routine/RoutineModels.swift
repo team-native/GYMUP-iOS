@@ -1,6 +1,13 @@
 import Foundation
 import Observation
 
+struct RoutinePlaylistReference: Codable, Equatable, Hashable {
+    let provider: PlaylistProvider
+    let playlistId: String
+    let playlistName: String
+    let externalUrl: String
+}
+
 struct RoutinePlan: Identifiable, Hashable, Codable {
     let id: String
     var name: String
@@ -11,6 +18,7 @@ struct RoutinePlan: Identifiable, Hashable, Codable {
     let coverAssetName: String
     let isRecommended: Bool
     var serverRoutineId: String?
+    var playlistReferences: [String: RoutinePlaylistReference]? = nil
 
     var exercises: [RoutineExercise] = []
     var muscleGroups: [String] = []
@@ -78,6 +86,19 @@ final class RoutineStore {
         guard let index = routines.firstIndex(where: { $0.id == localRoutineID }) else { return false }
         routines[index].serverRoutineId = serverRoutineId
         return true
+    }
+
+    @discardableResult
+    func storePlaylistReference(_ reference: RoutinePlaylistReference, for localRoutineID: String) -> Bool {
+        guard let index = routines.firstIndex(where: { $0.id == localRoutineID }) else { return false }
+        var references = routines[index].playlistReferences ?? [:]
+        references[reference.provider.rawValue] = reference
+        routines[index].playlistReferences = references
+        return true
+    }
+
+    func playlistReference(for localRoutineID: String, provider: PlaylistProvider) -> RoutinePlaylistReference? {
+        routines.first(where: { $0.id == localRoutineID })?.playlistReferences?[provider.rawValue]
     }
 
     @discardableResult

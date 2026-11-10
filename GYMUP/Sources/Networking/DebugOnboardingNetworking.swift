@@ -167,5 +167,13 @@ enum DebugOnboardingNetworking {
     static func makeWeeklyStreakService() -> WeeklyStreakAPIService? {
         makeAPIServiceContainer()?.weeklyStreak
     }
+
+    static func makeAvatarService() -> AvatarAPIService? {
+        makeAPIServiceContainer()?.avatar
+    }
+
+    static func makeWorkoutRewardService() -> WorkoutRewardAPIService? {
+        makeAPIServiceContainer()?.workoutReward
+    }
 }
 #endif

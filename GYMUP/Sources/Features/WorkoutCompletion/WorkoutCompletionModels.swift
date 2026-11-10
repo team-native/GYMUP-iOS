@@ -67,6 +67,10 @@ struct WorkoutCompletionData {
     let stageReward: StageReward?
     let peakReward: PeakReward?
     var exerciseDetails: [WorkoutCompletionExerciseDetail] = []
+    var progressShotAvailable: Bool? = nil
+    var rewardGrowthDelta: Int? = nil
+    var rewardBonuses: JSONValue? = nil
+    var rewardGrantedAt: String? = nil
 
     static let sample = WorkoutCompletionData(
         routineName: "UPPER A",

@@ -45,7 +45,8 @@ struct WorkoutSessionView: View {
         plan: WorkoutSessionPlan,
         historyStore: HistoryStore,
         serverWorkoutID: String? = nil,
-        startedAt: Date = .now
+        startedAt: Date = .now,
+        serverWorkoutVersion: Int? = nil
     ) {
         let exerciseReadService = Self.makePreviousRecordService()
         _viewModel = State(
@@ -56,8 +57,11 @@ struct WorkoutSessionView: View {
                 previousRecordService: exerciseReadService,
                 exerciseGuidanceService: exerciseReadService,
                 serverWorkoutID: serverWorkoutID,
+                serverWorkoutVersion: serverWorkoutVersion,
                 progressService: serverWorkoutID == nil ? nil : Self.makeProgressService(),
-                nextSetService: serverWorkoutID == nil ? nil : Self.makeWorkoutReadService()
+                nextSetService: serverWorkoutID == nil ? nil : Self.makeWorkoutReadService(),
+                completionService: serverWorkoutID == nil ? nil : Self.makeCompletionService(),
+                rewardService: serverWorkoutID == nil ? nil : Self.makeWorkoutRewardService()
             )
         )
         self.historyStore = historyStore
@@ -75,8 +79,11 @@ struct WorkoutSessionView: View {
                         isShowingWorkoutPhoto = true
                     },
                     onFinish: finishWorkout,
-                    showsPhotoAction: true,
-                    showsPeakGoalActions: false
+                    showsPhotoAction: data.progressShotAvailable ?? true,
+                    showsPeakGoalActions: false,
+                    rewardErrorMessage: viewModel.rewardErrorMessage,
+                    isLoadingReward: viewModel.isLoadingReward,
+                    onRetryReward: { Task { await viewModel.loadWorkoutReward() } }
                 )
             } else if !viewModel.hasStarted {
                 preparationContent
@@ -91,7 +98,7 @@ struct WorkoutSessionView: View {
                 WorkoutExitConfirmationDialog(
                     completedExerciseCount: viewModel.completedExerciseCount,
                     completedSetCount: viewModel.plan.exercises.reduce(0) { $0 + $1.completedSetCount },
-                    onFinish: { viewModel.finish() },
+                    onFinish: finishWorkoutSession,
                     onContinue: { isConfirmingFinish = false }
                 )
                 .transition(.opacity)

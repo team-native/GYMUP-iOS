@@ -4,6 +4,9 @@ struct WorkoutSummaryView: View {
     let data: WorkoutCompletionData
     let onPhoto: () -> Void
     var showsPhotoAction = true
+    var rewardErrorMessage: String? = nil
+    var isLoadingReward = false
+    var onRetryReward: () -> Void = {}
     let onContinue: () -> Void
 
     private let columns = [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)]
@@ -123,6 +126,46 @@ struct WorkoutSummaryView: View {
                             .foregroundStyle(WorkoutCompletionColors.primaryText)
                     }
                 }
+
+                if let growthDelta = data.rewardGrowthDelta {
+                    HStack(spacing: 8) {
+                        Text("서버 Growth 보상")
+                            .font(Font.custom("GothicA1-Medium", size: 11, relativeTo: .caption))
+                            .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                        Spacer(minLength: 8)
+                        Text("+\(growthDelta)")
+                            .font(Font.custom("Archivo-SemiBold", size: 11, relativeTo: .caption))
+                            .foregroundStyle(WorkoutCompletionColors.primaryText)
+                    }
+                }
+
+                if !rewardBonusTitles.isEmpty {
+                    Text("보너스 · \(rewardBonusTitles.joined(separator: " · "))")
+                        .font(Font.custom("GothicA1-Medium", size: 10, relativeTo: .caption))
+                        .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if isLoadingReward {
+                    HStack(spacing: 8) {
+                        ProgressView().controlSize(.small).tint(WorkoutCompletionColors.red)
+                        Text("서버 보상 확인 중")
+                            .font(Font.custom("GothicA1-Medium", size: 10, relativeTo: .caption))
+                            .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                    }
+                } else if let rewardErrorMessage {
+                    HStack(alignment: .top, spacing: 8) {
+                        Text(rewardErrorMessage)
+                            .font(Font.custom("GothicA1-Medium", size: 10, relativeTo: .caption))
+                            .foregroundStyle(WorkoutCompletionColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 4)
+                        Button("다시 시도", action: onRetryReward)
+                            .font(Font.custom("GothicA1-SemiBold", size: 10, relativeTo: .caption))
+                            .foregroundStyle(WorkoutCompletionColors.red)
+                    }
+                }
             }
         }
         .accessibilityElement(children: .contain)
@@ -130,9 +173,18 @@ struct WorkoutSummaryView: View {
 
     private var experienceItems: [WorkoutCompletionExperienceItem] {
         if data.experienceBreakdown.isEmpty, data.earnedXP > 0 {
-            return [WorkoutCompletionExperienceItem(title: "운동 완료", amount: data.earnedXP)]
+            let title = data.rewardGrowthDelta == nil ? "운동 완료" : "서버 운동 보상"
+            return [WorkoutCompletionExperienceItem(title: title, amount: data.earnedXP)]
         }
         return data.experienceBreakdown
+    }
+
+    private var rewardBonusTitles: [String] {
+        guard case let .array(values)? = data.rewardBonuses else { return [] }
+        return values.compactMap { value in
+            guard case let .string(title) = value, !title.isEmpty else { return nil }
+            return title
+        }
     }
 
     @ViewBuilder

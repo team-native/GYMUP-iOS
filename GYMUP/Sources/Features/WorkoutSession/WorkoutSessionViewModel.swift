@@ -8,11 +8,17 @@ final class WorkoutSessionViewModel {
     var currentExerciseIndex = 0
     private(set) var now: Date
     private(set) var finishedAt: Date?
+    private(set) var serverCompletionData: WorkoutCompletionData?
     var notice: String?
     private(set) var serverWorkoutID: String?
+    private(set) var serverWorkoutVersion: Int?
     private let historyStore: HistoryStore
     private let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: WorkoutPreviousRecordLoading?
+    private let completionService: WorkoutCompletionProcessing?
+    private let rewardService: WorkoutRewardReading?
+    private(set) var isLoadingReward = false
+    private(set) var rewardErrorMessage: String?
     let exerciseGuidance: WorkoutExerciseGuidanceViewModel
     let nextSetService: WorkoutNextSetReading?
     let progressService: WorkoutSessionProgressing?
@@ -28,6 +34,7 @@ final class WorkoutSessionViewModel {
     var pendingSetSubmission: PendingWorkoutSetSubmission?
     var pendingExerciseAdvance: AdvanceWorkoutExerciseRequest?
     var pendingRestStart: PendingWorkoutRestStart?
+    var pendingWorkoutCompletion: PendingWorkoutCompletion?
 
     var hasPendingServerSetSubmission: Bool { pendingSetSubmission != nil }
     var isServerManagedRest = false
@@ -47,7 +54,9 @@ final class WorkoutSessionViewModel {
         previousRecordService: WorkoutPreviousRecordLoading? = nil,
         exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         progressService: WorkoutSessionProgressing? = nil,
-        nextSetService: WorkoutNextSetReading? = nil
+        nextSetService: WorkoutNextSetReading? = nil,
+        completionService: WorkoutCompletionProcessing? = nil,
+        rewardService: WorkoutRewardReading? = nil
     ) {
         plan = .sample(for: routineID)
         self.startedAt = startsImmediately ? startedAt : nil
@@ -55,6 +64,8 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.completionService = completionService
+        self.rewardService = rewardService
         exerciseGuidance = WorkoutExerciseGuidanceViewModel(service: exerciseGuidanceService)
         self.progressService = progressService
         self.nextSetService = nextSetService
@@ -70,8 +81,11 @@ final class WorkoutSessionViewModel {
         previousRecordService: WorkoutPreviousRecordLoading? = nil,
         exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         serverWorkoutID: String? = nil,
+        serverWorkoutVersion: Int? = nil,
         progressService: WorkoutSessionProgressing? = nil,
-        nextSetService: WorkoutNextSetReading? = nil
+        nextSetService: WorkoutNextSetReading? = nil,
+        completionService: WorkoutCompletionProcessing? = nil,
+        rewardService: WorkoutRewardReading? = nil
     ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
@@ -79,8 +93,11 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.completionService = completionService
+        self.rewardService = rewardService
         exerciseGuidance = WorkoutExerciseGuidanceViewModel(service: exerciseGuidanceService)
         self.serverWorkoutID = serverWorkoutID
+        self.serverWorkoutVersion = serverWorkoutVersion
         self.progressService = progressService
         self.nextSetService = nextSetService
     }
@@ -93,10 +110,15 @@ final class WorkoutSessionViewModel {
     var elapsedSeconds: Int { elapsedSeconds(at: now) }
     var completionData: WorkoutCompletionData? {
         guard let finishedAt else { return nil }
+        if let serverCompletionData { return serverCompletionData }
+        return makeLocalCompletionData(at: finishedAt)
+    }
+
+    private func makeLocalCompletionData(at completedAt: Date) -> WorkoutCompletionData {
         return WorkoutSessionCompletionDataFactory.make(
             plan: plan,
-            elapsedSeconds: elapsedSeconds(at: finishedAt),
-            completedAt: finishedAt,
+            elapsedSeconds: elapsedSeconds(at: completedAt),
+            completedAt: completedAt,
             context: WorkoutCompletionProgressContext(historyStore: historyStore, goalSettings: goalSettings)
         )
     }
@@ -276,6 +298,162 @@ final class WorkoutSessionViewModel {
         isServerManagedRest = false
         notice = nil
     }
+
+    func finishWorkout(at date: Date = .now) async -> Bool {
+        guard hasStarted, !isFinished else { return false }
+        guard let serverWorkoutID else {
+            finish(at: date)
+            return true
+        }
+        guard let completionService,
+              let serverWorkoutVersion,
+              serverWorkoutVersion > 0 else {
+            failServerAction(.completeWorkout, error: APIClientError.invalidResponse)
+            return false
+        }
+        guard !isSubmittingWorkoutAction else { return false }
+
+        let pendingCompletion = pendingWorkoutCompletion ?? PendingWorkoutCompletion(
+            workoutID: serverWorkoutID,
+            request: CompleteWorkoutRequest(
+                endedAt: Self.iso8601String(from: date),
+                expectedVersion: serverWorkoutVersion
+            ),
+            completedAt: date
+        )
+        guard pendingCompletion.workoutID == serverWorkoutID,
+              pendingCompletion.request.expectedVersion == serverWorkoutVersion else {
+            failServerAction(.completeWorkout, error: APIClientError.invalidResponse)
+            return false
+        }
+        pendingWorkoutCompletion = pendingCompletion
+
+        isSubmittingWorkoutAction = true
+        clearServerActionError()
+        defer { isSubmittingWorkoutAction = false }
+
+        do {
+            let response = try await completionService.complete(
+                workoutId: serverWorkoutID,
+                request: pendingCompletion.request
+            )
+            guard response.workoutId == serverWorkoutID,
+                  response.status == .completed,
+                  response.duration >= 0,
+                  response.totalSets >= 0,
+                  response.volume.isFinite,
+                  response.volume >= 0,
+                  response.experiencePoints >= 0 else {
+                throw APIClientError.invalidResponse
+            }
+
+            let summary = try? await completionService.summary(workoutId: serverWorkoutID)
+            pendingWorkoutCompletion = nil
+            finish(at: pendingCompletion.completedAt)
+
+            let localData = makeLocalCompletionData(at: pendingCompletion.completedAt)
+            serverCompletionData = WorkoutSessionCompletionDataFactory.applyingServerCompletion(response, to: localData)
+
+            if let summary, isValidCompletedSummary(summary) {
+                serverCompletionData = WorkoutSessionCompletionDataFactory.applyingServerSummary(
+                    summary,
+                    to: localData
+                )
+            }
+
+            await loadWorkoutReward()
+
+            clearServerActionError()
+            return true
+        } catch {
+            let completionError = error
+            if let summary = try? await completionService.summary(workoutId: serverWorkoutID),
+               isValidCompletedSummary(summary) {
+                pendingWorkoutCompletion = nil
+                finish(at: pendingCompletion.completedAt)
+                let localData = makeLocalCompletionData(at: pendingCompletion.completedAt)
+                serverCompletionData = WorkoutSessionCompletionDataFactory.applyingServerSummary(
+                    summary,
+                    to: localData
+                )
+                await loadWorkoutReward()
+                clearServerActionError()
+                return true
+            }
+
+            failServerAction(.completeWorkout, error: completionError)
+            return false
+        }
+    }
+
+    private func isValidCompletedSummary(_ summary: WorkoutSummaryResponse) -> Bool {
+        summary.duration >= 0
+            && summary.totalSets >= 0
+            && summary.volume.isFinite
+            && summary.volume >= 0
+            && summary.experiencePoints >= 0
+    }
+
+    @discardableResult
+    func loadWorkoutReward() async -> Bool {
+        guard !isLoadingReward,
+              let rewardService,
+              let serverWorkoutID else { return false }
+        isLoadingReward = true
+        rewardErrorMessage = nil
+        defer { isLoadingReward = false }
+
+        do {
+            let response = try await rewardService.fetch(workoutId: serverWorkoutID)
+            guard response.workoutId == serverWorkoutID,
+                  response.xp >= 0,
+                  response.growthDelta >= 0,
+                  !response.grantedAt.isEmpty else {
+                throw APIClientError.invalidResponse
+            }
+            guard let currentData = serverCompletionData ?? completionData else {
+                throw APIClientError.invalidResponse
+            }
+            serverCompletionData = WorkoutSessionCompletionDataFactory.applyingServerReward(
+                response,
+                to: currentData
+            )
+            return true
+        } catch is CancellationError {
+            return false
+        } catch {
+            if case let APIClientError.server(_, detail) = error {
+                rewardErrorMessage = detail.message
+            } else {
+                rewardErrorMessage = "운동 보상 정보를 불러오지 못했어요. 다시 시도해 주세요."
+            }
+            return false
+        }
+    }
+
+    func updateServerWorkoutVersion(from responseVersion: Int?) throws {
+        guard let responseVersion else {
+            if serverWorkoutVersion != nil { throw APIClientError.invalidResponse }
+            return
+        }
+        guard responseVersion > 0 else { throw APIClientError.invalidResponse }
+        if let serverWorkoutVersion {
+            guard responseVersion == serverWorkoutVersion + 1 else {
+                throw APIClientError.invalidResponse
+            }
+        }
+        serverWorkoutVersion = responseVersion
+    }
+
+    private static func iso8601String(from date: Date) -> String {
+        ISO8601DateFormatter().string(from: date)
+    }
+}
+
+struct PendingWorkoutCompletion: Equatable {
+    let workoutID: String
+    let request: CompleteWorkoutRequest
+    let completedAt: Date
 }
 
 extension WorkoutSessionViewModel {

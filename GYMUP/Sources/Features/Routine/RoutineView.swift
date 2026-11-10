@@ -109,7 +109,8 @@ struct RoutineView: View {
                             plan: plan,
                             historyStore: historyStore,
                             serverWorkoutID: serverWorkoutID,
-                            startedAt: startedAt
+                            startedAt: startedAt,
+                            serverWorkoutVersion: viewModel.serverWorkoutVersion(for: serverWorkoutID)
                         )
                     } else {
                         GymupEmptyState(symbol: "dumbbell", title: "루틴을 열 수 없어요", message: "루틴 내용을 확인해 주세요.")
