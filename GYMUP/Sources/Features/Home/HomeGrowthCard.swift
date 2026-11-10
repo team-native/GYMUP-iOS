@@ -4,13 +4,14 @@ struct HomeGrowthCard: View {
     let inventory: BarbellCustomizationViewModel
     let growthViewModel: GrowthViewModel
     let rewardNotice: String
+    var serverStage: String?
     let onOpenGrowth: () -> Void
     let onNewItem: () -> Void
 
     var body: some View {
         VStack(spacing: 12) {
             HStack {
-                Text(growthViewModel.stageTitle)
+                Text(stageTitle)
                     .font(GymupTypography.label)
                     .tracking(0.17)
                     .foregroundStyle(GymupColors.brandText)
@@ -37,6 +38,11 @@ struct HomeGrowthCard: View {
         .padding(.vertical, 18)
         .frame(height: 318)
         .background(GymupColors.surface, in: RoundedRectangle(cornerRadius: 20))
+    }
+
+    private var stageTitle: String {
+        guard let serverStage, !serverStage.isEmpty else { return growthViewModel.stageTitle }
+        return "STAGE · \(serverStage)"
     }
 
     private var newItemBanner: some View {

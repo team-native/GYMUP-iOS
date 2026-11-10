@@ -116,6 +116,7 @@ struct MainTabView: View {
                         weeklyStreakViewModel: weeklyStreakViewModel,
                         currentWeeklyGoalViewModel: currentWeeklyGoalViewModel,
                         activeGoalProgressService: activeGoalProgressService,
+                        avatarService: apiServiceContainer?.avatar,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 case .routine:
@@ -140,6 +141,8 @@ struct MainTabView: View {
                         historyStore: historyStore,
                         restTimeService: restTimeService,
                         levelViewModel: levelViewModel,
+                        routineStore: routineStore,
+                        routineService: apiServiceContainer?.routine,
                         onDetailRouteChanged: { isDetailPresented = $0 }
                     )
                 }

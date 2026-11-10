@@ -18,8 +18,23 @@
 	<string>1.0</string>
 	<key>CFBundleVersion</key>
 	<string>1</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLName</key>
+			<string>com.teamnative.gymup.spotify</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.teamnative.gymup.spotify</string>
+			</array>
+		</dict>
+	</array>
 	<key>GYMUP_API_BASE_URL</key>
 	<string>http://localhost:8000</string>
+	<key>GYMUP_SPOTIFY_CLIENT_ID</key>
+	<string>$(GYMUP_SPOTIFY_CLIENT_ID)</string>
+	<key>GYMUP_SPOTIFY_REDIRECT_URI</key>
+	<string>com.teamnative.gymup.spotify://oauth/callback</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
 	<key>NSAppTransportSecurity</key>
@@ -29,6 +44,8 @@
 	</dict>
 	<key>NSCameraUsageDescription</key>
 	<string>운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>
+	<key>NSAppleMusicUsageDescription</key>
+	<string>루틴에 연결할 플레이리스트를 선택하기 위해 Apple Music 라이브러리를 읽습니다.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIAppFonts</key>

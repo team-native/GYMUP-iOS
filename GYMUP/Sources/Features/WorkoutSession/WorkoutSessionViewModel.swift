@@ -6,21 +6,27 @@ import Observation
 final class WorkoutSessionViewModel {
     private(set) var plan: WorkoutSessionPlan
     var currentExerciseIndex = 0
-    private(set) var now: Date
-    private(set) var finishedAt: Date?
+    var now: Date
+    var finishedAt: Date?
+    var serverCompletionData: WorkoutCompletionData?
     var notice: String?
     private(set) var serverWorkoutID: String?
-    private let historyStore: HistoryStore
-    private let goalSettings: OnboardingStoredSettings?
+    var serverWorkoutVersion: Int?
+    let historyStore: HistoryStore
+    let goalSettings: OnboardingStoredSettings?
     private let previousRecordService: WorkoutPreviousRecordLoading?
+    let completionService: WorkoutCompletionProcessing?
+    let rewardService: WorkoutRewardReading?
+    var isLoadingReward = false
+    var rewardErrorMessage: String?
     let exerciseGuidance: WorkoutExerciseGuidanceViewModel
     let nextSetService: WorkoutNextSetReading?
     let progressService: WorkoutSessionProgressing?
     private(set) var previousRecordErrors: [String: String] = [:]
     private(set) var loadingPreviousRecordExerciseIDs: Set<String> = []
-    private(set) var nextSetPreview: NextWorkoutSetResponse?
-    private(set) var nextSetPreviewError: String?
-    private(set) var isLoadingNextSetPreview = false
+    var nextSetPreview: NextWorkoutSetResponse?
+    var nextSetPreviewError: String?
+    var isLoadingNextSetPreview = false
     var isSubmittingWorkoutAction = false
     var serverActionErrorMessage: String?
     var failedServerAction: FailedWorkoutServerAction?
@@ -28,13 +34,14 @@ final class WorkoutSessionViewModel {
     var pendingSetSubmission: PendingWorkoutSetSubmission?
     var pendingExerciseAdvance: AdvanceWorkoutExerciseRequest?
     var pendingRestStart: PendingWorkoutRestStart?
+    var pendingWorkoutCompletion: PendingWorkoutCompletion?
 
     var hasPendingServerSetSubmission: Bool { pendingSetSubmission != nil }
     var isServerManagedRest = false
 
     private(set) var startedAt: Date?
-    private var pausedAt: Date?
-    private var accumulatedPauseSeconds: TimeInterval = 0
+    var pausedAt: Date?
+    var accumulatedPauseSeconds: TimeInterval = 0
     var restEndsAt: Date?
     var activeRestDurationSeconds = 0
 
@@ -47,7 +54,9 @@ final class WorkoutSessionViewModel {
         previousRecordService: WorkoutPreviousRecordLoading? = nil,
         exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         progressService: WorkoutSessionProgressing? = nil,
-        nextSetService: WorkoutNextSetReading? = nil
+        nextSetService: WorkoutNextSetReading? = nil,
+        completionService: WorkoutCompletionProcessing? = nil,
+        rewardService: WorkoutRewardReading? = nil
     ) {
         plan = .sample(for: routineID)
         self.startedAt = startsImmediately ? startedAt : nil
@@ -55,6 +64,8 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.completionService = completionService
+        self.rewardService = rewardService
         exerciseGuidance = WorkoutExerciseGuidanceViewModel(service: exerciseGuidanceService)
         self.progressService = progressService
         self.nextSetService = nextSetService
@@ -70,8 +81,11 @@ final class WorkoutSessionViewModel {
         previousRecordService: WorkoutPreviousRecordLoading? = nil,
         exerciseGuidanceService: ExerciseGuidanceReading? = nil,
         serverWorkoutID: String? = nil,
+        serverWorkoutVersion: Int? = nil,
         progressService: WorkoutSessionProgressing? = nil,
-        nextSetService: WorkoutNextSetReading? = nil
+        nextSetService: WorkoutNextSetReading? = nil,
+        completionService: WorkoutCompletionProcessing? = nil,
+        rewardService: WorkoutRewardReading? = nil
     ) {
         self.plan = plan
         self.startedAt = startsImmediately ? startedAt : nil
@@ -79,8 +93,11 @@ final class WorkoutSessionViewModel {
         self.historyStore = historyStore ?? HistoryStore()
         self.goalSettings = goalSettings
         self.previousRecordService = previousRecordService
+        self.completionService = completionService
+        self.rewardService = rewardService
         exerciseGuidance = WorkoutExerciseGuidanceViewModel(service: exerciseGuidanceService)
         self.serverWorkoutID = serverWorkoutID
+        self.serverWorkoutVersion = serverWorkoutVersion
         self.progressService = progressService
         self.nextSetService = nextSetService
     }
@@ -93,12 +110,8 @@ final class WorkoutSessionViewModel {
     var elapsedSeconds: Int { elapsedSeconds(at: now) }
     var completionData: WorkoutCompletionData? {
         guard let finishedAt else { return nil }
-        return WorkoutSessionCompletionDataFactory.make(
-            plan: plan,
-            elapsedSeconds: elapsedSeconds(at: finishedAt),
-            completedAt: finishedAt,
-            context: WorkoutCompletionProgressContext(historyStore: historyStore, goalSettings: goalSettings)
-        )
+        if let serverCompletionData { return serverCompletionData }
+        return makeLocalCompletionData(at: finishedAt)
     }
 
     var restSecondsRemaining: Int {
@@ -246,36 +259,12 @@ final class WorkoutSessionViewModel {
         activeRestDurationSeconds = updatedDuration
         self.restEndsAt = restEndsAt.addingTimeInterval(TimeInterval(addedDuration))
     }
+}
 
-    func togglePause(at date: Date) {
-        guard hasStarted, !isFinished else { return }
-        now = date
-
-        if let pausedAt {
-            let pauseDuration = max(0, date.timeIntervalSince(pausedAt))
-            accumulatedPauseSeconds += pauseDuration
-            if let restEndsAt {
-                self.restEndsAt = restEndsAt.addingTimeInterval(pauseDuration)
-            }
-            self.pausedAt = nil
-        } else {
-            pausedAt = date
-        }
-    }
-
-    func finish(at date: Date = Date()) {
-        guard hasStarted, !isFinished else { return }
-        now = date
-        if let pausedAt {
-            accumulatedPauseSeconds += max(0, date.timeIntervalSince(pausedAt))
-            self.pausedAt = nil
-        }
-        finishedAt = date
-        restEndsAt = nil
-        activeRestDurationSeconds = 0
-        isServerManagedRest = false
-        notice = nil
-    }
+struct PendingWorkoutCompletion: Equatable {
+    let workoutID: String
+    let request: CompleteWorkoutRequest
+    let completedAt: Date
 }
 
 extension WorkoutSessionViewModel {
@@ -316,65 +305,5 @@ extension WorkoutSessionViewModel {
                 previousRecordErrors[exerciseID] = "이전 기록을 불러오지 못했어요."
             }
         }
-    }
-}
-
-extension WorkoutSessionViewModel {
-    func loadNextSetPreview() async {
-        guard !isLoadingNextSetPreview,
-              isServerManagedRest,
-              let workoutID = serverWorkoutID,
-              let nextSetService,
-              let exercise = currentExercise,
-              exercise.measure == .repetitions,
-              let localSetIndex = currentSetIndex else { return }
-
-        let expectedSetIndex = localSetIndex + 1
-        isLoadingNextSetPreview = true
-        nextSetPreview = nil
-        nextSetPreviewError = nil
-        defer { isLoadingNextSetPreview = false }
-
-        do {
-            let response = try await nextSetService.nextSet(workoutId: workoutID)
-            guard isCurrentNextSetRequest(
-                workoutID: workoutID,
-                exerciseID: exercise.id,
-                setIndex: localSetIndex
-            ) else { return }
-            guard response.exerciseId == exercise.id,
-                  response.setIndex == expectedSetIndex,
-                  !response.exerciseName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-                  response.weight.isFinite,
-                  response.weight >= 0,
-                  response.reps >= 0 else {
-                throw APIClientError.invalidResponse
-            }
-
-            nextSetPreview = response
-        } catch {
-            guard !Task.isCancelled,
-                  isCurrentNextSetRequest(
-                    workoutID: workoutID,
-                    exerciseID: exercise.id,
-                    setIndex: localSetIndex
-                  ) else { return }
-            nextSetPreviewError = Self.nextSetPreviewMessage(for: error)
-        }
-    }
-
-    private func isCurrentNextSetRequest(workoutID: String, exerciseID: String, setIndex: Int) -> Bool {
-        serverWorkoutID == workoutID &&
-            isServerManagedRest &&
-            currentExercise?.id == exerciseID &&
-            currentSetIndex == setIndex
-    }
-
-    private static func nextSetPreviewMessage(for error: Error) -> String {
-        if let apiError = error as? APIClientError,
-           case let .server(_, detail) = apiError {
-            return detail.message
-        }
-        return "다음 세트 정보를 불러오지 못했어요."
     }
 }

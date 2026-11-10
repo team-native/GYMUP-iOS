@@ -14,9 +14,14 @@ struct HomeView: View {
     @Bindable private var weeklyStreakViewModel: WeeklyStreakViewModel
     @Bindable private var currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel
     @State private var viewModel = HomeViewModel()
+    @State private var avatarViewModel: AvatarAPIViewModel
     @State private var goalStore = GoalStore.shared
     private var growthViewModel: GrowthViewModel {
-        GrowthViewModel(historyStore: historyStore, goalSettings: goalStore.settings)
+        GrowthViewModel(
+            historyStore: historyStore,
+            goalSettings: goalStore.settings,
+            serverGrowth: avatarViewModel.avatar?.growth
+        )
     }
     private var progress: WorkoutProgress { WorkoutProgress(records: historyStore?.records ?? [], goal: weeklyGoal) }
     @AppStorage("onboarding.completed") private var onboardingCompleted = false
@@ -36,6 +41,7 @@ struct HomeView: View {
         weeklyStreakViewModel: WeeklyStreakViewModel? = nil,
         currentWeeklyGoalViewModel: CurrentWeeklyGoalViewModel? = nil,
         activeGoalProgressService: ActiveGoalProgressReading? = nil,
+        avatarService: AvatarReading? = nil,
         onDetailRouteChanged: @escaping (Bool) -> Void = { _ in }
     ) {
         self.onOpenRoutines = onOpenRoutines
@@ -46,6 +52,7 @@ struct HomeView: View {
         _levelViewModel = Bindable(wrappedValue: levelViewModel ?? LevelViewModel())
         _weeklyStreakViewModel = Bindable(wrappedValue: weeklyStreakViewModel ?? WeeklyStreakViewModel())
         _currentWeeklyGoalViewModel = Bindable(wrappedValue: currentWeeklyGoalViewModel ?? CurrentWeeklyGoalViewModel())
+        _avatarViewModel = State(initialValue: AvatarAPIViewModel(service: avatarService))
         self.onDetailRouteChanged = onDetailRouteChanged
     }
 
@@ -55,6 +62,7 @@ struct HomeView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     header
                         .frame(height: 56)
+                    avatarStatus
                     VStack(spacing: 16) {
                         growthCard
                         statistics
@@ -89,6 +97,39 @@ struct HomeView: View {
             await levelViewModel.loadIfNeeded()
             await weeklyStreakViewModel.loadIfNeeded()
             await currentWeeklyGoalViewModel.loadIfNeeded()
+            await avatarViewModel.loadAvatar()
+        }
+    }
+}
+
+extension HomeView {
+    @ViewBuilder
+    private var avatarStatus: some View {
+        if avatarViewModel.isAvailable,
+           avatarViewModel.isLoadingAvatar || avatarViewModel.avatarErrorMessage != nil {
+            HStack(spacing: GymupSpacing.small) {
+                if avatarViewModel.isLoadingAvatar {
+                    ProgressView().controlSize(.small).tint(GymupColors.accent)
+                    Text("아바타 정보를 불러오고 있어요.")
+                        .font(GymupTypography.caption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                }
+                if let errorMessage = avatarViewModel.avatarErrorMessage {
+                    Text(errorMessage)
+                        .font(GymupTypography.caption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Button("다시 시도") {
+                        Task { await avatarViewModel.loadAvatar() }
+                    }
+                    .font(GymupTypography.caption)
+                    .foregroundStyle(GymupColors.accent)
+                    .disabled(avatarViewModel.isLoadingAvatar)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("home.avatar.status")
         }
     }
 
@@ -109,7 +150,7 @@ struct HomeView: View {
                     Image("H1IconZap")
                         .resizable()
                         .frame(width: 14, height: 14)
-                    Text(levelViewModel.level.map { "LV.\($0)" } ?? "LV.—")
+                    Text((avatarViewModel.avatar?.level ?? levelViewModel.level).map { "LV.\($0)" } ?? "LV.—")
                         .font(GymupTypography.number)
                         .tracking(0.13)
                         .foregroundStyle(GymupColors.primaryText)
@@ -128,6 +169,7 @@ struct HomeView: View {
             inventory: inventory,
             growthViewModel: growthViewModel,
             rewardNotice: viewModel.rewardNotice,
+            serverStage: avatarViewModel.avatar?.stage,
             onOpenGrowth: { path.append(.growth) },
             onNewItem: { isNewItemPresented = true }
         )
@@ -230,7 +272,8 @@ struct HomeView: View {
                 onNavigationStateChanged: { _ in },
                 onOpenHistory: { path.append(.goalHistory) },
                 historyStore: historyStore,
-                progressService: activeGoalProgressService
+                progressService: activeGoalProgressService,
+                avatarViewModel: avatarViewModel
             )
         case .weeklyGoal:
             WeeklyGoalView(onNavigationStateChanged: { _ in }, onChangeGoal: { path.append(.goalHistory) },
@@ -244,6 +287,7 @@ struct HomeView: View {
         case .customization:
             BarbellCustomizationView(
                 viewModel: inventory,
+                avatarViewModel: avatarViewModel,
                 onNavigationStateChanged: { _ in },
                 onOpenNewItem: { isNewItemPresented = true }
             )
@@ -269,7 +313,10 @@ struct HomeView: View {
 
 private extension HomeView {
     var weeklyGoal: Int {
-        onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
+        if let serverGoal = avatarViewModel.avatar?.weeklyGoal, (1...7).contains(serverGoal) {
+            return serverGoal
+        }
+        return onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
     }
 
     var weeklyRecords: [WorkoutRecord]? {

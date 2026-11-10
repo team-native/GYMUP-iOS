@@ -13,9 +13,18 @@ let project = Project(
                 with: [
                     // Release builds inject this build setting. An unset value remains invalid and disables API services.
                     "GYMUP_API_BASE_URL": "$(GYMUP_API_BASE_URL)",
+                    "GYMUP_SPOTIFY_CLIENT_ID": "$(GYMUP_SPOTIFY_CLIENT_ID)",
+                    "GYMUP_SPOTIFY_REDIRECT_URI": "com.teamnative.gymup.spotify://oauth/callback",
+                    "CFBundleURLTypes": [
+                        [
+                            "CFBundleURLName": "com.teamnative.gymup.spotify",
+                            "CFBundleURLSchemes": ["com.teamnative.gymup.spotify"],
+                        ],
+                    ],
                     "UILaunchScreen": [:],
                     "NSSupportsLiveActivities": true,
                     "NSCameraUsageDescription": "운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.",
+                    "NSAppleMusicUsageDescription": "루틴에 연결할 플레이리스트를 선택하기 위해 Apple Music 라이브러리를 읽습니다.",
                     "UIAppFonts": [
                         "NotoSansKR[wght].ttf",
                         "GothicA1-Medium.ttf",

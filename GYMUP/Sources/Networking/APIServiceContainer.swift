@@ -53,6 +53,9 @@ struct APIServiceContainer {
     var workoutRead: WorkoutReadAPIService { WorkoutReadAPIService(client: client) }
     var workoutHistory: WorkoutHistoryAPIService { WorkoutHistoryAPIService(client: client) }
     var photos: PhotosAPIService { PhotosAPIService(client: client) }
+    var exerciseStatistics: ExerciseStatisticsAPIService { ExerciseStatisticsAPIService(client: client) }
     var level: LevelAPIService { LevelAPIService(client: client) }
     var weeklyStreak: WeeklyStreakAPIService { WeeklyStreakAPIService(client: client) }
+    var avatar: AvatarAPIService { AvatarAPIService(client: client) }
+    var workoutReward: WorkoutRewardAPIService { WorkoutRewardAPIService(client: client) }
 }

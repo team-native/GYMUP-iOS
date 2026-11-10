@@ -29,6 +29,7 @@ struct WorkoutExerciseRecord: Identifiable, Hashable, Codable {
     let id: Int
     let name: String
     let sets: [WorkoutSetRecord]
+    var exerciseId: String?
 }
 
 struct WorkoutRecord: Identifiable, Hashable, Codable {
@@ -57,6 +58,14 @@ enum HistoryGrowthMetric: String, CaseIterable, Identifiable {
     case volume = "볼륨"
 
     var id: String { rawValue }
+
+    var apiValue: String? {
+        switch self {
+        case .maxWeight: "weight"
+        case .estimatedOneRepMax: nil
+        case .volume: "volume"
+        }
+    }
 
     var unit: String {
         "KG"

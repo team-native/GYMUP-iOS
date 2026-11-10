@@ -2,9 +2,23 @@ import SwiftUI
 
 struct BarbellCustomizationView: View {
     @Bindable var viewModel: BarbellCustomizationViewModel
+    @Bindable private var avatarViewModel: AvatarAPIViewModel
     let onNavigationStateChanged: (Bool) -> Void
     var onOpenNewItem: (() -> Void)?
     @Environment(\.dismiss) private var dismiss
+
+    @MainActor
+    init(
+        viewModel: BarbellCustomizationViewModel,
+        avatarViewModel: AvatarAPIViewModel? = nil,
+        onNavigationStateChanged: @escaping (Bool) -> Void,
+        onOpenNewItem: (() -> Void)? = nil
+    ) {
+        self.viewModel = viewModel
+        _avatarViewModel = Bindable(wrappedValue: avatarViewModel ?? AvatarAPIViewModel(service: nil))
+        self.onNavigationStateChanged = onNavigationStateChanged
+        self.onOpenNewItem = onOpenNewItem
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -26,6 +40,7 @@ struct BarbellCustomizationView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { onNavigationStateChanged(true) }
         .onDisappear { onNavigationStateChanged(false) }
+        .task { await avatarViewModel.loadItems() }
     }
 
     private var equipmentPreview: some View {
@@ -57,7 +72,51 @@ struct BarbellCustomizationView: View {
         }
     }
 
+    @ViewBuilder
     private var inventory: some View {
+        if avatarViewModel.isAvailable {
+            if avatarViewModel.isLoadingItems {
+                HStack(spacing: GymupSpacing.small) {
+                    ProgressView().controlSize(.small).tint(GymupColors.accent)
+                    Text("서버 아이템을 불러오고 있어요.")
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                }
+                .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+            } else if let errorMessage = avatarViewModel.itemsErrorMessage {
+                VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                    Text(errorMessage)
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                    Button("다시 시도") { Task { await avatarViewModel.loadItems() } }
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.accent)
+                        .disabled(avatarViewModel.isLoadingItems)
+                }
+                .frame(maxWidth: .infinity, minHeight: 88, alignment: .leading)
+                .accessibilityIdentifier("home.avatar.items.error")
+            } else if let response = avatarViewModel.items, response.items.isEmpty {
+                GymupEmptyState(
+                    symbol: "shippingbox",
+                    title: "보유 아이템이 없어요",
+                    message: "보상으로 받은 바벨 아이템이 여기에 표시돼요."
+                )
+                .accessibilityIdentifier("home.avatar.items.empty")
+            } else if let response = avatarViewModel.items {
+                Text("서버에서 아이템 \(response.items.count)개를 불러왔어요. 아이템 정보 형식이 앱 화면에 연결되지 않았어요.")
+                    .font(GymupTypography.uiCaption)
+                    .foregroundStyle(GymupColors.secondaryText)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("home.avatar.items.unsupported")
+            } else {
+                ProgressView().tint(GymupColors.accent).frame(maxWidth: .infinity, minHeight: 88)
+            }
+        } else {
+            localInventory
+        }
+    }
+
+    private var localInventory: some View {
         LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
             ForEach(viewModel.filteredItems) { item in
                 if item.isNew {

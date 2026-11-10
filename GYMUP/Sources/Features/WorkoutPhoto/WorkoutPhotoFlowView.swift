@@ -15,8 +15,8 @@ struct WorkoutPhotoFlowView: View {
     @State private var step: WorkoutPhotoStep = .intro
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    @State private var editor = WorkoutPhotoEditorState()
-    @State private var stamp = WorkoutPhotoStampState()
+    @State var editor = WorkoutPhotoEditorState()
+    @State var stamp = WorkoutPhotoStampState()
     @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
     @State private var isRequestingCameraPermission = false
@@ -70,8 +70,8 @@ struct WorkoutPhotoFlowView: View {
                     selectionError = "저장한 사진 미리보기를 찾지 못했어요. 다시 시도해 주세요."
                 }
 
-                if result == .savedToPhotos, selectedImage != nil {
-                    uploadSavedWorkoutPhoto(payload.image)
+                if result == .savedToPhotos, let originalImage = selectedImage {
+                    uploadSavedWorkoutPhoto(originalImage)
                 }
             }
         }

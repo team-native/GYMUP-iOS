@@ -6,12 +6,13 @@ struct GrowthView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var goalStore = GoalStore.shared
     @State private var progressViewModel: ActiveGoalProgressViewModel
+    @Bindable private var avatarViewModel: AvatarAPIViewModel
     private let historyStore: HistoryStore
     private let initialGoalSettings: OnboardingStoredSettings?
     private var viewModel: GrowthViewModel {
         GrowthViewModel(historyStore: historyStore,
                         goalSettings: goalStore.revision > 0 ? goalStore.settings : initialGoalSettings,
-                        serverGrowth: progressViewModel.response?.growth)
+                        serverGrowth: avatarViewModel.growthStage?.growth ?? progressViewModel.response?.growth)
     }
 
     @MainActor
@@ -20,13 +21,15 @@ struct GrowthView: View {
         onOpenHistory: @escaping () -> Void,
         historyStore: HistoryStore? = nil,
         goalSettings: OnboardingStoredSettings? = .load(),
-        progressService: ActiveGoalProgressReading? = nil
+        progressService: ActiveGoalProgressReading? = nil,
+        avatarViewModel: AvatarAPIViewModel? = nil
     ) {
         self.onNavigationStateChanged = onNavigationStateChanged
         self.onOpenHistory = onOpenHistory
         self.historyStore = historyStore ?? HistoryStore()
         self.initialGoalSettings = goalSettings
         _progressViewModel = State(initialValue: ActiveGoalProgressViewModel(service: progressService))
+        _avatarViewModel = Bindable(wrappedValue: avatarViewModel ?? AvatarAPIViewModel(service: nil))
     }
 
     var body: some View {
@@ -36,6 +39,8 @@ struct GrowthView: View {
                 VStack(alignment: .leading, spacing: 19) {
                     score
                     progressStatus
+                    avatarStageStatus
+                    goalCompletionStatus
                     goalDescription
                     progressBar
                     stages
@@ -50,7 +55,45 @@ struct GrowthView: View {
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { onNavigationStateChanged(true) }
         .onDisappear { onNavigationStateChanged(false) }
-        .task { await progressViewModel.refresh() }
+        .task {
+            await progressViewModel.refresh()
+            await avatarViewModel.loadGrowthStage()
+        }
+    }
+}
+
+extension GrowthView {
+    @ViewBuilder
+    private var avatarStageStatus: some View {
+        if avatarViewModel.isAvailable,
+           avatarViewModel.isLoadingGrowthStage || avatarViewModel.growthStageErrorMessage != nil {
+            HStack(spacing: GymupSpacing.small) {
+                if avatarViewModel.isLoadingGrowthStage {
+                    ProgressView().controlSize(.small).tint(GymupColors.accent)
+                    Text("아바타 단계를 불러오고 있어요.")
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                }
+                if let errorMessage = avatarViewModel.growthStageErrorMessage {
+                    Text(errorMessage)
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.secondaryText)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Spacer(minLength: 4)
+                    Button("다시 시도") { Task { await avatarViewModel.loadGrowthStage() } }
+                        .font(GymupTypography.uiCaption)
+                        .foregroundStyle(GymupColors.accent)
+                        .disabled(avatarViewModel.isLoadingGrowthStage)
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("home.growth.avatar-status")
+        } else if let stage = avatarViewModel.growthStage {
+            Text("서버 아바타 단계 · \(stage.stage) · Growth \(stage.minGrowth)–\(stage.maxGrowth)")
+                .font(GymupTypography.uiCaption)
+                .foregroundStyle(GymupColors.secondaryText)
+                .accessibilityIdentifier("home.growth.avatar-stage")
+        }
     }
 
     @ViewBuilder
@@ -81,6 +124,58 @@ struct GrowthView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
             .frame(minHeight: 20)
+        }
+    }
+
+    @ViewBuilder
+    private var goalCompletionStatus: some View {
+        if let response = progressViewModel.completionResponse {
+            Label(
+                response.peakFormUnlocked ? "목표를 완료하고 Peak Form을 해금했어요." : "목표를 완료했어요.",
+                systemImage: "checkmark.seal.fill"
+            )
+            .font(GymupTypography.uiCaption)
+            .foregroundStyle(GymupColors.brandText)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .accessibilityIdentifier("home.growth.goal.completed")
+        } else if progressViewModel.canCompleteCurrentGoal {
+            VStack(alignment: .leading, spacing: GymupSpacing.small) {
+                if let errorMessage = progressViewModel.completionErrorMessage {
+                    HStack(alignment: .top, spacing: GymupSpacing.small) {
+                        Text(errorMessage)
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.secondaryText)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 4)
+                        Button("다시 시도") { completeGoal() }
+                            .font(GymupTypography.uiCaption)
+                            .foregroundStyle(GymupColors.accent)
+                            .disabled(progressViewModel.isCompletingGoal)
+                    }
+                }
+                Button(action: completeGoal) {
+                    HStack(spacing: GymupSpacing.small) {
+                        if progressViewModel.isCompletingGoal {
+                            ProgressView().controlSize(.small).tint(.white)
+                        }
+                        Text(progressViewModel.isCompletingGoal ? "목표를 완료하고 있어요" : "목표 완료하기")
+                            .font(GymupTypography.uiBold)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(maxWidth: .infinity, minHeight: 48)
+                    .background(GymupColors.accent, in: Capsule())
+                }
+                .buttonStyle(.plain)
+                .disabled(progressViewModel.isCompletingGoal)
+                .accessibilityIdentifier("home.growth.goal.complete")
+            }
+        }
+    }
+
+    private func completeGoal() {
+        Task {
+            guard let response = await progressViewModel.completeCurrentGoal() else { return }
+            goalStore.completeActiveGoal(historyStore: historyStore, response: response)
         }
     }
 

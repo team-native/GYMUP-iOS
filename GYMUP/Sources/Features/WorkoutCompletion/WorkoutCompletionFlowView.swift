@@ -9,6 +9,9 @@ struct WorkoutCompletionFlowView: View {
     let onGoalHistory: () -> Void
     let showsPhotoAction: Bool
     let showsPeakGoalActions: Bool
+    var rewardErrorMessage: String?
+    var isLoadingReward = false
+    var onRetryReward: () -> Void = {}
 
     @State private var step: WorkoutCompletionStep = .summary
 
@@ -20,7 +23,10 @@ struct WorkoutCompletionFlowView: View {
         onCreateGoal: @escaping () -> Void = {},
         onGoalHistory: @escaping () -> Void = {},
         showsPhotoAction: Bool = true,
-        showsPeakGoalActions: Bool = true
+        showsPeakGoalActions: Bool = true,
+        rewardErrorMessage: String? = nil,
+        isLoadingReward: Bool = false,
+        onRetryReward: @escaping () -> Void = {}
     ) {
         self.data = data
         self.onWorkoutPhoto = onWorkoutPhoto
@@ -30,6 +36,9 @@ struct WorkoutCompletionFlowView: View {
         self.onGoalHistory = onGoalHistory
         self.showsPhotoAction = showsPhotoAction
         self.showsPeakGoalActions = showsPeakGoalActions
+        self.rewardErrorMessage = rewardErrorMessage
+        self.isLoadingReward = isLoadingReward
+        self.onRetryReward = onRetryReward
     }
 
     var body: some View {
@@ -39,7 +48,10 @@ struct WorkoutCompletionFlowView: View {
                 WorkoutSummaryView(
                     data: data,
                     onPhoto: onWorkoutPhoto,
-                    showsPhotoAction: showsPhotoAction
+                    showsPhotoAction: showsPhotoAction,
+                    rewardErrorMessage: rewardErrorMessage,
+                    isLoadingReward: isLoadingReward,
+                    onRetryReward: onRetryReward
                 ) {
                     advance(from: .summary)
                 }

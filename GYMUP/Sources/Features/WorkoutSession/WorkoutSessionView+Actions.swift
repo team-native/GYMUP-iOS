@@ -184,6 +184,18 @@ extension WorkoutSessionView {
         dismiss()
     }
 
+    func finishWorkoutSession(at date: Date = .now) {
+        isConfirmingFinish = false
+        Task { @MainActor in
+            if viewModel.serverWorkoutID != nil {
+                isShowingWorkoutProcessing = true
+            }
+            let didFinish = await viewModel.finishWorkout(at: date)
+            isShowingWorkoutProcessing = false
+            isShowingServerActionError = !didFinish && viewModel.serverActionErrorMessage != nil
+        }
+    }
+
     func syncRestActivity() {
         guard settings.preferences.restTimerEnabled, viewModel.isResting,
               let exercise = viewModel.currentExercise,
@@ -218,15 +230,18 @@ extension WorkoutSessionView {
     }
 
     func showWorkoutProcessing() {
+        isConfirmingFinish = false
         isShowingWorkoutProcessing = true
         Task { @MainActor in
             do {
                 try await Task.sleep(for: .milliseconds(1_800))
             } catch {
+                isShowingWorkoutProcessing = false
                 return
             }
+            let didFinish = await viewModel.finishWorkout(at: .now)
             isShowingWorkoutProcessing = false
-            viewModel.finish()
+            isShowingServerActionError = !didFinish && viewModel.serverActionErrorMessage != nil
         }
     }
 
@@ -257,6 +272,22 @@ extension WorkoutSessionView {
     static func makeWorkoutReadService() -> WorkoutNextSetReading? {
 #if DEBUG
         DebugOnboardingNetworking.makeWorkoutReadService()
+#else
+        nil
+#endif
+    }
+
+    static func makeCompletionService() -> WorkoutCompletionProcessing? {
+#if DEBUG
+        DebugOnboardingNetworking.makeWorkoutHistoryService()
+#else
+        nil
+#endif
+    }
+
+    static func makeWorkoutRewardService() -> WorkoutRewardReading? {
+#if DEBUG
+        DebugOnboardingNetworking.makeWorkoutRewardService()
 #else
         nil
 #endif

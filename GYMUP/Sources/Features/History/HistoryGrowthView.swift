@@ -6,16 +6,27 @@ struct HistoryGrowthView: View {
     @State private var selectedExercise = ""
     @State private var selectedRange: HistoryGrowthRange = .twelveWeeks
     @State private var selectedPointDate: Date?
+    @State private var serverStatisticsPoints: [HistoryGrowthDataPoint]?
+    @State private var loadedStatisticsKey: String?
 
     private let store: HistoryStore
     private let anchorDate: Date
     private let sampleDataOverride: [HistoryGrowthDataPoint]?
+    private let statisticsService: ExerciseStatisticsReading?
 
     @MainActor
-    init(store: HistoryStore? = nil, anchorDate: Date = .now, sampleDataOverride: [HistoryGrowthDataPoint]? = nil) {
+    init(
+        store: HistoryStore? = nil,
+        anchorDate: Date = .now,
+        sampleDataOverride: [HistoryGrowthDataPoint]? = nil,
+        statisticsService: ExerciseStatisticsReading? = nil
+    ) {
         self.store = store ?? HistoryStore()
         self.anchorDate = anchorDate
         self.sampleDataOverride = sampleDataOverride
+        self.statisticsService = sampleDataOverride == nil
+            ? statisticsService ?? Self.makeStatisticsService()
+            : nil
     }
 
     var body: some View {
@@ -37,8 +48,13 @@ struct HistoryGrowthView: View {
         .background(GymupColors.canvas.ignoresSafeArea())
         .toolbar(.hidden, for: .navigationBar)
         .onAppear { if selectedExercise.isEmpty { selectedExercise = exercises.first ?? "" } }
+        .task(id: statisticsRequestKey) {
+            await loadServerStatistics()
+        }
     }
+}
 
+extension HistoryGrowthView {
     private var navigationBar: some View {
         HStack(spacing: 8) {
             Button(action: dismiss.callAsFunction) {
@@ -196,7 +212,9 @@ struct HistoryGrowthView: View {
         .background(GymupColors.surface, in: Capsule())
         .accessibilityLabel("그래프 조회 기간")
     }
+}
 
+extension HistoryGrowthView {
     private var ranges: [HistoryGrowthRange] {
         HistoryGrowthRange.allCases
     }
@@ -206,9 +224,12 @@ struct HistoryGrowthView: View {
     }
 
     private var allSamples: [HistoryGrowthDataPoint] {
-        sampleDataOverride ?? HistoryGrowthRecordData.points(
-            from: store.records, exercise: selectedExercise, metric: selectedMetric
-        )
+        if let sampleDataOverride { return sampleDataOverride }
+        if loadedStatisticsKey == statisticsRequestKey,
+           let serverStatisticsPoints {
+            return serverStatisticsPoints
+        }
+        return HistoryGrowthRecordData.points(from: store.records, exercise: selectedExercise, metric: selectedMetric)
     }
 
     private var visiblePoints: [HistoryGrowthDataPoint] {
@@ -257,21 +278,109 @@ struct HistoryGrowthView: View {
         return value.formatted(.number.precision(.fractionLength(0...1)))
     }
 
-}
+    private var selectedExerciseID: String? {
+        store.records
+            .flatMap(\.exercises)
+            .first { $0.name == selectedExercise && $0.exerciseId != nil }
+            .flatMap(\.exerciseId)
+    }
 
-#Preview("G5 성장 그래프") {
-    HistoryGrowthView()
-        .preferredColorScheme(.dark)
-}
+    private var statisticsRequestKey: String? {
+        guard let selectedExerciseID, !selectedExerciseID.isEmpty,
+              let apiMetric = selectedMetric.apiValue,
+              let dateRange = statisticsDateRange else { return nil }
+        return [
+            selectedExerciseID,
+            apiMetric,
+            dateRange.from,
+            dateRange.to,
+            intervalForSelectedRange
+        ].joined(separator: "|")
+    }
 
-#Preview("G5 기록 없음") {
-    HistoryGrowthView(sampleDataOverride: [])
-        .preferredColorScheme(.dark)
-}
+    private var statisticsDateRange: (from: String, to: String)? {
+        let startDate: Date?
+        switch selectedRange {
+        case .fourWeeks:
+            startDate = Calendar.current.date(byAdding: .day, value: -28, to: anchorDate)
+        case .twelveWeeks:
+            startDate = Calendar.current.date(byAdding: .day, value: -84, to: anchorDate)
+        case .sixMonths:
+            startDate = Calendar.current.date(byAdding: .month, value: -6, to: anchorDate)
+        case .all:
+            startDate = nil
+        }
+        guard let startDate else { return ("1970-01-01", Self.apiDate(anchorDate)) }
+        return (Self.apiDate(startDate), Self.apiDate(anchorDate))
+    }
 
-#Preview("G5 기록 부족") {
-    HistoryGrowthView(sampleDataOverride: [
-        HistoryGrowthDataPoint(date: .now, value: 62.5)
-    ])
-    .preferredColorScheme(.dark)
+    private func loadServerStatistics() async {
+        guard let statisticsService,
+              let exerciseId = selectedExerciseID,
+              let apiMetric = selectedMetric.apiValue,
+              let dateRange = statisticsDateRange,
+              let requestKey = statisticsRequestKey else {
+            serverStatisticsPoints = nil
+            loadedStatisticsKey = nil
+            return
+        }
+
+        do {
+            let response = try await statisticsService.statistics(
+                exerciseId: exerciseId,
+                query: ExerciseStatisticsQuery(
+                    metric: apiMetric,
+                    from: dateRange.from,
+                    endDate: dateRange.to,
+                    interval: intervalForSelectedRange
+                )
+            )
+            guard !Task.isCancelled,
+                  response.exerciseId == exerciseId,
+                  response.metric == apiMetric,
+                  statisticsRequestKey == requestKey else { return }
+            serverStatisticsPoints = response.points.compactMap { point in
+                guard let date = Self.date(from: point.date), point.value.isFinite else { return nil }
+                return HistoryGrowthDataPoint(date: date, value: point.value)
+            }.sorted { $0.date < $1.date }
+            loadedStatisticsKey = requestKey
+            selectedPointDate = nil
+        } catch {
+            guard !Task.isCancelled else { return }
+            serverStatisticsPoints = nil
+            loadedStatisticsKey = nil
+        }
+    }
+
+    private static func makeStatisticsService() -> ExerciseStatisticsReading? {
+#if DEBUG
+        DebugOnboardingNetworking.makeAPIServiceContainer()?.exerciseStatistics
+#else
+        nil
+#endif
+    }
+
+    private var intervalForSelectedRange: String {
+        selectedRange == .fourWeeks ? "day" : "week"
+    }
+
+    private static func apiDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
+    }
+
+    private static func date(from value: String) -> Date? {
+        if let parsed = ISO8601DateFormatter().date(from: value) { return parsed }
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.timeZone = TimeZone.current
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: value)
+    }
+
 }

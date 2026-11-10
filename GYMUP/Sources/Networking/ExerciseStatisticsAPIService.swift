@@ -45,3 +45,9 @@ struct ExerciseStatisticsAPIService {
         return try await client.send(endpoint, as: ExerciseStatisticsResponse.self)
     }
 }
+
+protocol ExerciseStatisticsReading {
+    func statistics(exerciseId: String, query: ExerciseStatisticsQuery) async throws -> ExerciseStatisticsResponse
+}
+
+extension ExerciseStatisticsAPIService: ExerciseStatisticsReading {}
