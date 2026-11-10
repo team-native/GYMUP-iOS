@@ -15,8 +15,8 @@ struct WorkoutPhotoFlowView: View {
     @State private var step: WorkoutPhotoStep = .intro
     @State private var selectedItem: PhotosPickerItem?
     @State private var selectedImage: UIImage?
-    @State private var editor = WorkoutPhotoEditorState()
-    @State private var stamp = WorkoutPhotoStampState()
+    @State var editor = WorkoutPhotoEditorState()
+    @State var stamp = WorkoutPhotoStampState()
     @State private var sharePayload: WorkoutPhotoSharePayload?
     @State private var isLoadingImage = false
     @State private var isRequestingCameraPermission = false
