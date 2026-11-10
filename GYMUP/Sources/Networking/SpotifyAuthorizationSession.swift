@@ -8,8 +8,8 @@ final class SpotifyAuthorizationSession: NSObject, ASWebAuthenticationPresentati
     private var continuation: CheckedContinuation<URL, Error>?
     private let anchor: ASPresentationAnchor
 
-    init(anchor: ASPresentationAnchor? = Self.activePresentationAnchor()) throws {
-        guard let anchor else {
+    init(anchor: ASPresentationAnchor? = nil) throws {
+        guard let anchor = anchor ?? Self.activePresentationAnchor() else {
             throw PlaylistProviderError.authorizationFailed("로그인 화면을 열 수 없어요. 앱을 다시 활성화한 뒤 시도해 주세요.")
         }
         self.anchor = anchor

@@ -5,7 +5,7 @@ struct SpotifyPlaylistPage: Decodable {
     let items: [SpotifyPlaylist]
 }
 
-private struct SpotifyPlaylist: Decodable {
+struct SpotifyPlaylist: Decodable {
     let id: String
     let name: String
     let externalURLs: SpotifyExternalURLs?
