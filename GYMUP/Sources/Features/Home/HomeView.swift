@@ -316,7 +316,7 @@ private extension HomeView {
         if let serverGoal = avatarViewModel.avatar?.weeklyGoal, (1...7).contains(serverGoal) {
             return serverGoal
         }
-        onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
+        return onboardingCompleted ? min(max(onboardingFrequency, 1), 7) : viewModel.weeklyWorkoutGoal
     }
 
     var weeklyRecords: [WorkoutRecord]? {
