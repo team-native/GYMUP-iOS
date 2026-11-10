@@ -21,7 +21,7 @@ struct ProfilePlaylistView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ProfilePlaylistNavigationBar(title: "플레이리스트", onBack: dismiss.callAsFunction)
+            GymupDetailNavigationBar(title: "플레이리스트", onBack: dismiss.callAsFunction)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: GymupSpacing.large) {

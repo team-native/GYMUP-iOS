@@ -30,7 +30,7 @@ struct ProfilePlaylistTrackSelectionView: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            ProfilePlaylistNavigationBar(title: presentation.routineTitle, onBack: dismiss.callAsFunction)
+            GymupDetailNavigationBar(title: presentation.routineTitle, onBack: dismiss.callAsFunction)
 
             ScrollView(showsIndicators: false) {
                 VStack(alignment: .leading, spacing: GymupSpacing.large) {
