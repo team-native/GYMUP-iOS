@@ -18,7 +18,7 @@ final class SpotifyAuthorizationSession: NSObject, ASWebAuthenticationPresentati
     func authorize(url: URL, callbackScheme: String) async throws -> URL {
         try await withCheckedThrowingContinuation { continuation in
             self.continuation = continuation
-            let session = ASWebAuthenticationSession(url: url, callback: .customScheme(callbackScheme)) { [weak self] url, error in
+            let completionHandler: ASWebAuthenticationSession.CompletionHandler = { [weak self] url, error in
                 Task { @MainActor in
                     guard let self else { return }
                     if let url {
@@ -27,6 +27,20 @@ final class SpotifyAuthorizationSession: NSObject, ASWebAuthenticationPresentati
                         self.finish(.failure(error ?? PlaylistProviderError.authorizationFailed("Spotify 로그인이 취소됐어요.")))
                     }
                 }
+            }
+            let session: ASWebAuthenticationSession
+            if #available(iOS 17.4, *) {
+                session = ASWebAuthenticationSession(
+                    url: url,
+                    callback: .customScheme(callbackScheme),
+                    completionHandler: completionHandler
+                )
+            } else {
+                session = ASWebAuthenticationSession(
+                    url: url,
+                    callbackURLScheme: callbackScheme,
+                    completionHandler: completionHandler
+                )
             }
             session.presentationContextProvider = self
             self.session = session
