@@ -52,7 +52,9 @@ struct HistoryGrowthView: View {
             await loadServerStatistics()
         }
     }
+}
 
+extension HistoryGrowthView {
     private var navigationBar: some View {
         HStack(spacing: 8) {
             Button(action: dismiss.callAsFunction) {
@@ -210,7 +212,9 @@ struct HistoryGrowthView: View {
         .background(GymupColors.surface, in: Capsule())
         .accessibilityLabel("그래프 조회 기간")
     }
+}
 
+extension HistoryGrowthView {
     private var ranges: [HistoryGrowthRange] {
         HistoryGrowthRange.allCases
     }
@@ -379,21 +383,4 @@ struct HistoryGrowthView: View {
         return formatter.date(from: value)
     }
 
-}
-
-#Preview("G5 성장 그래프") {
-    HistoryGrowthView()
-        .preferredColorScheme(.dark)
-}
-
-#Preview("G5 기록 없음") {
-    HistoryGrowthView(sampleDataOverride: [])
-        .preferredColorScheme(.dark)
-}
-
-#Preview("G5 기록 부족") {
-    HistoryGrowthView(sampleDataOverride: [
-        HistoryGrowthDataPoint(date: .now, value: 62.5)
-    ])
-    .preferredColorScheme(.dark)
 }

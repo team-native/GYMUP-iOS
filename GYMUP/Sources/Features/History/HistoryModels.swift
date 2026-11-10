@@ -29,7 +29,7 @@ struct WorkoutExerciseRecord: Identifiable, Hashable, Codable {
     let id: Int
     let name: String
     let sets: [WorkoutSetRecord]
-    var exerciseId: String? = nil
+    var exerciseId: String?
 }
 
 struct WorkoutRecord: Identifiable, Hashable, Codable {

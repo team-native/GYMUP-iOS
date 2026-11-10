@@ -4,7 +4,7 @@ struct HomeGrowthCard: View {
     let inventory: BarbellCustomizationViewModel
     let growthViewModel: GrowthViewModel
     let rewardNotice: String
-    var serverStage: String? = nil
+    var serverStage: String?
     let onOpenGrowth: () -> Void
     let onNewItem: () -> Void
 

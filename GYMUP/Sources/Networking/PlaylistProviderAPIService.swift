@@ -1,9 +1,7 @@
-import AuthenticationServices
 import CryptoKit
 import Foundation
 import MusicKit
 import Security
-import UIKit
 
 enum PlaylistProvider: String, CaseIterable, Codable, Identifiable {
     case appleMusic = "apple_music"
@@ -284,7 +282,11 @@ struct SpotifyPlaylistProvider {
         guard status == errSecSuccess else {
             throw PlaylistProviderError.authorizationFailed("PKCE challenge를 안전하게 만들지 못했어요.")
         }
-        return String(decoding: bytes.map { alphabet[Int($0) % alphabet.count] }, as: UTF8.self)
+        let randomBytes = bytes.map { alphabet[Int($0) % alphabet.count] }
+        guard let value = String(bytes: randomBytes, encoding: .utf8) else {
+            throw PlaylistProviderError.authorizationFailed("PKCE challenge를 안전하게 만들지 못했어요.")
+        }
+        return value
     }
 
     private static func codeChallenge(for verifier: String) -> String {
@@ -377,90 +379,5 @@ actor SpotifyCredentialStore {
         guard status == errSecSuccess || status == errSecItemNotFound else {
             throw PlaylistProviderError.authorizationFailed("Spotify 연결 정보를 삭제하지 못했어요.")
         }
-    }
-}
-
-private struct SpotifyPlaylistPage: Decodable {
-    let next: String?
-    let items: [SpotifyPlaylist]
-}
-
-private struct SpotifyPlaylist: Decodable {
-    let id: String
-    let name: String
-    let externalURLs: SpotifyExternalURLs?
-
-    enum CodingKeys: String, CodingKey {
-        case id
-        case name
-        case externalURLs = "external_urls"
-    }
-}
-
-private struct SpotifyExternalURLs: Decodable {
-    let spotify: String?
-}
-
-private struct SpotifyTokenResponse: Decodable {
-    let accessToken: String
-    let refreshToken: String?
-    let expiresIn: Int
-
-    enum CodingKeys: String, CodingKey {
-        case accessToken = "access_token"
-        case refreshToken = "refresh_token"
-        case expiresIn = "expires_in"
-    }
-}
-
-@MainActor
-private final class SpotifyAuthorizationSession: NSObject, ASWebAuthenticationPresentationContextProviding {
-    private var session: ASWebAuthenticationSession?
-    private var continuation: CheckedContinuation<URL, Error>?
-    private let anchor: ASPresentationAnchor
-
-    init(anchor: ASPresentationAnchor? = Self.activePresentationAnchor()) throws {
-        guard let anchor else {
-            throw PlaylistProviderError.authorizationFailed("로그인 화면을 열 수 없어요. 앱을 다시 활성화한 뒤 시도해 주세요.")
-        }
-        self.anchor = anchor
-    }
-
-    func authorize(url: URL, callbackScheme: String) async throws -> URL {
-        try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
-            let session = ASWebAuthenticationSession(url: url, callback: .customScheme(callbackScheme)) { [weak self] url, error in
-                Task { @MainActor in
-                    guard let self else { return }
-                    if let url {
-                        self.finish(.success(url))
-                    } else {
-                        self.finish(.failure(error ?? PlaylistProviderError.authorizationFailed("Spotify 로그인이 취소됐어요.")))
-                    }
-                }
-            }
-            session.presentationContextProvider = self
-            self.session = session
-            guard session.start() else {
-                finish(.failure(PlaylistProviderError.authorizationFailed("Spotify 로그인 화면을 열지 못했어요.")))
-                return
-            }
-        }
-    }
-
-    func presentationAnchor(for session: ASWebAuthenticationSession) -> ASPresentationAnchor { anchor }
-
-    private func finish(_ result: Result<URL, Error>) {
-        session = nil
-        guard let continuation else { return }
-        self.continuation = nil
-        continuation.resume(with: result)
-    }
-
-    private static func activePresentationAnchor() -> ASPresentationAnchor? {
-        UIApplication.shared.connectedScenes
-            .compactMap { $0 as? UIWindowScene }
-            .flatMap(\.windows)
-            .first(where: \.isKeyWindow)
     }
 }

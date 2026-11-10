@@ -4,7 +4,7 @@ struct WorkoutSummaryView: View {
     let data: WorkoutCompletionData
     let onPhoto: () -> Void
     var showsPhotoAction = true
-    var rewardErrorMessage: String? = nil
+    var rewardErrorMessage: String?
     var isLoadingReward = false
     var onRetryReward: () -> Void = {}
     let onContinue: () -> Void

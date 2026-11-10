@@ -2,10 +2,18 @@ import Foundation
 
 struct WorkoutRewardResponse: Decodable, Equatable {
     let workoutId: String
-    let xp: Int
+    let experiencePoints: Int
     let growthDelta: Int
     let bonuses: JSONValue
     let grantedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case workoutId
+        case experiencePoints = "xp"
+        case growthDelta
+        case bonuses
+        case grantedAt
+    }
 }
 
 protocol WorkoutRewardReading {

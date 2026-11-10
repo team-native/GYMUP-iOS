@@ -9,7 +9,7 @@ struct WorkoutCompletionFlowView: View {
     let onGoalHistory: () -> Void
     let showsPhotoAction: Bool
     let showsPeakGoalActions: Bool
-    var rewardErrorMessage: String? = nil
+    var rewardErrorMessage: String?
     var isLoadingReward = false
     var onRetryReward: () -> Void = {}
 

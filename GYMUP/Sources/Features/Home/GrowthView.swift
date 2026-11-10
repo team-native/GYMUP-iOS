@@ -60,7 +60,9 @@ struct GrowthView: View {
             await avatarViewModel.loadGrowthStage()
         }
     }
+}
 
+extension GrowthView {
     @ViewBuilder
     private var avatarStageStatus: some View {
         if avatarViewModel.isAvailable,

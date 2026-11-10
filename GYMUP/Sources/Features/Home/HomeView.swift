@@ -100,7 +100,9 @@ struct HomeView: View {
             await avatarViewModel.loadAvatar()
         }
     }
+}
 
+extension HomeView {
     @ViewBuilder
     private var avatarStatus: some View {
         if avatarViewModel.isAvailable,
