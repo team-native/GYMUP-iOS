@@ -97,7 +97,7 @@ extension WorkoutSessionView {
             WorkoutExitConfirmationDialog(
                 completedExerciseCount: viewModel.completedExerciseCount,
                 completedSetCount: viewModel.plan.exercises.reduce(0) { $0 + $1.completedSetCount },
-                onFinish: finishWorkoutSession,
+                onFinish: { finishWorkoutSession() },
                 onContinue: { isConfirmingFinish = false }
             )
             .transition(.opacity)
