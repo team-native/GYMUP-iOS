@@ -207,5 +207,4 @@ enum WorkoutSessionCompletionDataFactory {
         )
     }
 
-
 }

@@ -32,4 +32,3 @@ struct SpotifyTokenResponse: Decodable {
         case expiresIn = "expires_in"
     }
 }
-
