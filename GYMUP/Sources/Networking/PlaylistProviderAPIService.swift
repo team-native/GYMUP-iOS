@@ -110,7 +110,7 @@ struct SpotifyPlaylistProvider {
             URLQueryItem(name: "client_id", value: configuration.clientID),
             URLQueryItem(name: "response_type", value: "code"),
             URLQueryItem(name: "redirect_uri", value: configuration.redirectURI.absoluteString),
-            URLQueryItem(name: "scope", value: "playlist-read-private"),
+            URLQueryItem(name: "scope", value: "playlist-read-private app-remote-control"),
             URLQueryItem(name: "code_challenge_method", value: "S256"),
             URLQueryItem(name: "code_challenge", value: challenge),
             URLQueryItem(name: "state", value: state)
@@ -144,6 +144,13 @@ struct SpotifyPlaylistProvider {
 
     func disconnect() async throws {
         try await credentialStore.remove()
+    }
+
+    func playbackAccessToken() async throws -> String {
+        guard let configuration else {
+            throw PlaylistProviderError.notConfigured("Spotify Client ID 설정이 필요해요.")
+        }
+        return try await validCredentials(configuration: configuration).accessToken
     }
 
     func fetchPlaylists() async throws -> [PlaylistCatalogItem] {

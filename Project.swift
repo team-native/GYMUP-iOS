@@ -2,6 +2,9 @@ import ProjectDescription
 
 let project = Project(
     name: "GYMUP",
+    packages: [
+        .remote(url: "https://github.com/spotify/ios-sdk.git", requirement: .exact("5.0.1")),
+    ],
     targets: [
         .target(
             name: "GYMUP",
@@ -24,25 +27,37 @@ let project = Project(
                     "UILaunchScreen": [:],
                     "NSSupportsLiveActivities": true,
                     "NSCameraUsageDescription": "운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.",
-                    "NSAppleMusicUsageDescription": "루틴에 연결할 플레이리스트를 선택하기 위해 Apple Music 라이브러리를 읽습니다.",
+                    "NSAppleMusicUsageDescription": "운동 중 선택한 Apple Music 플레이리스트를 재생하기 위해 음악 접근 권한이 필요합니다.",
+                    "UIBackgroundModes": ["audio"],
+                    "LSApplicationQueriesSchemes": ["spotify"],
                     "UIAppFonts": [
                         "NotoSansKR[wght].ttf",
-                        "GothicA1-Medium.ttf",
-                        "GothicA1-SemiBold.ttf",
-                        "GothicA1-Bold.ttf",
-                        "GothicA1-ExtraBold.ttf",
-                        "BarlowCondensed-Black.ttf",
-                        "BarlowCondensed-Bold.ttf",
-                        "BarlowCondensed-ExtraBold.ttf",
-                        "Archivo[wdth,wght].ttf",
+                        "Fonts/GothicA1-Medium.ttf",
+                        "Fonts/GothicA1-SemiBold.ttf",
+                        "Fonts/GothicA1-Bold.ttf",
+                        "Fonts/GothicA1-ExtraBold.ttf",
+                        "Fonts/BarlowCondensed-Black.ttf",
+                        "Fonts/BarlowCondensed-Bold.ttf",
+                        "Fonts/BarlowCondensed-ExtraBold.ttf",
+                        "Fonts/Archivo[wdth,wght].ttf",
                     ],
                 ]
             ),
             sources: ["GYMUP/Sources/**"],
-            resources: ["GYMUP/Resources/**"],
-            dependencies: [.target(name: "GYMUPWidgetExtension")],
+            resources: [
+                "GYMUP/Resources/Assets.xcassets",
+                .folderReference(path: "GYMUP/Resources/Fonts"),
+                "GYMUP/Resources/*.ttf",
+            ],
+            dependencies: [
+                .target(name: "GYMUPWidgetExtension"),
+                .package(product: "SpotifyiOS"),
+            ],
             settings: .settings(
-                base: ["ASSETCATALOG_COMPILER_APPICON_NAME": ""],
+                base: [
+                    "ASSETCATALOG_COMPILER_APPICON_NAME": "",
+                    "CODE_SIGN_ENTITLEMENTS": "GYMUP/GYMUP.entitlements",
+                ],
                 configurations: [
                     .debug(
                         name: "Debug",
@@ -69,14 +84,14 @@ let project = Project(
                     ],
                     "NSSupportsLiveActivities": true,
                     "UIAppFonts": [
-                        "BarlowCondensed-Black.ttf",
-                        "BarlowCondensed-Bold.ttf",
-                        "BarlowCondensed-ExtraBold.ttf",
-                        "GothicA1-Medium.ttf",
-                        "GothicA1-SemiBold.ttf",
-                        "GothicA1-Bold.ttf",
-                        "GothicA1-ExtraBold.ttf",
-                        "Archivo[wdth,wght].ttf",
+                        "Fonts/BarlowCondensed-Black.ttf",
+                        "Fonts/BarlowCondensed-Bold.ttf",
+                        "Fonts/BarlowCondensed-ExtraBold.ttf",
+                        "Fonts/GothicA1-Medium.ttf",
+                        "Fonts/GothicA1-SemiBold.ttf",
+                        "Fonts/GothicA1-Bold.ttf",
+                        "Fonts/GothicA1-ExtraBold.ttf",
+                        "Fonts/Archivo[wdth,wght].ttf",
                     ],
                 ]
             ),
@@ -84,7 +99,7 @@ let project = Project(
                 "GYMUPWidgetExtension/Sources/**",
                 "GYMUP/Sources/Features/WorkoutSession/WorkoutRestActivityAttributes.swift",
             ],
-            resources: ["GYMUP/Resources/Fonts/**"],
+            resources: [.folderReference(path: "GYMUP/Resources/Fonts")],
             dependencies: []
         ),
         .target(

@@ -119,7 +119,7 @@ extension WorkoutSessionView {
 
     private var playlistSheetContent: some View {
         ProfilePlaylistSheetView()
-            .presentationDetents([.medium])
+            .presentationDetents([.medium, .large])
             .presentationDragIndicator(.visible)
     }
 

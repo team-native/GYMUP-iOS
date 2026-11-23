@@ -7,13 +7,28 @@ GYMUP-iOS is an iOS application built with SwiftUI and generated Xcode projects 
 - Xcode with an iOS Simulator runtime
 - [mise](https://mise.jdx.dev/) for pinned Tuist and SwiftLint versions
 
-The repository pins Tuist `4.202.0` and SwiftLint `0.65.1` in `.tool-versions`.
+CI runs on macOS 15 with Xcode `26.3`. The repository pins Tuist `4.202.0` and SwiftLint `0.65.1` in `.tool-versions`.
+
+| Environment | Xcode | Tuist |
+| --- | --- | --- |
+| CI (`macos-15`) | `26.3` | `4.202.0` from `.tool-versions` |
+| Local macOS `27.2` | `27.2` | `4.209.0` override |
+
+Apple's [Xcode system requirements](https://developer.apple.com/xcode/system-requirements/) list Xcode `26.3` through macOS `26.x`; on macOS `27.2`, use the local Tuist override below. This keeps local project generation working without changing the CI-pinned tool versions.
 
 ## Setup
 
 ```sh
 mise install
 tuist generate --no-open
+open GYMUP.xcodeproj
+```
+
+On macOS `27.2` with Xcode `27.2`, generate the project with the compatible local Tuist version instead:
+
+```sh
+mise install
+mise exec tuist@4.209.0 -- tuist generate --no-open
 open GYMUP.xcodeproj
 ```
 
