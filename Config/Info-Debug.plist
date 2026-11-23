@@ -29,6 +29,10 @@
 			</array>
 		</dict>
 	</array>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>spotify</string>
+	</array>
 	<key>GYMUP_API_BASE_URL</key>
 	<string>http://localhost:8000</string>
 	<key>GYMUP_SPOTIFY_CLIENT_ID</key>
@@ -45,20 +49,24 @@
 	<key>NSCameraUsageDescription</key>
 	<string>운동 기록 사진을 촬영하기 위해 카메라 접근 권한이 필요합니다.</string>
 	<key>NSAppleMusicUsageDescription</key>
-	<string>루틴에 연결할 플레이리스트를 선택하기 위해 Apple Music 라이브러리를 읽습니다.</string>
+	<string>운동 중 선택한 Apple Music 플레이리스트를 재생하기 위해 음악 접근 권한이 필요합니다.</string>
 	<key>NSSupportsLiveActivities</key>
 	<true/>
 	<key>UIAppFonts</key>
 	<array>
 		<string>NotoSansKR[wght].ttf</string>
-		<string>GothicA1-Medium.ttf</string>
-		<string>GothicA1-SemiBold.ttf</string>
-		<string>GothicA1-Bold.ttf</string>
-		<string>GothicA1-ExtraBold.ttf</string>
-		<string>BarlowCondensed-Black.ttf</string>
-		<string>BarlowCondensed-Bold.ttf</string>
-		<string>BarlowCondensed-ExtraBold.ttf</string>
-		<string>Archivo[wdth,wght].ttf</string>
+		<string>Fonts/GothicA1-Medium.ttf</string>
+		<string>Fonts/GothicA1-SemiBold.ttf</string>
+		<string>Fonts/GothicA1-Bold.ttf</string>
+		<string>Fonts/GothicA1-ExtraBold.ttf</string>
+		<string>Fonts/BarlowCondensed-Black.ttf</string>
+		<string>Fonts/BarlowCondensed-Bold.ttf</string>
+		<string>Fonts/BarlowCondensed-ExtraBold.ttf</string>
+		<string>Fonts/Archivo[wdth,wght].ttf</string>
+	</array>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>audio</string>
 	</array>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
